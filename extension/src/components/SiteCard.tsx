@@ -23,17 +23,22 @@ const statusConfig: Record<
 
 export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardProps) {
 	const statusInfo = statusConfig[status]
+	const hasSubmitUrl = !!site.submit_url
 
 	return (
 		<Card
-			className="cursor-pointer hover:border-primary/50 transition-colors"
+			className={`cursor-pointer transition-colors ${hasSubmitUrl ? 'hover:border-primary/50' : 'opacity-50'}`}
 			onClick={() => onSelect?.(site)}
 		>
 			<CardHeader>
 				<CardTitle className="truncate flex-1">{site.name}</CardTitle>
 				<div className="flex items-center gap-1.5 shrink-0">
 					<Badge variant="outline">DR {site.dr}</Badge>
-					<Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+					{hasSubmitUrl ? (
+						<Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+					) : (
+						<Badge variant="muted">Manual</Badge>
+					)}
 				</div>
 			</CardHeader>
 			<CardContent>

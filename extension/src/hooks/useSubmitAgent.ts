@@ -30,16 +30,27 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 				throw new Error(`No submit URL for site: ${site.name}`)
 			}
 
-			// Dispose previous agent if any
 			agentRef.current?.dispose()
 
 			const llmConfig = await getLLMConfig()
-			if (!llmConfig.apiKey && !llmConfig.baseUrl) {
-				throw new Error('LLM not configured. Please set your API key in Settings.')
+			if (!llmConfig.baseUrl) {
+				throw new Error('LLM not configured. Please set the Base URL in Settings.')
+			}
+			if (!llmConfig.model) {
+				throw new Error('Model not configured. Please set the model name in Settings.')
 			}
 
+			const baseURL = llmConfig.baseUrl.replace(/\/+$/, '')
+
+			console.log('[SubmitAgent] Starting submission', {
+				site: site.name,
+				baseURL,
+				model: llmConfig.model,
+				hasApiKey: !!llmConfig.apiKey,
+			})
+
 			const agent = new SubmitAgent({
-				baseURL: llmConfig.baseUrl,
+				baseURL,
 				model: llmConfig.model,
 				apiKey: llmConfig.apiKey || undefined,
 				product,
@@ -85,7 +96,14 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 
 			try {
 				const result = await agent.execute(task)
+				console.log('[SubmitAgent] Execution completed', {
+					success: result.success,
+					data: result.data,
+				})
 				return result
+			} catch (error) {
+				console.error('[SubmitAgent] Execution failed', error)
+				throw error
 			} finally {
 				agent.removeEventListener('statuschange', handleStatusChange)
 				agent.removeEventListener('historychange', handleHistoryChange)

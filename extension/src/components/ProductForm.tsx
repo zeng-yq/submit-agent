@@ -4,12 +4,14 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
 
-type FormData = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt'>
+export type FormData = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt'>
 
 interface ProductFormProps {
-	initial?: ProductProfile
+	initial?: Partial<FormData> & Pick<FormData, 'name' | 'url'>
+	compact?: boolean
 	onSave: (data: FormData) => Promise<void>
 	onCancel?: () => void
+	submitLabel?: string
 }
 
 const EMPTY_FORM: FormData = {
@@ -25,9 +27,10 @@ const EMPTY_FORM: FormData = {
 	socialLinks: {},
 }
 
-export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
-	const [form, setForm] = useState<FormData>(initial ?? EMPTY_FORM)
+export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }: ProductFormProps) {
+	const [form, setForm] = useState<FormData>({ ...EMPTY_FORM, ...initial })
 	const [saving, setSaving] = useState(false)
+	const [showMore, setShowMore] = useState(false)
 
 	const update = useCallback(
 		<K extends keyof FormData>(key: K, value: FormData[K]) => {
@@ -46,11 +49,15 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 		}
 	}
 
+	const textareaRows = compact ? 2 : undefined
+
 	return (
-		<form onSubmit={handleSubmit} className="space-y-4">
-			<div className="text-sm font-semibold">
-				{initial ? 'Edit Product' : 'New Product Profile'}
-			</div>
+		<form onSubmit={handleSubmit} className="space-y-3">
+			{!compact && (
+				<div className="text-sm font-semibold">
+					{initial ? 'Edit Product' : 'New Product Profile'}
+				</div>
+			)}
 
 			<Input
 				label="Product Name"
@@ -82,7 +89,7 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 				placeholder="Brief product description for directories..."
 				value={form.shortDesc}
 				onChange={(e) => update('shortDesc', e.target.value)}
-				rows={3}
+				rows={textareaRows ?? 3}
 				required
 			/>
 
@@ -91,7 +98,7 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 				placeholder="Detailed product description..."
 				value={form.longDesc}
 				onChange={(e) => update('longDesc', e.target.value)}
-				rows={5}
+				rows={textareaRows ?? 5}
 				required
 			/>
 
@@ -107,6 +114,44 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 				}
 			/>
 
+			{compact ? (
+				<>
+					<button
+						type="button"
+						className="text-xs text-primary hover:underline"
+						onClick={() => setShowMore((v) => !v)}
+					>
+						{showMore ? 'Hide extra details' : 'More details (founder, social links)'}
+					</button>
+					{showMore && <ExtraFields form={form} update={update} />}
+				</>
+			) : (
+				<ExtraFields form={form} update={update} />
+			)}
+
+			<div className="flex gap-2 pt-2">
+				<Button type="submit" disabled={saving || !form.name || !form.url} className={compact ? 'w-full' : ''}>
+					{saving ? 'Saving...' : submitLabel ?? (initial ? 'Update' : 'Create Profile')}
+				</Button>
+				{onCancel && (
+					<Button type="button" variant="outline" onClick={onCancel}>
+						Cancel
+					</Button>
+				)}
+			</div>
+		</form>
+	)
+}
+
+function ExtraFields({
+	form,
+	update,
+}: {
+	form: FormData
+	update: <K extends keyof FormData>(key: K, value: FormData[K]) => void
+}) {
+	return (
+		<>
 			<div className="border-t border-border pt-4 mt-4">
 				<div className="text-xs font-semibold mb-3">Founder Info</div>
 				<div className="space-y-3">
@@ -142,17 +187,6 @@ export function ProductForm({ initial, onSave, onCancel }: ProductFormProps) {
 					))}
 				</div>
 			</div>
-
-			<div className="flex gap-2 pt-2">
-				<Button type="submit" disabled={saving || !form.name || !form.url}>
-					{saving ? 'Saving...' : initial ? 'Update' : 'Create Profile'}
-				</Button>
-				{onCancel && (
-					<Button type="button" variant="outline" onClick={onCancel}>
-						Cancel
-					</Button>
-				)}
-			</div>
-		</form>
+		</>
 	)
 }

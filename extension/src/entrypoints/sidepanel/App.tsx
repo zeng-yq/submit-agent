@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { SiteData } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
+import { QuickCreate } from '@/components/QuickCreate'
 import { SubmitFlow } from '@/components/SubmitFlow'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Button } from '@/components/ui/Button'
@@ -10,17 +11,42 @@ import { useSubmitAgent } from '@/hooks/useSubmitAgent'
 
 type View =
 	| { name: 'dashboard' }
+	| { name: 'quick-create' }
 	| { name: 'site-detail'; site: SiteData }
 	| { name: 'settings' }
 
 export default function App() {
 	const [view, setView] = useState<View>({ name: 'dashboard' })
 	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped } = useSites()
-	const { activeProduct, loading: productLoading } = useProduct()
-	const { startSubmission } = useSubmitAgent()
+	const { activeProduct, loading: productLoading, createProduct } = useProduct()
+	const { status: agentStatus, history, activity, startSubmission, stop } = useSubmitAgent()
+	const [agentError, setAgentError] = useState<string | null>(null)
 
 	if (view.name === 'settings') {
 		return <SettingsPanel onClose={() => setView({ name: 'dashboard' })} />
+	}
+
+	if (view.name === 'quick-create') {
+		return (
+			<div className="flex flex-col h-screen bg-background">
+				<header className="flex items-center justify-between border-b px-3 py-2">
+					<span className="text-sm font-semibold">Submit Agent</span>
+					<Button variant="ghost" size="sm" onClick={() => setView({ name: 'dashboard' })}>
+						Back
+					</Button>
+				</header>
+				<main className="flex-1 overflow-y-auto p-3">
+					<QuickCreate
+						onSave={async (data) => {
+							await createProduct(data)
+							setView({ name: 'dashboard' })
+						}}
+						onSkip={() => chrome.runtime.openOptionsPage()}
+						onOpenSettings={() => setView({ name: 'settings' })}
+					/>
+				</main>
+			</div>
+		)
 	}
 
 	if (view.name === 'site-detail') {
@@ -32,30 +58,48 @@ export default function App() {
 				site={site}
 				product={activeProduct}
 				submission={submission}
+				agentStatus={agentStatus}
+				agentActivity={activity}
+				agentHistory={history}
+				agentError={agentError}
 				onStartSubmit={() => {
 					if (activeProduct) {
-						startSubmission(site, activeProduct).then(() => {
-							markSubmitted(site.name, activeProduct.id)
-						})
+						setAgentError(null)
+						startSubmission(site, activeProduct)
+							.then((result) => {
+								if (result.success) {
+									markSubmitted(site.name, activeProduct.id)
+								} else {
+									setAgentError(result.data || 'Submission failed')
+								}
+							})
+							.catch((err) => {
+								console.error('[App] startSubmission error:', err)
+								setAgentError(
+									err instanceof Error ? err.message : String(err)
+								)
+							})
 					}
 				}}
+				onStop={stop}
 				onSkip={() => {
 					if (activeProduct) {
 						markSkipped(site.name, activeProduct.id)
 					}
 					setView({ name: 'dashboard' })
 				}}
-				onBack={() => setView({ name: 'dashboard' })}
+				onBack={() => {
+					setAgentError(null)
+					setView({ name: 'dashboard' })
+				}}
 			/>
 		)
 	}
 
-	// Dashboard view
 	const isLoading = sitesLoading || productLoading
 
 	return (
 		<div className="flex flex-col h-screen bg-background">
-			{/* Header */}
 			<header className="flex items-center justify-between border-b px-3 py-2">
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-semibold">Submit Agent</span>
@@ -71,7 +115,7 @@ export default function App() {
 						size="sm"
 						onClick={() => chrome.runtime.openOptionsPage()}
 					>
-						Product
+						Products
 					</Button>
 					<Button
 						variant="ghost"
@@ -83,19 +127,20 @@ export default function App() {
 				</div>
 			</header>
 
-			{/* Main content */}
 			<main className="flex-1 overflow-hidden p-3">
 				{isLoading ? (
 					<div className="flex items-center justify-center h-full text-xs text-muted-foreground">
 						Loading...
 					</div>
 				) : !activeProduct ? (
-					<div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-						<div className="text-sm text-muted-foreground">No product profile yet</div>
-						<Button size="sm" onClick={() => chrome.runtime.openOptionsPage()}>
-							Create Product Profile
-						</Button>
-					</div>
+					<QuickCreate
+						onSave={async (data) => {
+							await createProduct(data)
+							setView({ name: 'dashboard' })
+						}}
+						onSkip={() => chrome.runtime.openOptionsPage()}
+						onOpenSettings={() => setView({ name: 'settings' })}
+					/>
 				) : (
 					<Dashboard
 						sites={sites}

@@ -16,11 +16,16 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 	const [categoryFilter, setCategoryFilter] = useState('all')
 	const [sortBy, setSortBy] = useState<SortField>('dr')
 	const [linkTypeFilter, setLinkTypeFilter] = useState('all')
+	const [submittableOnly, setSubmittableOnly] = useState(true)
 
 	const categories = useMemo(() => getCategories(sites), [sites])
 
 	const filteredSites = useMemo(() => {
 		let result = sites
+
+		if (submittableOnly) {
+			result = result.filter((s) => !!s.submit_url)
+		}
 
 		if (categoryFilter !== 'all') {
 			result = result.filter((s) => s.category === categoryFilter)
@@ -37,16 +42,18 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 		})
 
 		return result
-	}, [sites, categoryFilter, sortBy, linkTypeFilter])
+	}, [sites, categoryFilter, sortBy, linkTypeFilter, submittableOnly])
+
+	const submittableCount = useMemo(() => sites.filter((s) => !!s.submit_url).length, [sites])
 
 	const stats = useMemo(() => {
 		let submitted = 0
-		let total = sites.length
+		const total = submittableCount
 		for (const sub of submissions.values()) {
 			if (sub.status === 'submitted' || sub.status === 'approved') submitted++
 		}
 		return { submitted, total }
-	}, [sites, submissions])
+	}, [submittableCount, submissions])
 
 	return (
 		<div className="flex flex-col gap-3 h-full">
@@ -66,7 +73,7 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 			</div>
 
 			{/* Filters */}
-			<div className="flex gap-2">
+			<div className="flex gap-2 flex-wrap">
 				<Select
 					value={categoryFilter}
 					onChange={(e) => setCategoryFilter(e.target.value)}
@@ -74,7 +81,7 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 						{ value: 'all', label: 'All Categories' },
 						...categories.map((c) => ({ value: c, label: c })),
 					]}
-					className="flex-1 h-7 text-xs"
+					className="flex-1 h-7 text-xs min-w-0"
 				/>
 				<Select
 					value={linkTypeFilter}
@@ -95,6 +102,17 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 					]}
 					className="h-7 text-xs"
 				/>
+				<button
+					type="button"
+					onClick={() => setSubmittableOnly((v) => !v)}
+					className={`h-7 px-2 text-xs rounded border transition-colors ${
+						submittableOnly
+							? 'bg-primary text-primary-foreground border-primary'
+							: 'bg-background text-muted-foreground border-border hover:border-primary/50'
+					}`}
+				>
+					Submittable
+				</button>
 			</div>
 
 			{/* Site list */}

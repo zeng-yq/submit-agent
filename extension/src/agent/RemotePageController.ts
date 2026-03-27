@@ -58,26 +58,30 @@ export class RemotePageController {
 	}
 
 	async getBrowserState(): Promise<BrowserState> {
-		let browserState = {} as BrowserState
 		debug('getBrowserState', this.currentTabId)
 
 		const currentUrl = await this.getCurrentUrl()
 		const currentTitle = await this.getCurrentTitle()
 
+		const fallback: BrowserState = {
+			url: currentUrl,
+			title: currentTitle,
+			header: '',
+			content: '(empty page. either current page is not readable or content script not loaded yet.)',
+			footer: '',
+		}
+
+		let browserState: BrowserState
+
 		if (!this.currentTabId || !isContentScriptAllowed(currentUrl)) {
-			browserState = {
-				url: currentUrl,
-				title: currentTitle,
-				header: '',
-				content: '(empty page. either current page is not readable or not loaded yet.)',
-				footer: '',
-			}
+			browserState = fallback
 		} else {
-			browserState = await sendMessage({
+			const result = await sendMessage({
 				type: 'PAGE_CONTROL',
 				action: 'get_browser_state',
 				targetTabId: this.currentTabId,
 			})
+			browserState = result ?? fallback
 		}
 
 		const sum = await this.tabsController.summarizeTabs()

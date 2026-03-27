@@ -1,3 +1,4 @@
+import { DEFAULT_LLM_CONFIG } from '@/agent/constants'
 import type { ExtSettings, LLMSettings } from './types'
 
 const STORAGE_KEYS = {
@@ -7,11 +8,7 @@ const STORAGE_KEYS = {
 	activeProductId: 'submitAgent_activeProductId',
 } as const
 
-const DEFAULT_LLM: LLMSettings = {
-	apiKey: '',
-	baseUrl: 'https://api.openai.com/v1',
-	model: 'gpt-4o',
-}
+const DEFAULT_LLM: LLMSettings = DEFAULT_LLM_CONFIG
 
 export async function getLLMConfig(): Promise<LLMSettings> {
 	const result = await chrome.storage.local.get(STORAGE_KEYS.llmConfig)

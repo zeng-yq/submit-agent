@@ -1,3 +1,4 @@
+import { isLLMConfigured } from '@/agent/constants'
 import type { LLMSettings } from '@/lib/types'
 import { useCallback, useEffect, useState } from 'react'
 import { getLLMConfig, setLLMConfig, getLanguage, setLanguage } from '@/lib/storage'
@@ -10,14 +11,12 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
-	const [llm, setLlm] = useState<LLMSettings>({
-		apiKey: '',
-		baseUrl: 'https://api.openai.com/v1',
-		model: 'gpt-4o',
-	})
+	const [llm, setLlm] = useState<LLMSettings>({ apiKey: '', baseUrl: '', model: '' })
 	const [lang, setLang] = useState<'en' | 'zh'>('en')
 	const [saving, setSaving] = useState(false)
 	const [loaded, setLoaded] = useState(false)
+
+	const configured = isLLMConfigured(llm)
 
 	useEffect(() => {
 		Promise.all([getLLMConfig(), getLanguage()]).then(([llmConfig, language]) => {
@@ -54,19 +53,30 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 			<div className="flex-1 overflow-y-auto p-3 space-y-4">
 				<div className="text-xs font-semibold">LLM Configuration</div>
 
-				<Input
-					label="API Key"
-					type="password"
-					placeholder="sk-..."
-					value={llm.apiKey}
-					onChange={(e) => setLlm((prev) => ({ ...prev, apiKey: e.target.value }))}
-				/>
+			{!configured && (
+				<div className="text-xs text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded p-2 space-y-1">
+					<div className="font-medium">LLM not configured</div>
+					<div>
+						Enter your OpenAI-compatible API endpoint and model name to enable AI
+						features. Works with OpenAI, Anthropic, DeepSeek, Qwen, or any compatible
+						provider.
+					</div>
+				</div>
+			)}
 
 				<Input
 					label="Base URL"
 					placeholder="https://api.openai.com/v1"
 					value={llm.baseUrl}
 					onChange={(e) => setLlm((prev) => ({ ...prev, baseUrl: e.target.value }))}
+				/>
+
+				<Input
+					label="API Key"
+					type="password"
+					placeholder="sk-..."
+					value={llm.apiKey}
+					onChange={(e) => setLlm((prev) => ({ ...prev, apiKey: e.target.value }))}
 				/>
 
 				<Input
@@ -90,9 +100,18 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 			</div>
 
 			<footer className="border-t p-3">
-				<Button onClick={handleSave} disabled={saving} className="w-full">
+				<Button
+					onClick={handleSave}
+					disabled={saving || !llm.baseUrl || !llm.model}
+					className="w-full"
+				>
 					{saving ? 'Saving...' : 'Save Settings'}
 				</Button>
+				{llm.baseUrl && !llm.model && (
+					<div className="text-xs text-amber-600 mt-2 text-center">
+						Model name is required
+					</div>
+				)}
 			</footer>
 		</div>
 	)
