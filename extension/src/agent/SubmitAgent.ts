@@ -58,7 +58,7 @@ export class SubmitAgent extends PageAgentCore {
 			maxSteps: config.maxSteps ?? 30,
 
 			onBeforeTask: async (agent) => {
-				await tabsController.init(agent.task, includeInitialTab)
+				await tabsController.init(includeInitialTab)
 
 				heartBeatInterval = window.setInterval(() => {
 					chrome.storage.local.set({ agentHeartbeat: Date.now() })

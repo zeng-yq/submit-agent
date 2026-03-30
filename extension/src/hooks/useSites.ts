@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SiteData, SubmissionRecord } from '@/lib/types'
 import { loadSites } from '@/lib/sites'
-import { listSubmissions, saveSubmission, updateSubmission } from '@/lib/db'
+import { listSubmissionsByProduct, saveSubmission, updateSubmission } from '@/lib/db'
 
 export interface UseSitesResult {
 	sites: SiteData[]
@@ -13,17 +13,20 @@ export interface UseSitesResult {
 	updateStatus: (record: SubmissionRecord) => Promise<void>
 }
 
-export function useSites(): UseSitesResult {
+export function useSites(productId: string | null): UseSitesResult {
 	const [sites, setSites] = useState<SiteData[]>([])
 	const [submissionList, setSubmissionList] = useState<SubmissionRecord[]>([])
 	const [loading, setLoading] = useState(true)
 
 	const refresh = useCallback(async () => {
-		const [loadedSites, subs] = await Promise.all([loadSites(), listSubmissions()])
+		const [loadedSites, subs] = await Promise.all([
+			loadSites(),
+			productId ? listSubmissionsByProduct(productId) : Promise.resolve([]),
+		])
 		setSites(loadedSites)
 		setSubmissionList(subs)
 		setLoading(false)
-	}, [])
+	}, [productId])
 
 	useEffect(() => {
 		refresh()

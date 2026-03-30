@@ -1,2 +1,4 @@
 /docs
 /page-agent-main
+/memory
+extension/.env

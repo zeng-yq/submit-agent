@@ -27,16 +27,12 @@ export class TabsController extends EventTarget {
 
 	private tabs: TabMeta[] = []
 	private initialTabId: number | null = null
-	private tabGroupId: number | null = null
-	private task: string = ''
 
-	async init(task: string, includeInitialTab: boolean = true) {
-		debug('init', task, includeInitialTab)
+	async init(includeInitialTab: boolean = true) {
+		debug('init', includeInitialTab)
 
-		this.task = task
 		this.tabs = []
 		this.currentTabId = null
-		this.tabGroupId = null
 		this.initialTabId = null
 
 		const result = await sendMessage({
@@ -67,8 +63,6 @@ export class TabsController extends EventTarget {
 					title: info.title,
 					status: info.status,
 				})
-
-				await this.createTabGroup([this.initialTabId])
 			}
 		}
 
@@ -80,14 +74,10 @@ export class TabsController extends EventTarget {
 				return
 			}
 
-			if (message.action === 'created') {
+		if (message.action === 'created') {
 				const tab = message.payload.tab as chrome.tabs.Tab
-				if (tab.groupId === this.tabGroupId && tab.id != null) {
-					// Tab created in our controlled group
-					if (!this.tabs.find((t) => t.id === tab.id)) {
-						this.tabs.push({ id: tab.id, isInitial: false })
-					}
-					this.switchToTab(tab.id)
+				if (tab.id != null && !this.tabs.find((t) => t.id === tab.id)) {
+					// ignore — agent only tracks tabs it explicitly opens
 				}
 			} else if (message.action === 'removed') {
 				const { tabId } = message.payload as { tabId: number }
@@ -109,7 +99,7 @@ export class TabsController extends EventTarget {
 				if (targetTab) {
 					targetTab.url = tab.url
 					targetTab.title = tab.title
-					targetTab.status = tab.status
+					targetTab.status = tab.status as 'loading' | 'complete' | 'unloaded' | undefined
 				}
 			}
 		}
@@ -142,16 +132,6 @@ export class TabsController extends EventTarget {
 		})
 
 		await this.switchToTab(tabId)
-
-		if (!this.tabGroupId) {
-			await this.createTabGroup([tabId])
-		} else {
-			await sendMessage({
-				type: 'TAB_CONTROL',
-				action: 'add_tab_to_group',
-				payload: { tabId: result.tabId, groupId: this.tabGroupId },
-			})
-		}
 
 		await this.waitUntilTabLoaded(tabId)
 
@@ -203,33 +183,6 @@ export class TabsController extends EventTarget {
 		} else {
 			throw new Error(`Failed to close tab ID ${tabId}: ${result.error}`)
 		}
-	}
-
-	private async createTabGroup(tabIds: number[]) {
-		const result = await sendMessage({
-			type: 'TAB_CONTROL',
-			action: 'create_tab_group',
-			payload: { tabIds },
-		})
-
-		if (!result?.success) {
-			throw new Error(`Failed to create tab group: ${result?.error}`)
-		}
-
-		this.tabGroupId = result.groupId as number
-
-		await sendMessage({
-			type: 'TAB_CONTROL',
-			action: 'update_tab_group',
-			payload: {
-				groupId: this.tabGroupId,
-				properties: {
-					title: `PageAgent(${this.task})`,
-					color: randomColor(),
-					collapsed: false,
-				},
-			},
-		})
 	}
 
 	async updateCurrentTabId(tabId: number | null) {
@@ -309,14 +262,6 @@ interface TabMeta {
 	url?: string
 	title?: string
 	status?: 'loading' | 'unloaded' | 'complete'
-}
-
-const TAB_GROUP_COLORS = ['blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan'] as const
-
-type TabGroupColor = (typeof TAB_GROUP_COLORS)[number]
-
-function randomColor(): TabGroupColor {
-	return TAB_GROUP_COLORS[Math.floor(Math.random() * TAB_GROUP_COLORS.length)]
 }
 
 /**

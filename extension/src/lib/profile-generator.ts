@@ -3,7 +3,14 @@ import { getLLMConfig } from './storage'
 
 export type GeneratedProfile = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt' | 'screenshots' | 'founderName' | 'founderEmail' | 'socialLinks' | 'logoSquare' | 'logoBanner'>
 
-const SYSTEM_PROMPT = `You are a product analyst. Given a product URL, generate a structured profile for directory submission.
+export type GenerateProgressStep =
+	| 'fetching'
+	| 'parsing'
+	| 'analyzing'
+	| 'generating'
+	| 'done'
+
+const SYSTEM_PROMPT = `You are a product analyst. Given a product's webpage content, generate a structured profile for directory submission.
 
 Return ONLY valid JSON with these exact fields:
 {
@@ -16,68 +23,77 @@ Return ONLY valid JSON with these exact fields:
 }
 
 Rules:
-- name: The official product/brand name
+- name: The official product/brand name (from the page title or og:title, not the domain)
 - tagline: Max one sentence, punchy and clear
 - shortDesc: Written for SEO-friendly directory listings, natural tone
 - longDesc: Detailed but not salesy, covers features, target audience, and value proposition
 - categories: 2-5 relevant categories (e.g. "AI", "Productivity", "Developer Tools", "SaaS", "Marketing")
 - All text in English
+- Base your analysis on the actual page content provided, not assumptions
 - Return ONLY the JSON object, no markdown fences, no explanation`
 
-export async function generateProfile(
-	url: string,
-	signal?: AbortSignal,
-	llmConfig?: LLMSettings,
-): Promise<GeneratedProfile> {
-	const config = llmConfig ?? await getLLMConfig()
+/** Extract useful text from raw HTML without a DOM parser */
+function extractPageText(html: string, pageUrl: string): string {
+	const parts: string[] = [`URL: ${pageUrl}`]
 
-	if (!config.baseUrl) {
-		throw new Error('LLM not configured. Please set up your LLM in Settings.')
-	}
+	// og:title
+	const ogTitle = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+		?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i)
+	if (ogTitle) parts.push(`OG Title: ${ogTitle[1]}`)
 
-	const baseUrl = config.baseUrl.replace(/\/+$/, '')
-	const endpoint = `${baseUrl}/chat/completions`
+	// og:description
+	const ogDesc = html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+		?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i)
+	if (ogDesc) parts.push(`OG Description: ${ogDesc[1]}`)
 
-	const response = await fetch(endpoint, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-		},
-		body: JSON.stringify({
-			model: config.model,
-			messages: [
-				{ role: 'system', content: SYSTEM_PROMPT },
-				{ role: 'user', content: `Analyze this product and generate a profile:\n\nURL: ${url}` },
-			],
-			temperature: 0.7,
-		}),
-		signal,
-	})
+	// og:site_name
+	const ogSite = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i)
+		?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)
+	if (ogSite) parts.push(`Site Name: ${ogSite[1]}`)
 
-	if (!response.ok) {
-		const text = await response.text().catch(() => '')
-		throw new Error(`LLM request failed (${response.status}): ${text.slice(0, 200)}`)
-	}
+	// <title>
+	const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+	if (title) parts.push(`Page Title: ${title[1].trim()}`)
 
-	const data = await response.json()
-	const content: string = data.choices?.[0]?.message?.content ?? ''
+	// meta description
+	const metaDesc = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+		?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)
+	if (metaDesc) parts.push(`Meta Description: ${metaDesc[1]}`)
 
-	const parsed = parseJsonResponse(content)
+	// Strip scripts, styles, and HTML tags to get body text
+	let bodyText = html
+		.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+		.replace(/<style[\s\S]*?<\/style>/gi, ' ')
+		.replace(/<[^>]+>/g, ' ')
+		.replace(/&nbsp;/g, ' ')
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/\s+/g, ' ')
+		.trim()
 
-	return {
-		name: parsed.name || '',
-		url: parsed.url || url,
-		tagline: parsed.tagline || '',
-		shortDesc: parsed.shortDesc || '',
-		longDesc: parsed.longDesc || '',
-		categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+	if (bodyText.length > 3000) bodyText = bodyText.slice(0, 3000)
+	if (bodyText) parts.push(`Page Content:\n${bodyText}`)
+
+	return parts.join('\n\n')
+}
+
+/** Fetch page HTML via background service worker (bypasses CORS/CSP) */
+async function fetchPageHtml(url: string): Promise<string | null> {
+	try {
+		const response = await chrome.runtime.sendMessage({ type: 'FETCH_PAGE_CONTENT', url })
+		if (response?.ok && response.html) return response.html as string
+		console.warn('[profile-generator] Failed to fetch page:', response?.error)
+		return null
+	} catch (err) {
+		console.warn('[profile-generator] fetchPageHtml error:', err)
+		return null
 	}
 }
 
-function parseJsonResponse(content: string): Record<string, unknown> {
-	let cleaned = content.trim()
-
+function parseJsonResponse(text: string): GeneratedProfile {
+	let cleaned = text.trim()
 	const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/)
 	if (fenceMatch) {
 		cleaned = fenceMatch[1].trim()
@@ -92,4 +108,68 @@ function parseJsonResponse(content: string): Record<string, unknown> {
 		}
 		throw new Error('Failed to parse LLM response as JSON')
 	}
+}
+
+export async function generateProfile(
+	url: string,
+	signal?: AbortSignal,
+	llmConfig?: LLMSettings,
+	onProgress?: (step: GenerateProgressStep) => void,
+): Promise<GeneratedProfile> {
+	const config = llmConfig ?? await getLLMConfig()
+
+	if (!config.baseUrl) {
+		throw new Error('LLM not configured. Please set up your LLM in Settings.')
+	}
+
+	// Step 1: Fetch webpage content
+	onProgress?.('fetching')
+	const html = await fetchPageHtml(url)
+
+	// Step 2: Parse and extract useful text
+	onProgress?.('parsing')
+	const pageContent = html ? extractPageText(html, url) : `URL: ${url}\n(Could not fetch page content — please ensure the URL is accessible)`
+
+	// Step 3: Send to LLM
+	onProgress?.('analyzing')
+	const baseUrl = config.baseUrl.replace(/\/+$/, '')
+	const endpoint = `${baseUrl}/chat/completions`
+
+	const response = await fetch(endpoint, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+		},
+		body: JSON.stringify({
+			model: config.model,
+			messages: [
+				{ role: 'system', content: SYSTEM_PROMPT },
+				{
+					role: 'user',
+					content: `Generate a directory submission profile from this webpage content:\n\n${pageContent}`,
+				},
+			],
+			temperature: 0.3,
+			max_tokens: 1024,
+		}),
+		signal,
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		throw new Error(`LLM API error ${response.status}: ${errorText}`)
+	}
+
+	// Step 4: Parse response
+	onProgress?.('generating')
+	const data = await response.json()
+	const content = data.choices?.[0]?.message?.content
+	if (!content) {
+		throw new Error('No content in LLM response')
+	}
+
+	const profile = parseJsonResponse(content)
+	onProgress?.('done')
+	return profile
 }

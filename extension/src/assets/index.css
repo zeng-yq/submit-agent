@@ -22,7 +22,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-	@theme {
+	:root {
 		--color-background: #0a0a0a;
 		--color-foreground: #fafafa;
 		--color-muted: #262626;
@@ -38,9 +38,6 @@
 		--color-warning-foreground: #ffffff;
 		--color-card: #171717;
 		--color-card-foreground: #fafafa;
-		--radius-sm: 0.25rem;
-		--radius-md: 0.375rem;
-		--radius-lg: 0.5rem;
 	}
 }
 

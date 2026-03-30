@@ -17,6 +17,9 @@ export default defineConfig({
 		plugins: [tailwindcss()],
 		define: {
 			__VERSION__: JSON.stringify('0.1.0'),
+			__DEFAULT_LLM_BASE_URL__: JSON.stringify(process.env.DEFAULT_LLM_BASE_URL ?? 'https://api.groq.com/openai/v1'),
+			__DEFAULT_LLM_API_KEY__: JSON.stringify(process.env.DEFAULT_LLM_API_KEY ?? ''),
+			__DEFAULT_LLM_MODEL__: JSON.stringify(process.env.DEFAULT_LLM_MODEL ?? 'llama-3.3-70b-versatile'),
 		},
 		build: {
 			minify: false,

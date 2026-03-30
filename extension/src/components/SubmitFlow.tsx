@@ -5,9 +5,7 @@ import type {
 } from '@page-agent/core'
 import type { ProductProfile, SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
 import { useState } from 'react'
-import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 
 interface SubmitFlowProps {
 	site: SiteData
@@ -19,126 +17,92 @@ interface SubmitFlowProps {
 	agentError: string | null
 	onStartSubmit: () => void
 	onStop: () => void
+	onMarkSubmitted: () => void
 	onSkip: () => void
 	onBack: () => void
 }
 
-function ActivityIndicator({ activity }: { activity: AgentActivity }) {
+function humanizeActivity(activity: AgentActivity): string {
 	switch (activity.type) {
 		case 'thinking':
-			return <span className="text-blue-600 dark:text-blue-400">Thinking...</span>
-		case 'executing':
-			return (
-				<span className="text-yellow-600 dark:text-yellow-400">
-					Executing: {activity.tool}
-				</span>
-			)
-		case 'executed':
-			return (
-				<span className="text-green-600 dark:text-green-400">
-					Done: {activity.tool} ({activity.duration}ms)
-				</span>
-			)
+			return 'Thinking...'
+		case 'executing': {
+			const tool = activity.tool
+			if (tool === 'click') return 'Clicking an element...'
+			if (tool === 'type' || tool === 'input_text') return 'Typing into a field...'
+			if (tool === 'scroll') return 'Scrolling the page...'
+			if (tool === 'navigate' || tool === 'goto') return 'Navigating to page...'
+			if (tool === 'select') return 'Selecting an option...'
+			if (tool === 'screenshot' || tool === 'snapshot') return 'Reading the page...'
+			return `Running: ${tool}...`
+		}
+		case 'executed': {
+			const tool = activity.tool
+			if (tool === 'click') return 'Clicked an element'
+			if (tool === 'type' || tool === 'input_text') return 'Filled in a field'
+			if (tool === 'scroll') return 'Scrolled the page'
+			if (tool === 'navigate' || tool === 'goto') return 'Navigated to page'
+			if (tool === 'select') return 'Selected an option'
+			if (tool === 'screenshot' || tool === 'snapshot') return 'Read the page'
+			return `Done: ${tool}`
+		}
 		case 'retrying':
-			return (
-				<span className="text-amber-600 dark:text-amber-400">
-					Retrying ({activity.attempt}/{activity.maxAttempts})...
-				</span>
-			)
+			return `Retrying... (${activity.attempt}/${activity.maxAttempts})`
 		case 'error':
-			return (
-				<span className="text-red-600 dark:text-red-400">
-					Error: {activity.message}
-				</span>
-			)
+			return `Error: ${activity.message}`
+		default:
+			return ''
 	}
 }
 
-function StepLog({ history }: { history: HistoricalEvent[] }) {
+function activityColor(activity: AgentActivity): string {
+	switch (activity.type) {
+		case 'thinking': return 'text-blue-700 dark:text-blue-200'
+		case 'executing': return 'text-yellow-700 dark:text-yellow-300'
+		case 'executed': return 'text-green-700 dark:text-green-300'
+		case 'retrying': return 'text-amber-700 dark:text-amber-300'
+		case 'error': return 'text-red-700 dark:text-red-300'
+		default: return 'text-muted-foreground'
+	}
+}
+
+function DebugLog({ history }: { history: HistoricalEvent[] }) {
 	const [expanded, setExpanded] = useState(false)
-
 	if (history.length === 0) return null
-
-	const stepEvents = history.filter((e) => e.type === 'step')
-	const errorEvents = history.filter((e) => e.type === 'error')
-
 	return (
-		<Card>
-			<CardHeader>
-				<button
-					className="flex items-center justify-between w-full text-left"
-					onClick={() => setExpanded(!expanded)}
-				>
-					<CardTitle>
-						Agent Log ({stepEvents.length} steps)
-					</CardTitle>
-					<span className="text-xs text-muted-foreground">
-						{expanded ? 'collapse' : 'expand'}
-					</span>
-				</button>
-			</CardHeader>
+		<div className="mt-2">
+			<button
+				className="text-[10px] text-muted-foreground underline underline-offset-2"
+				onClick={() => setExpanded(!expanded)}
+			>
+				{expanded ? 'Hide details' : 'View details'}
+			</button>
 			{expanded && (
-				<CardContent className="space-y-2 max-h-60 overflow-y-auto">
+				<div className="mt-2 max-h-48 overflow-y-auto space-y-1 rounded border border-border bg-muted/40 p-2">
 					{history.map((event, i) => {
 						if (event.type === 'step') {
 							return (
-								<div key={i} className="text-xs border-b border-border pb-1">
-									<div className="font-medium text-foreground">
-										Step {event.stepIndex + 1}: {event.action.name}
-									</div>
+								<div key={i} className="text-[10px] text-muted-foreground border-b border-border pb-1">
+									<span className="font-medium text-foreground">Step {event.stepIndex + 1}:</span>{' '}
+									{event.action.name}
 									{event.reflection.next_goal && (
-										<div className="text-muted-foreground mt-0.5">
-											Goal: {event.reflection.next_goal}
-										</div>
+										<div className="truncate">→ {event.reflection.next_goal}</div>
 									)}
-									<div className="text-muted-foreground mt-0.5 truncate">
-										Result: {event.action.output}
-									</div>
 								</div>
 							)
 						}
 						if (event.type === 'error') {
 							return (
-								<div
-									key={i}
-									className="text-xs text-red-600 dark:text-red-400 border-b border-border pb-1"
-								>
+								<div key={i} className="text-[10px] text-red-500">
 									Error: {event.message}
-								</div>
-							)
-						}
-						if (event.type === 'observation') {
-							return (
-								<div
-									key={i}
-									className="text-xs text-blue-600 dark:text-blue-400 border-b border-border pb-1"
-								>
-									{event.content}
-								</div>
-							)
-						}
-						if (event.type === 'retry') {
-							return (
-								<div
-									key={i}
-									className="text-xs text-amber-600 dark:text-amber-400 border-b border-border pb-1"
-								>
-									{event.message}
 								</div>
 							)
 						}
 						return null
 					})}
-				</CardContent>
+				</div>
 			)}
-			{!expanded && errorEvents.length > 0 && (
-				<CardContent>
-					<div className="text-xs text-red-600 dark:text-red-400">
-						{errorEvents.length} error(s) occurred
-					</div>
-				</CardContent>
-			)}
-		</Card>
+		</div>
 	)
 }
 
@@ -152,186 +116,224 @@ export function SubmitFlow({
 	agentError,
 	onStartSubmit,
 	onStop,
+	onMarkSubmitted,
 	onSkip,
 	onBack,
 }: SubmitFlowProps) {
 	const submissionStatus: SubmissionStatus = submission?.status ?? 'not_started'
 	const isAgentRunning = agentStatus === 'running'
+	const isCompleted = agentStatus === 'completed'
+	const isError = agentStatus === 'error' || !!agentError
+	const stepCount = agentHistory.filter((e) => e.type === 'step').length
+	const alreadySubmitted = submissionStatus === 'submitted' || submissionStatus === 'approved'
 
 	return (
 		<div className="flex flex-col h-full">
-			<header className="flex items-center justify-between border-b px-3 py-2">
-				<span className="text-sm font-semibold truncate">{site.name}</span>
-				<Button variant="ghost" size="sm" onClick={onBack} disabled={isAgentRunning}>
-					Back
-				</Button>
+			{/* Header */}
+			<header className="flex items-center gap-2 border-b px-3 py-2">
+				<button
+					className="text-muted-foreground hover:text-foreground disabled:opacity-40 text-sm"
+					onClick={onBack}
+					disabled={isAgentRunning}
+				>
+					←
+				</button>
+				<span className="text-sm font-semibold truncate flex-1">{site.name}</span>
+				<span className="text-xs text-muted-foreground shrink-0">
+					DR {site.dr}
+				</span>
+				{site.link_type === 'dofollow' && (
+					<span className="text-[10px] bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded shrink-0">
+						Dofollow
+					</span>
+				)}
 			</header>
 
+			{/* Body */}
 			<div className="flex-1 overflow-y-auto p-3 space-y-3">
-				{/* Agent status */}
-				{isAgentRunning && (
-					<Card className="border-blue-300 dark:border-blue-700">
-						<CardHeader>
-							<CardTitle>Agent Running</CardTitle>
-							<Badge variant="warning">running</Badge>
-						</CardHeader>
-						<CardContent className="text-xs space-y-1">
-							{agentActivity && <ActivityIndicator activity={agentActivity} />}
-							{!agentActivity && (
-								<span className="text-muted-foreground">Initializing...</span>
-							)}
-						</CardContent>
-					</Card>
-				)}
 
-				{agentStatus === 'completed' && (
-					<Card className="border-green-300 dark:border-green-700">
-						<CardContent className="text-xs text-green-600 dark:text-green-400 py-2">
-							Agent completed successfully.
-						</CardContent>
-					</Card>
-				)}
-
-				{(agentStatus === 'error' || agentError) && (
-					<Card className="border-red-300 dark:border-red-700">
-						<CardHeader>
-							<CardTitle>Error</CardTitle>
-							<Badge variant="destructive">failed</Badge>
-						</CardHeader>
-						<CardContent className="text-xs text-red-600 dark:text-red-400 wrap-break-word">
-							{agentError || 'Agent encountered an error. Check the log below for details.'}
-						</CardContent>
-					</Card>
-				)}
-
-				{/* Step log */}
-				<StepLog history={agentHistory} />
-
-				{/* Site info */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Site Details</CardTitle>
-						<Badge variant="outline">DR {site.dr}</Badge>
-					</CardHeader>
-					<CardContent className="space-y-1">
-						<div className="flex justify-between">
-							<span>Category</span>
-							<span>{site.category}</span>
-						</div>
-						<div className="flex justify-between">
-							<span>Traffic</span>
-							<span>{site.monthly_traffic}</span>
-						</div>
-						<div className="flex justify-between">
-							<span>Link Type</span>
-							<span>{site.link_type === 'dofollow' ? 'Dofollow' : 'Nofollow'}</span>
-						</div>
-						<div className="flex justify-between">
-							<span>Pricing</span>
-							<span>{site.pricing}</span>
-						</div>
-						{site.notes && (
-							<div className="pt-1 text-muted-foreground italic">{site.notes}</div>
-						)}
-					</CardContent>
-				</Card>
-
-				{/* Product check */}
-				{!product && (
-					<Card className="border-warning">
-						<CardContent className="text-warning text-xs py-2">
-							No product profile selected. Please create one in the Options page first.
-						</CardContent>
-					</Card>
-				)}
-
-				{product && (
-					<Card>
-						<CardHeader>
-							<CardTitle>Product</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="font-medium text-foreground">{product.name}</div>
-							<div className="mt-1">{product.tagline}</div>
-						</CardContent>
-					</Card>
-				)}
-
-				{/* Submission status */}
-				{submission && (
-					<Card>
-						<CardHeader>
-							<CardTitle>Submission</CardTitle>
-							<Badge
-								variant={
-									submissionStatus === 'submitted' || submissionStatus === 'approved'
-										? 'success'
-										: submissionStatus === 'failed' || submissionStatus === 'rejected'
-											? 'destructive'
-											: submissionStatus === 'in_progress'
-												? 'warning'
-												: 'muted'
-								}
-							>
-								{submissionStatus}
-							</Badge>
-						</CardHeader>
-						{submission.notes && <CardContent>{submission.notes}</CardContent>}
-					</Card>
-				)}
-			</div>
-
-			{/* Actions */}
-			<footer className="border-t p-3 space-y-2">
-				{isAgentRunning ? (
-					<Button
-						variant="destructive"
-						className="w-full"
-						onClick={onStop}
-					>
-						Stop Agent
-					</Button>
-				) : (
+				{/* === IDLE: not started or previously submitted === */}
+				{!isAgentRunning && !isCompleted && !isError && (
 					<>
-						{site.submit_url && (
-							<Button
-								className="w-full"
-								disabled={!product || submissionStatus === 'in_progress'}
-								onClick={onStartSubmit}
-							>
-								{submissionStatus === 'not_started' || submissionStatus === 'failed'
-									? 'Start Auto-Submit'
-									: 'Re-Submit'}
-							</Button>
+						{/* Site info */}
+						<div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+							<div className="flex items-center justify-between">
+								<a href={site.url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-primary hover:underline truncate">
+									{site.url.replace(/^https?:\/\/(www\.)?/, '')}
+								</a>
+								<span className="text-[10px] text-muted-foreground shrink-0 ml-2">{site.category}</span>
+							</div>
+							<div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+								<div className="flex items-center gap-1.5">
+									<span className="text-muted-foreground">Traffic</span>
+									<span className="font-medium">{site.monthly_traffic}</span>
+								</div>
+								<div className="flex items-center gap-1.5">
+									<span className="text-muted-foreground">Pricing</span>
+									<span className="font-medium capitalize">{site.pricing}</span>
+								</div>
+								<div className="flex items-center gap-1.5">
+									<span className="text-muted-foreground">Link</span>
+									<span className={`font-medium ${site.link_type === 'dofollow' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+										{site.link_type === 'dofollow' ? 'Dofollow' : 'Nofollow'}
+									</span>
+								</div>
+								<div className="flex items-center gap-1.5">
+									<span className="text-muted-foreground">Method</span>
+									<span className="font-medium capitalize">{site.submission_method.replace(/-/g, ' ')}</span>
+								</div>
+							</div>
+							{site.notes && (
+								<p className="text-[11px] text-muted-foreground italic border-t border-border pt-2">{site.notes}</p>
+							)}
+						</div>
+
+						{/* Already submitted notice */}
+						{alreadySubmitted && (
+							<div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 p-3 text-xs text-green-700 dark:text-green-300">
+								You already submitted to this site.
+							</div>
 						)}
-						{!site.submit_url && (
-							<div className="text-xs text-muted-foreground text-center py-1">
-								No direct submit URL available for this site
+
+						{/* Submitting as */}
+						{product ? (
+							<div className="rounded-lg border border-border p-3 space-y-1">
+								<div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Submitting as</div>
+								<div className="text-xs font-medium text-foreground">{product.name}</div>
+								{(product.tagline || product.shortDesc) && (
+									<div className="text-xs text-muted-foreground line-clamp-2">{product.tagline || product.shortDesc}</div>
+								)}
+							</div>
+						) : (
+							<div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-xs text-amber-700 dark:text-amber-300">
+								No product profile. Please create one in the Options page.
 							</div>
 						)}
 					</>
 				)}
-				<div className="flex gap-2">
-					{site.submit_url && (
-						<Button
-							variant="outline"
-							size="sm"
-							className="flex-1"
-							onClick={() => window.open(site.submit_url!, '_blank')}
-						>
-							Open Manually
-						</Button>
-					)}
-					<Button
-						variant="ghost"
-						size="sm"
-						className="flex-1"
-						onClick={onSkip}
-						disabled={isAgentRunning}
-					>
-						Skip
+
+				{/* === RUNNING === */}
+				{isAgentRunning && (
+					<div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 space-y-3">
+						<div className="flex items-center gap-2">
+							<span className="relative flex h-2 w-2">
+								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+								<span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+							</span>
+							<span className="text-xs font-medium text-blue-700 dark:text-blue-300">Agent is working...</span>
+							{stepCount > 0 && (
+								<span className="ml-auto text-[10px] text-blue-500 dark:text-blue-400">{stepCount} steps</span>
+							)}
+						</div>
+						{agentActivity ? (
+							<div className={`text-xs ${activityColor(agentActivity)}`}>
+								{humanizeActivity(agentActivity)}
+							</div>
+						) : (
+							<div className="text-xs text-blue-500 dark:text-blue-400">Initializing...</div>
+						)}
+						<DebugLog history={agentHistory} />
+					</div>
+				)}
+
+				{/* === COMPLETED === */}
+				{isCompleted && !isError && (
+					<div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-4 space-y-2">
+						<div className="flex items-center gap-2">
+							<span className="text-green-600 dark:text-green-400 text-base">✓</span>
+							<span className="text-xs font-medium text-green-700 dark:text-green-300">
+								Form filled — please review and submit
+							</span>
+						</div>
+						<p className="text-xs text-green-600 dark:text-green-400">
+							The agent has filled the form. Open the page to review the fields and click the final submit button.
+						</p>
+						<DebugLog history={agentHistory} />
+					</div>
+				)}
+
+				{/* === ERROR === */}
+				{isError && (
+					<div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-4 space-y-2">
+						<div className="flex items-center gap-2">
+							<span className="text-red-500 text-base">✕</span>
+							<span className="text-xs font-medium text-red-700 dark:text-red-300">Something went wrong</span>
+						</div>
+						{agentError && (
+							<p className="text-xs text-red-600 dark:text-red-400">
+								{agentError}
+							</p>
+						)}
+						<DebugLog history={agentHistory} />
+					</div>
+				)}
+
+			</div>
+
+			{/* Footer actions */}
+			<footer className="border-t p-3 space-y-2">
+				{/* Running: only show Stop */}
+				{isAgentRunning && (
+					<Button variant="outline" size="sm" className="w-full" onClick={onStop}>
+						Stop
 					</Button>
-				</div>
+				)}
+
+				{/* Completed: primary = open & submit, secondary = mark done */}
+				{isCompleted && !isError && (
+					<>
+						{site.submit_url && (
+							<Button
+								className="w-full"
+								onClick={() => window.open(site.submit_url!, '_blank')}
+							>
+								Open page & submit
+							</Button>
+						)}
+						<Button variant="outline" size="sm" className="w-full" onClick={onMarkSubmitted}>
+							Mark as submitted
+						</Button>
+					</>
+				)}
+
+				{/* Idle / Error: primary = start, secondary = open manually */}
+				{!isAgentRunning && !isCompleted && (
+					<>
+						{site.submit_url ? (
+							<Button
+								className="w-full"
+								disabled={!product}
+								onClick={onStartSubmit}
+							>
+								{isError ? 'Retry Auto-Submit' : alreadySubmitted ? 'Re-Submit' : 'Start Auto-Submit'}
+							</Button>
+						) : (
+							<div className="text-xs text-muted-foreground text-center py-1">
+								No direct submit URL — use manual submission
+							</div>
+						)}
+						<div className="flex gap-2">
+							{site.submit_url && (
+								<Button
+									variant="outline"
+									size="sm"
+									className="flex-1"
+									onClick={() => window.open(site.submit_url!, '_blank')}
+								>
+									Open manually
+								</Button>
+							)}
+							<Button
+								variant="ghost"
+								size="sm"
+								className="flex-1"
+								onClick={onSkip}
+							>
+								Skip
+							</Button>
+						</div>
+					</>
+				)}
 			</footer>
 		</div>
 	)

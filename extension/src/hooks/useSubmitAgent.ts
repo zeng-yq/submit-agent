@@ -15,7 +15,23 @@ export interface UseSubmitAgentResult {
 	history: HistoricalEvent[]
 	activity: AgentActivity | null
 	startSubmission: (site: SiteData, product: ProductProfile) => Promise<ExecutionResult>
+	startSubmissionOnCurrentTab: (product: ProductProfile, tabUrl: string) => Promise<ExecutionResult>
 	stop: () => void
+}
+
+async function buildAgent(product: ProductProfile, siteName: string): Promise<SubmitAgent> {
+	const llmConfig = await getLLMConfig()
+	if (!llmConfig.baseUrl) throw new Error('LLM not configured. Please set the Base URL in Settings.')
+	if (!llmConfig.model) throw new Error('Model not configured. Please set the model name in Settings.')
+	const baseURL = llmConfig.baseUrl.replace(/\/+$/, '')
+	return new SubmitAgent({
+		baseURL,
+		model: llmConfig.model,
+		apiKey: llmConfig.apiKey || undefined,
+		product,
+		siteName,
+		includeInitialTab: true,
+	})
 }
 
 export function useSubmitAgent(): UseSubmitAgentResult {
@@ -24,69 +40,31 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 	const [history, setHistory] = useState<HistoricalEvent[]>([])
 	const [activity, setActivity] = useState<AgentActivity | null>(null)
 
+	function wireEvents(agent: SubmitAgent) {
+		agent.addEventListener('statuschange', () => setStatus(agent.status as AgentStatus))
+		agent.addEventListener('historychange', () => setHistory([...agent.history]))
+		agent.addEventListener('activity', (e) => setActivity((e as CustomEvent).detail))
+	}
+
 	const startSubmission = useCallback(
 		async (site: SiteData, product: ProductProfile): Promise<ExecutionResult> => {
-			if (!site.submit_url) {
-				throw new Error(`No submit URL for site: ${site.name}`)
-			}
+			if (!site.submit_url) throw new Error(`No submit URL for site: ${site.name}`)
 
 			agentRef.current?.dispose()
-
-			const llmConfig = await getLLMConfig()
-			if (!llmConfig.baseUrl) {
-				throw new Error('LLM not configured. Please set the Base URL in Settings.')
-			}
-			if (!llmConfig.model) {
-				throw new Error('Model not configured. Please set the model name in Settings.')
-			}
-
-			const baseURL = llmConfig.baseUrl.replace(/\/+$/, '')
-
-			console.log('[SubmitAgent] Starting submission', {
-				site: site.name,
-				baseURL,
-				model: llmConfig.model,
-				hasApiKey: !!llmConfig.apiKey,
-			})
-
-			const agent = new SubmitAgent({
-				baseURL,
-				model: llmConfig.model,
-				apiKey: llmConfig.apiKey || undefined,
-				product,
-				siteName: site.name,
-				includeInitialTab: true,
-			})
-
+			const agent = await buildAgent(product, site.name)
 			agentRef.current = agent
+			wireEvents(agent)
 
-			// Wire events
-			const handleStatusChange = () => {
-				const newStatus = agent.status as AgentStatus
-				setStatus(newStatus)
-				if (newStatus === 'idle' || newStatus === 'completed' || newStatus === 'error') {
-					setActivity(null)
-				}
-			}
+			console.log('[SubmitAgent] Starting submission', { site: site.name })
 
-			const handleHistoryChange = () => {
-				setHistory([...agent.history])
-			}
-
-			const handleActivity = (e: Event) => {
-				setActivity((e as CustomEvent).detail as AgentActivity)
-			}
-
-			agent.addEventListener('statuschange', handleStatusChange)
-			agent.addEventListener('historychange', handleHistoryChange)
-			agent.addEventListener('activity', handleActivity)
-
-			setStatus('running')
-			setHistory([])
-			setActivity({ type: 'thinking' })
+			await chrome.runtime.sendMessage({
+				type: 'SUBMIT_CONTROL',
+				action: 'open_submit_page',
+				payload: site.submit_url,
+			})
 
 			const task = [
-				`Go to ${site.submit_url} and fill out the product submission form.`,
+				`You are on a product submission form.`,
 				`Site: ${site.name}`,
 				`Product: ${product.name} (${product.url})`,
 				'Fill all form fields with the product data from your context.',
@@ -96,18 +74,43 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 
 			try {
 				const result = await agent.execute(task)
-				console.log('[SubmitAgent] Execution completed', {
-					success: result.success,
-					data: result.data,
-				})
+				console.log('[SubmitAgent] Execution completed', { success: result.success })
 				return result
 			} catch (error) {
 				console.error('[SubmitAgent] Execution failed', error)
 				throw error
-			} finally {
-				agent.removeEventListener('statuschange', handleStatusChange)
-				agent.removeEventListener('historychange', handleHistoryChange)
-				agent.removeEventListener('activity', handleActivity)
+			}
+		},
+		[]
+	)
+
+	const startSubmissionOnCurrentTab = useCallback(
+		async (product: ProductProfile, tabUrl: string): Promise<ExecutionResult> => {
+			agentRef.current?.dispose()
+
+			const siteName = (() => { try { return new URL(tabUrl).hostname } catch { return tabUrl } })()
+			const agent = await buildAgent(product, siteName)
+			agentRef.current = agent
+			wireEvents(agent)
+
+			console.log('[SubmitAgent] Starting float-fill on current tab', { siteName, tabUrl })
+
+			const task = [
+				`You are on a product submission form on ${siteName}.`,
+				`Product: ${product.name} (${product.url})`,
+				'Fill all form fields with the product data from your context.',
+				'Rewrite descriptions to be unique for this site.',
+				'Do NOT click the final submit button. Stop after filling and report the form status.',
+			].join('\n')
+
+			try {
+				const result = await agent.execute(task)
+				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'done' }).catch(() => {})
+				return result
+			} catch (error) {
+				console.error('[SubmitAgent] Float-fill failed', error)
+				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+				throw error
 			}
 		},
 		[]
@@ -122,6 +125,7 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 		history,
 		activity,
 		startSubmission,
+		startSubmissionOnCurrentTab,
 		stop,
 	}
 }

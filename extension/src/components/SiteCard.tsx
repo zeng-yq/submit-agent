@@ -1,6 +1,4 @@
 import type { SiteData, SubmissionStatus } from '@/lib/types'
-import { Badge } from './ui/Badge'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 
 interface SiteCardProps {
 	site: SiteData
@@ -8,54 +6,81 @@ interface SiteCardProps {
 	onSelect?: (site: SiteData) => void
 }
 
-const statusConfig: Record<
-	SubmissionStatus,
-	{ label: string; variant: 'default' | 'success' | 'warning' | 'destructive' | 'muted' }
-> = {
-	not_started: { label: 'Not Started', variant: 'muted' },
-	in_progress: { label: 'In Progress', variant: 'warning' },
-	submitted: { label: 'Submitted', variant: 'default' },
-	approved: { label: 'Approved', variant: 'success' },
-	rejected: { label: 'Rejected', variant: 'destructive' },
-	failed: { label: 'Failed', variant: 'destructive' },
-	skipped: { label: 'Skipped', variant: 'muted' },
+const statusBar: Record<SubmissionStatus, string> = {
+	not_started: '',
+	in_progress: 'bg-blue-400',
+	submitted: 'bg-green-400',
+	approved: 'bg-green-500',
+	rejected: 'bg-red-400',
+	failed: 'bg-red-400',
+	skipped: 'bg-muted-foreground/30',
+}
+
+const statusLabel: Record<SubmissionStatus, string> = {
+	not_started: '',
+	in_progress: 'In Progress',
+	submitted: 'Submitted',
+	approved: 'Approved',
+	rejected: 'Rejected',
+	failed: 'Failed',
+	skipped: 'Skipped',
 }
 
 export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardProps) {
-	const statusInfo = statusConfig[status]
 	const hasSubmitUrl = !!site.submit_url
+	const bar = statusBar[status]
+	const label = statusLabel[status]
 
 	return (
-		<Card
-			className={`cursor-pointer transition-colors ${hasSubmitUrl ? 'hover:border-primary/50' : 'opacity-50'}`}
+		<div
+			className={`relative flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+				hasSubmitUrl
+					? 'cursor-pointer hover:border-primary/60 hover:bg-accent/30'
+					: 'opacity-50 cursor-default'
+			}`}
 			onClick={() => onSelect?.(site)}
 		>
-			<CardHeader>
-				<CardTitle className="truncate flex-1">{site.name}</CardTitle>
-				<div className="flex items-center gap-1.5 shrink-0">
-					<Badge variant="outline">DR {site.dr}</Badge>
-					{hasSubmitUrl ? (
-						<Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-					) : (
-						<Badge variant="muted">Manual</Badge>
+			{/* Left status bar */}
+			{bar && (
+				<div className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-full ${bar}`} />
+			)}
+
+			{/* DR score */}
+			<div className="shrink-0 text-center w-8">
+				<div className="text-sm font-bold tabular-nums">{site.dr}</div>
+				<div className="text-[9px] text-muted-foreground uppercase tracking-wide">DR</div>
+			</div>
+
+			{/* Main info */}
+			<div className="flex-1 min-w-0">
+				<div className="flex items-center gap-1.5">
+					<span className="text-xs font-medium truncate">{site.name}</span>
+					{!hasSubmitUrl && (
+						<span className="text-[9px] text-muted-foreground shrink-0">manual</span>
 					)}
 				</div>
-			</CardHeader>
-			<CardContent>
-				<div className="flex items-center justify-between">
-					<span className="text-muted-foreground">{site.category}</span>
-					<span>
-						{site.link_type === 'dofollow' ? (
-							<Badge variant="success">DF</Badge>
-						) : (
-							<Badge variant="muted">NF</Badge>
-						)}
-					</span>
+				<div className="flex items-center gap-1.5 mt-0.5">
+					{site.category && (
+						<span className="text-[10px] text-muted-foreground truncate">{site.category}</span>
+					)}
 				</div>
-				{site.monthly_traffic && (
-					<div className="mt-1 text-muted-foreground">{site.monthly_traffic} / mo</div>
+			</div>
+
+			{/* Right badges */}
+			<div className="shrink-0 flex flex-col items-end gap-1">
+				<span
+					className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+						site.link_type === 'dofollow'
+							? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+							: 'bg-muted text-muted-foreground'
+					}`}
+				>
+					{site.link_type === 'dofollow' ? 'DF' : 'NF'}
+				</span>
+				{label && (
+					<span className="text-[9px] text-muted-foreground">{label}</span>
 				)}
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	)
 }

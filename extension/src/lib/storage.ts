@@ -1,4 +1,4 @@
-import { DEFAULT_LLM_CONFIG } from '@/agent/constants'
+import { BUILTIN_LLM_CONFIG } from '@/agent/constants'
 import type { ExtSettings, LLMSettings } from './types'
 
 const STORAGE_KEYS = {
@@ -6,13 +6,17 @@ const STORAGE_KEYS = {
 	language: 'submitAgent_language',
 	autoRewrite: 'submitAgent_autoRewrite',
 	activeProductId: 'submitAgent_activeProductId',
+	floatButtonEnabled: 'submitAgent_floatButtonEnabled',
 } as const
-
-const DEFAULT_LLM: LLMSettings = DEFAULT_LLM_CONFIG
 
 export async function getLLMConfig(): Promise<LLMSettings> {
 	const result = await chrome.storage.local.get(STORAGE_KEYS.llmConfig)
-	return (result[STORAGE_KEYS.llmConfig] as LLMSettings) ?? DEFAULT_LLM
+	const stored = result[STORAGE_KEYS.llmConfig] as LLMSettings | undefined
+	// Fall back to built-in Groq config if user hasn't configured their own
+	if (!stored || (!stored.baseUrl && !stored.model)) {
+		return BUILTIN_LLM_CONFIG
+	}
+	return stored
 }
 
 export async function setLLMConfig(config: LLMSettings): Promise<void> {
@@ -35,6 +39,15 @@ export async function getAutoRewrite(): Promise<boolean> {
 
 export async function setAutoRewrite(value: boolean): Promise<void> {
 	await chrome.storage.local.set({ [STORAGE_KEYS.autoRewrite]: value })
+}
+
+export async function getFloatButtonEnabled(): Promise<boolean> {
+	const result = await chrome.storage.local.get(STORAGE_KEYS.floatButtonEnabled)
+	return (result[STORAGE_KEYS.floatButtonEnabled] as boolean) ?? true
+}
+
+export async function setFloatButtonEnabled(value: boolean): Promise<void> {
+	await chrome.storage.local.set({ [STORAGE_KEYS.floatButtonEnabled]: value })
 }
 
 export async function getActiveProductId(): Promise<string | null> {
