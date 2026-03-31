@@ -16,6 +16,9 @@
 	--color-warning-foreground: #ffffff;
 	--color-card: #ffffff;
 	--color-card-foreground: #0a0a0a;
+	--color-popover: #ffffff;
+	--color-popover-foreground: #0a0a0a;
+	--color-accent: #f5f5f5;
 	--radius-sm: 0.25rem;
 	--radius-md: 0.375rem;
 	--radius-lg: 0.5rem;
@@ -38,6 +41,9 @@
 		--color-warning-foreground: #ffffff;
 		--color-card: #171717;
 		--color-card-foreground: #fafafa;
+		--color-popover: #1a1a1a;
+		--color-popover-foreground: #fafafa;
+		--color-accent: #262626;
 	}
 }
 

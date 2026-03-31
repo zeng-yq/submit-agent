@@ -7,7 +7,7 @@ import type {
 import { useCallback, useRef, useState } from 'react'
 
 import { SubmitAgent } from '@/agent/SubmitAgent'
-import { getLLMConfig } from '@/lib/storage'
+import { getLanguage, getLLMConfig } from '@/lib/storage'
 import type { ProductProfile, SiteData } from '@/lib/types'
 
 export interface UseSubmitAgentResult {
@@ -17,20 +17,23 @@ export interface UseSubmitAgentResult {
 	startSubmission: (site: SiteData, product: ProductProfile) => Promise<ExecutionResult>
 	startSubmissionOnCurrentTab: (product: ProductProfile, tabUrl: string) => Promise<ExecutionResult>
 	stop: () => void
+	reset: () => void
 }
 
-async function buildAgent(product: ProductProfile, siteName: string): Promise<SubmitAgent> {
-	const llmConfig = await getLLMConfig()
+async function buildAgent(product: ProductProfile, siteName: string, includeInitialTab = false): Promise<SubmitAgent> {
+	const [llmConfig, lang] = await Promise.all([getLLMConfig(), getLanguage()])
 	if (!llmConfig.baseUrl) throw new Error('LLM not configured. Please set the Base URL in Settings.')
 	if (!llmConfig.model) throw new Error('Model not configured. Please set the model name in Settings.')
 	const baseURL = llmConfig.baseUrl.replace(/\/+$/, '')
+	const language = lang === 'zh' ? 'zh-CN' : 'en-US'
 	return new SubmitAgent({
 		baseURL,
 		model: llmConfig.model,
 		apiKey: llmConfig.apiKey || undefined,
 		product,
 		siteName,
-		includeInitialTab: true,
+		includeInitialTab,
+		language,
 	})
 }
 
@@ -57,14 +60,8 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 
 			console.log('[SubmitAgent] Starting submission', { site: site.name })
 
-			await chrome.runtime.sendMessage({
-				type: 'SUBMIT_CONTROL',
-				action: 'open_submit_page',
-				payload: site.submit_url,
-			})
-
 			const task = [
-				`You are on a product submission form.`,
+				`First, open the submission page: ${site.submit_url}`,
 				`Site: ${site.name}`,
 				`Product: ${product.name} (${product.url})`,
 				'Fill all form fields with the product data from your context.',
@@ -89,7 +86,7 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 			agentRef.current?.dispose()
 
 			const siteName = (() => { try { return new URL(tabUrl).hostname } catch { return tabUrl } })()
-			const agent = await buildAgent(product, siteName)
+			const agent = await buildAgent(product, siteName, true)
 			agentRef.current = agent
 			wireEvents(agent)
 
@@ -120,6 +117,14 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 		agentRef.current?.stop()
 	}, [])
 
+	const reset = useCallback(() => {
+		agentRef.current?.dispose()
+		agentRef.current = null
+		setStatus('idle')
+		setHistory([])
+		setActivity(null)
+	}, [])
+
 	return {
 		status,
 		history,
@@ -127,5 +132,6 @@ export function useSubmitAgent(): UseSubmitAgentResult {
 		startSubmission,
 		startSubmissionOnCurrentTab,
 		stop,
+		reset,
 	}
 }

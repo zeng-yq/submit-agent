@@ -22,7 +22,7 @@ export default function App() {
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
 	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped } = useSites(activeProduct?.id ?? null)
-	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop } = useSubmitAgent()
+	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop, reset } = useSubmitAgent()
 	const [agentError, setAgentError] = useState<string | null>(null)
 
 	// Listen for float-fill trigger from content script via background
@@ -119,7 +119,7 @@ export default function App() {
 						}
 					}}
 					onStop={stop}
-					onBack={() => setView({ name: 'dashboard' })}
+					onBack={() => { reset(); setAgentError(null); setView({ name: 'dashboard' }) }}
 					onMarkSubmitted={() => markSubmitted(view.site.name, activeProduct!.id)}
 					onSkip={() => markSkipped(view.site.name, activeProduct!.id)}
 				/>
@@ -228,7 +228,7 @@ export default function App() {
 					<Dashboard
 						sites={sites}
 						submissions={submissions}
-						onSelectSite={(site) => setView({ name: 'site-detail', site })}
+						onSelectSite={(site) => { reset(); setAgentError(null); setView({ name: 'site-detail', site }) }}
 					/>
 				)}
 			</main>
