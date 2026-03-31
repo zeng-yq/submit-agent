@@ -10,11 +10,13 @@ import { useProduct } from '@/hooks/useProduct'
 import { generateProfile, type GeneratedProfile } from '@/lib/profile-generator'
 import { isLLMConfigured } from '@/agent/constants'
 import { getLLMConfig } from '@/lib/storage'
+import { useT } from '@/hooks/useLanguage'
 
 type View = { name: 'list' } | { name: 'create' } | { name: 'edit'; product: ProductProfile }
 type CreateStep = 'url-input' | 'generating' | 'review' | 'manual'
 
 function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<void>; onCancel: () => void }) {
+	const t = useT()
 	const [step, setStep] = useState<CreateStep>('url-input')
 	const [url, setUrl] = useState('')
 	const [profile, setProfile] = useState<GeneratedProfile | null>(null)
@@ -44,23 +46,23 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 			setStep('review')
 		} catch (err) {
 			if ((err as Error).name === 'AbortError') return
-			setError((err as Error).message || 'Generation failed')
+			setError((err as Error).message || t('options.generationFailed'))
 			setStep('url-input')
 		}
-	}, [url])
+	}, [url, t])
 
 	if (step === 'review' && profile) {
 		return (
 			<div>
 				<div className="flex items-center gap-2 mb-6">
-					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => { setStep('url-input'); setProfile(null) }}>← Back</button>
-					<span className="text-sm text-muted-foreground">Review AI-generated profile</span>
+					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => { setStep('url-input'); setProfile(null) }}>{t('options.backToList')}</button>
+					<span className="text-sm text-muted-foreground">{t('options.reviewProfile')}</span>
 				</div>
 				<ProductForm
 					initial={profile as FormData}
 					onSave={onSave}
 					onCancel={onCancel}
-					submitLabel="Save Product"
+					submitLabel={t('options.saveProduct')}
 				/>
 			</div>
 		)
@@ -70,10 +72,10 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 		return (
 			<div>
 				<div className="flex items-center gap-2 mb-6">
-					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setStep('url-input')}>← Back</button>
-					<span className="text-sm text-muted-foreground">New product</span>
+					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setStep('url-input')}>{t('options.backToList')}</button>
+					<span className="text-sm text-muted-foreground">{t('options.newProductLabel')}</span>
 				</div>
-				<ProductForm onSave={onSave} onCancel={onCancel} submitLabel="Save Product" />
+				<ProductForm onSave={onSave} onCancel={onCancel} submitLabel={t('options.saveProduct')} />
 			</div>
 		)
 	}
@@ -81,13 +83,13 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 	return (
 		<div className="max-w-md">
 			<div className="flex items-center gap-2 mb-6">
-				<button className="text-sm text-muted-foreground hover:text-foreground" onClick={onCancel}>← Back</button>
-				<span className="text-sm font-medium">New product</span>
+				<button className="text-sm text-muted-foreground hover:text-foreground" onClick={onCancel}>{t('options.backToList')}</button>
+				<span className="text-sm font-medium">{t('options.newProductLabel')}</span>
 			</div>
 			<div className="space-y-4">
 				<div>
-					<h2 className="text-base font-semibold">What's your product URL?</h2>
-					<p className="text-sm text-muted-foreground mt-1">AI will read your site and generate a profile automatically.</p>
+					<h2 className="text-base font-semibold">{t('options.urlTitle')}</h2>
+					<p className="text-sm text-muted-foreground mt-1">{t('options.urlDesc')}</p>
 				</div>
 				<Input
 					placeholder="https://your-product.com"
@@ -102,7 +104,7 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 				)}
 				{llmReady === false && (
 					<div className="text-xs text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded p-3">
-						AI generation requires an LLM API configured in Settings.
+						{t('options.llmRequired')}
 					</div>
 				)}
 				<Button
@@ -110,14 +112,14 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 					onClick={handleGenerate}
 					disabled={!url.trim() || step === 'generating' || llmReady === false}
 				>
-					{step === 'generating' ? 'Analyzing your product...' : 'Generate Profile with AI'}
+					{step === 'generating' ? t('options.analyzingProduct') : t('options.generateWithAi')}
 				</Button>
 				<button
 					type="button"
 					className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
 					onClick={() => setStep('manual')}
 				>
-					or fill in manually
+					{t('options.orManually')}
 				</button>
 			</div>
 		</div>
@@ -125,6 +127,7 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 }
 
 export default function App() {
+	const t = useT()
 	const [view, setView] = useState<View>({ name: 'list' })
 	const { products, activeProduct, loading, createProduct, editProduct, deleteProduct, setActive } =
 		useProduct()
@@ -162,24 +165,24 @@ export default function App() {
 		<div className="max-w-2xl mx-auto p-6">
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<h1 className="text-xl font-bold">Submit Agent</h1>
+					<h1 className="text-xl font-bold">{t('options.title')}</h1>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage your product profiles for auto-submission
+						{t('options.subtitle')}
 					</p>
 				</div>
-				<Button onClick={() => setView({ name: 'create' })}>New Product</Button>
+				<Button onClick={() => setView({ name: 'create' })}>{t('options.newProduct')}</Button>
 			</div>
 
 			{loading ? (
-				<div className="text-sm text-muted-foreground">Loading...</div>
+				<div className="text-sm text-muted-foreground">{t('common.loading')}</div>
 			) : products.length === 0 ? (
 				<Card>
 					<CardContent className="py-8 text-center">
 						<div className="text-sm text-muted-foreground mb-3">
-							No product profiles yet. Create one to start submitting.
+							{t('options.noProducts')}
 						</div>
 						<Button size="sm" onClick={() => setView({ name: 'create' })}>
-							Create Your First Profile
+							{t('options.createFirst')}
 						</Button>
 					</CardContent>
 				</Card>
@@ -195,7 +198,7 @@ export default function App() {
 								<CardHeader>
 									<div className="flex items-center gap-2">
 										<CardTitle>{product.name}</CardTitle>
-										{isActive && <Badge variant="default">Active</Badge>}
+										{isActive && <Badge variant="default">{t('options.active')}</Badge>}
 									</div>
 									<div className="flex gap-1">
 										{!isActive && (
@@ -204,7 +207,7 @@ export default function App() {
 												size="sm"
 												onClick={() => setActive(product.id)}
 											>
-												Set Active
+												{t('options.setActive')}
 											</Button>
 										)}
 										<Button
@@ -212,19 +215,19 @@ export default function App() {
 											size="sm"
 											onClick={() => setView({ name: 'edit', product })}
 										>
-											Edit
+											{t('common.edit')}
 										</Button>
 										<Button
 											variant="ghost"
 											size="sm"
 											className="text-destructive"
 											onClick={() => {
-												if (confirm(`Delete "${product.name}"?`)) {
+												if (confirm(t('options.confirmDelete', { name: product.name }))) {
 													deleteProduct(product.id)
 												}
 											}}
 										>
-											Delete
+											{t('common.delete')}
 										</Button>
 									</div>
 								</CardHeader>

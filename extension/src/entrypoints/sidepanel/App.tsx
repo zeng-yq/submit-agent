@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { SiteData } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
 import { QuickCreate } from '@/components/QuickCreate'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { useProduct } from '@/hooks/useProduct'
 import { useSites } from '@/hooks/useSites'
 import { useSubmitAgent } from '@/hooks/useSubmitAgent'
+import { useT } from '@/hooks/useLanguage'
 
 type View =
 	| { name: 'dashboard' }
@@ -17,6 +18,7 @@ type View =
 	| { name: 'float-fill' }
 
 export default function App() {
+	const t = useT()
 	const [view, setView] = useState<View>({ name: 'dashboard' })
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
@@ -36,7 +38,6 @@ export default function App() {
 				}
 				setView({ name: 'float-fill' })
 				setAgentError(null)
-				// Get the tab URL from session storage
 				chrome.storage.session.get('floatFillTabId').then(async (res) => {
 					const tabId = res.floatFillTabId as number | undefined
 					let tabUrl = window.location.href
@@ -83,9 +84,9 @@ export default function App() {
 		return (
 			<div className="flex flex-col h-screen bg-background">
 				<header className="flex items-center justify-between border-b px-3 py-2">
-					<span className="text-sm font-semibold">Submit Agent</span>
+					<span className="text-sm font-semibold">{t('common.submitAgent')}</span>
 					<Button variant="ghost" size="sm" onClick={() => setView({ name: 'dashboard' })}>
-						Back
+						{t('common.back')}
 					</Button>
 				</header>
 				<QuickCreate
@@ -131,9 +132,9 @@ export default function App() {
 		return (
 			<div className="flex flex-col h-screen bg-background">
 				<header className="flex items-center justify-between border-b px-3 py-2">
-					<span className="text-sm font-semibold">Auto-filling form...</span>
+					<span className="text-sm font-semibold">{t('sidepanel.autoFilling')}</span>
 					<Button variant="ghost" size="sm" onClick={() => { stop(); setView({ name: 'dashboard' }) }}>
-						Cancel
+						{t('common.cancel')}
 					</Button>
 				</header>
 				<div className="flex-1 p-3 space-y-2">
@@ -141,8 +142,8 @@ export default function App() {
 						<div className="text-xs text-destructive bg-destructive/10 rounded p-2">{agentError}</div>
 					) : (
 						<div className="text-xs text-muted-foreground">
-							<div className="font-medium text-foreground mb-1">Product: {activeProduct?.name}</div>
-							<div>Status: {agentStatus}</div>
+							<div className="font-medium text-foreground mb-1">{t('sidepanel.product')} {activeProduct?.name}</div>
+							<div>{t('sidepanel.status')} {agentStatus}</div>
 							{activity && <div className="mt-1 text-xs">{activity.type}: {JSON.stringify(activity).slice(0, 80)}</div>}
 						</div>
 					)}
@@ -163,7 +164,7 @@ export default function App() {
 							className="text-sm font-semibold flex items-center gap-1 hover:text-primary transition-colors"
 							onClick={() => setDropdownOpen((o) => !o)}
 						>
-							{activeProduct?.name ?? 'Submit Agent'}
+							{activeProduct?.name ?? t('common.submitAgent')}
 							<span className="text-muted-foreground text-xs">{dropdownOpen ? '▲' : '▼'}</span>
 						</button>
 						{dropdownOpen && (
@@ -186,7 +187,7 @@ export default function App() {
 									className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors text-muted-foreground"
 									onClick={() => { setView({ name: 'quick-create' }); setDropdownOpen(false) }}
 								>
-									+ Add product
+									{t('common.addProduct')}
 								</button>
 							</div>
 						)}
@@ -197,14 +198,14 @@ export default function App() {
 							size="sm"
 							onClick={() => chrome.runtime.openOptionsPage()}
 						>
-							Products
+							{t('common.products')}
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={() => setView({ name: 'settings' })}
 						>
-							Settings
+							{t('common.settings')}
 						</Button>
 					</div>
 				</div>
@@ -213,7 +214,7 @@ export default function App() {
 			<main className="flex-1 overflow-hidden p-3">
 				{isLoading ? (
 					<div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-						Loading...
+						{t('common.loading')}
 					</div>
 				) : !activeProduct ? (
 					<QuickCreate

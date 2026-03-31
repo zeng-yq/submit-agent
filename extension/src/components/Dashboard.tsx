@@ -1,5 +1,6 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
 import { useMemo, useState } from 'react'
+import { useT } from '@/hooks/useLanguage'
 import { SiteCard } from './SiteCard'
 
 interface DashboardProps {
@@ -14,6 +15,7 @@ const DONE_STATUSES: SubmissionStatus[] = ['submitted', 'approved', 'skipped']
 const RECOMMENDED_LIMIT = 20
 
 export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) {
+	const t = useT()
 	const [tab, setTab] = useState<Tab>('recommended')
 	const [search, setSearch] = useState('')
 
@@ -57,9 +59,9 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 	const pct = stats.total > 0 ? Math.round((stats.submitted / stats.total) * 100) : 0
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
-		{ id: 'recommended', label: 'Recommended', count: recommendedSites.length },
-		{ id: 'all', label: 'All', count: allSites.length },
-		{ id: 'done', label: 'Done', count: doneSites.length },
+		{ id: 'recommended', label: t('dashboard.recommended'), count: recommendedSites.length },
+		{ id: 'all', label: t('dashboard.all'), count: allSites.length },
+		{ id: 'done', label: t('dashboard.done'), count: doneSites.length },
 	]
 
 	const displaySites =
@@ -71,7 +73,7 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 			<div className="px-1 space-y-1">
 				<div className="flex items-center justify-between">
 					<span className="text-xs font-medium">
-						{stats.submitted} / {stats.total} submitted
+						{t('dashboard.submitted', { submitted: stats.submitted, total: stats.total })}
 					</span>
 					<span className="text-xs text-muted-foreground">{pct}%</span>
 				</div>
@@ -85,19 +87,19 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 
 			{/* Tabs */}
 			<div className="flex gap-0 border-b">
-				{tabs.map((t) => (
+				{tabs.map((tabItem) => (
 					<button
-						key={t.id}
+						key={tabItem.id}
 						type="button"
-						onClick={() => setTab(t.id)}
+						onClick={() => setTab(tabItem.id)}
 						className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${
-							tab === t.id
+							tab === tabItem.id
 								? 'border-primary text-foreground'
 								: 'border-transparent text-muted-foreground hover:text-foreground'
 						}`}
 					>
-						{t.label}
-						<span className="ml-1 text-[10px] text-muted-foreground">{t.count}</span>
+						{tabItem.label}
+						<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 					</button>
 				))}
 			</div>
@@ -106,7 +108,7 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 			{tab === 'all' && (
 				<input
 					type="text"
-					placeholder="Search sites..."
+					placeholder={t('dashboard.searchPlaceholder')}
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
 					className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -125,9 +127,9 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 				))}
 				{displaySites.length === 0 && (
 					<div className="text-center text-xs text-muted-foreground py-8">
-						{tab === 'recommended' && 'All recommended sites are done!'}
-						{tab === 'all' && 'No sites match your search'}
-						{tab === 'done' && 'No submitted or skipped sites yet'}
+						{tab === 'recommended' && t('dashboard.emptyRecommended')}
+						{tab === 'all' && t('dashboard.emptyAll')}
+						{tab === 'done' && t('dashboard.emptyDone')}
 					</div>
 				)}
 			</div>

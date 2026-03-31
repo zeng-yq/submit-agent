@@ -1,5 +1,6 @@
 import type { ProductProfile } from '@/lib/types'
 import { useCallback, useState } from 'react'
+import { useT } from '@/hooks/useLanguage'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
@@ -28,6 +29,7 @@ const EMPTY_FORM: FormData = {
 }
 
 export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }: ProductFormProps) {
+	const t = useT()
 	const [form, setForm] = useState<FormData>({ ...EMPTY_FORM, ...initial })
 	const [saving, setSaving] = useState(false)
 	const [showMore, setShowMore] = useState(false)
@@ -55,20 +57,20 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 		<form onSubmit={handleSubmit} className="space-y-3">
 			{!compact && (
 				<div className="text-sm font-semibold">
-					{initial ? 'Edit Product' : 'New Product Profile'}
+					{initial ? t('productForm.editProduct') : t('productForm.newProduct')}
 				</div>
 			)}
 
 			<Input
-				label="Product Name"
-				placeholder="My AI Tool"
+				label={t('productForm.productName')}
+				placeholder={t('productForm.productNamePlaceholder')}
 				value={form.name}
 				onChange={(e) => update('name', e.target.value)}
 				required
 			/>
 
 			<Input
-				label="Website URL"
+				label={t('productForm.websiteUrl')}
 				placeholder="https://example.com"
 				type="url"
 				value={form.url}
@@ -77,16 +79,16 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 			/>
 
 			<Input
-				label="Tagline"
-				placeholder="One-sentence description"
+				label={t('productForm.tagline')}
+				placeholder={t('productForm.taglinePlaceholder')}
 				value={form.tagline}
 				onChange={(e) => update('tagline', e.target.value)}
 				required
 			/>
 
 			<Textarea
-				label="Short Description (~50 words)"
-				placeholder="Brief product description for directories..."
+				label={t('productForm.shortDesc')}
+				placeholder={t('productForm.shortDescPlaceholder')}
 				value={form.shortDesc}
 				onChange={(e) => update('shortDesc', e.target.value)}
 				rows={textareaRows ?? 3}
@@ -94,8 +96,8 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 			/>
 
 			<Textarea
-				label="Long Description (~150 words)"
-				placeholder="Detailed product description..."
+				label={t('productForm.longDesc')}
+				placeholder={t('productForm.longDescPlaceholder')}
 				value={form.longDesc}
 				onChange={(e) => update('longDesc', e.target.value)}
 				rows={textareaRows ?? 5}
@@ -103,8 +105,8 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 			/>
 
 			<Input
-				label="Categories (comma-separated)"
-				placeholder="AI, Productivity, SaaS"
+				label={t('productForm.categories')}
+				placeholder={t('productForm.categoriesPlaceholder')}
 				value={form.categories.join(', ')}
 				onChange={(e) =>
 					update(
@@ -121,7 +123,7 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 						className="text-xs text-primary hover:underline"
 						onClick={() => setShowMore((v) => !v)}
 					>
-						{showMore ? 'Hide extra details' : 'More details (founder, social links)'}
+						{showMore ? t('productForm.hideExtra') : t('productForm.moreDetails')}
 					</button>
 					{showMore && <ExtraFields form={form} update={update} />}
 				</>
@@ -131,11 +133,11 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 
 			<div className="flex gap-2 pt-2">
 				<Button type="submit" disabled={saving || !form.name || !form.url} className={compact ? 'w-full' : ''}>
-					{saving ? 'Saving...' : submitLabel ?? (initial ? 'Update' : 'Create Profile')}
+					{saving ? t('common.saving') : submitLabel ?? (initial ? t('productForm.update') : t('productForm.createProfile'))}
 				</Button>
 				{onCancel && (
 					<Button type="button" variant="outline" onClick={onCancel}>
-						Cancel
+						{t('common.cancel')}
 					</Button>
 				)}
 			</div>
@@ -150,19 +152,20 @@ function ExtraFields({
 	form: FormData
 	update: <K extends keyof FormData>(key: K, value: FormData[K]) => void
 }) {
+	const t = useT()
 	return (
 		<>
 			<div className="border-t border-border pt-4 mt-4">
-				<div className="text-xs font-semibold mb-3">Founder Info</div>
+				<div className="text-xs font-semibold mb-3">{t('productForm.founderInfo')}</div>
 				<div className="space-y-3">
 					<Input
-						label="Full Name"
+						label={t('productForm.fullName')}
 						placeholder="Jane Doe"
 						value={form.founderName}
 						onChange={(e) => update('founderName', e.target.value)}
 					/>
 					<Input
-						label="Email"
+						label={t('productForm.email')}
 						placeholder="jane@example.com"
 						type="email"
 						value={form.founderEmail}
@@ -172,7 +175,7 @@ function ExtraFields({
 			</div>
 
 			<div className="border-t border-border pt-4 mt-4">
-				<div className="text-xs font-semibold mb-3">Social Links</div>
+				<div className="text-xs font-semibold mb-3">{t('productForm.socialLinks')}</div>
 				<div className="space-y-3">
 					{['twitter', 'github', 'linkedin', 'producthunt'].map((platform) => (
 						<Input

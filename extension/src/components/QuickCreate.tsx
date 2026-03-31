@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { getLLMConfig } from '@/lib/storage'
 import { generateProfile, type GeneratedProfile, type GenerateProgressStep } from '@/lib/profile-generator'
+import { useT } from '@/hooks/useLanguage'
+import type { TranslationKey } from '@/lib/i18n'
 import { ProductForm, type FormData } from './ProductForm'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -13,15 +15,16 @@ interface QuickCreateProps {
 
 type Step = 'input' | 'generating' | 'review' | 'error'
 
-const PROGRESS_STEPS: { key: GenerateProgressStep; label: string }[] = [
-	{ key: 'fetching', label: 'Fetching webpage content...' },
-	{ key: 'parsing', label: 'Parsing page structure...' },
-	{ key: 'analyzing', label: 'Analyzing product with AI...' },
-	{ key: 'generating', label: 'Building directory profile...' },
-	{ key: 'done', label: 'Profile ready!' },
+const PROGRESS_STEP_KEYS: { key: GenerateProgressStep; labelKey: TranslationKey }[] = [
+	{ key: 'fetching', labelKey: 'quickCreate.fetching' },
+	{ key: 'parsing', labelKey: 'quickCreate.parsing' },
+	{ key: 'analyzing', labelKey: 'quickCreate.aiAnalyzing' },
+	{ key: 'generating', labelKey: 'quickCreate.building' },
+	{ key: 'done', labelKey: 'quickCreate.profileReady' },
 ]
 
 function StepIndicator({ current }: { current: 1 | 2 }) {
+	const t = useT()
 	return (
 		<div className="flex items-center gap-2">
 			<div className="flex items-center gap-1.5">
@@ -29,7 +32,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 					current >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
 				}`}>1</div>
 				<span className={`text-xs ${ current === 1 ? 'font-medium text-foreground' : 'text-muted-foreground' }`}>
-					Your product
+					{t('quickCreate.step1')}
 				</span>
 			</div>
 			<div className="flex-1 h-px bg-border mx-1" />
@@ -38,7 +41,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 					current >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
 				}`}>2</div>
 				<span className={`text-xs ${ current === 2 ? 'font-medium text-foreground' : 'text-muted-foreground' }`}>
-					Confirm profile
+					{t('quickCreate.step2')}
 				</span>
 			</div>
 		</div>
@@ -46,16 +49,16 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 }
 
 function GeneratingView({ currentStep }: { currentStep: GenerateProgressStep | null }) {
-	const currentIndex = PROGRESS_STEPS.findIndex((s) => s.key === currentStep)
+	const t = useT()
+	const currentIndex = PROGRESS_STEP_KEYS.findIndex((s) => s.key === currentStep)
 
 	return (
 		<div className="flex flex-col gap-3 py-2">
-			<div className="text-xs font-medium text-foreground">Analyzing your product...</div>
+			<div className="text-xs font-medium text-foreground">{t('quickCreate.analyzing')}</div>
 			<div className="flex flex-col gap-2">
-				{PROGRESS_STEPS.filter((s) => s.key !== 'done').map((s, i) => {
+				{PROGRESS_STEP_KEYS.filter((s) => s.key !== 'done').map((s, i) => {
 					const isDone = currentIndex > i
 					const isActive = currentIndex === i
-					const isPending = currentIndex < i
 					return (
 						<div key={s.key} className={`flex items-center gap-2 text-xs transition-colors ${
 							isDone ? 'text-green-600 dark:text-green-400'
@@ -71,7 +74,7 @@ function GeneratingView({ currentStep }: { currentStep: GenerateProgressStep | n
 							) : (
 								<span className="w-4 text-center text-muted-foreground/40">·</span>
 							)}
-							<span>{s.label}</span>
+							<span>{t(s.labelKey)}</span>
 						</div>
 					)
 				})}
@@ -90,6 +93,7 @@ function SpinnerIcon() {
 }
 
 export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps) {
+	const t = useT()
 	const [url, setUrl] = useState('')
 	const [step, setStep] = useState<Step>('input')
 	const [profile, setProfile] = useState<GeneratedProfile | null>(null)
@@ -121,10 +125,10 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 			setStep('review')
 		} catch (err) {
 			if ((err as Error)?.name === 'AbortError') return
-			setError((err as Error)?.message ?? 'Unknown error')
+			setError((err as Error)?.message ?? t('common.error'))
 			setStep('error')
 		}
-	}, [url])
+	}, [url, t])
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
@@ -162,7 +166,7 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 						initial={initial}
 						compact
 						onSave={onSave}
-						submitLabel="Save & Start Submitting"
+						submitLabel={t('quickCreate.saveAndStart')}
 					/>
 				</div>
 			</div>
@@ -179,23 +183,23 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 					<div className="flex flex-col gap-4">
 						<GeneratingView currentStep={progressStep} />
 						<Button variant="ghost" size="sm" onClick={handleCancel} className="w-full text-muted-foreground">
-							Cancel
+							{t('common.cancel')}
 						</Button>
 					</div>
 				) : (
 					<div className="flex flex-col gap-3">
-						<div className="text-sm font-semibold">Add your product</div>
+						<div className="text-sm font-semibold">{t('quickCreate.addProduct')}</div>
 						<div className="text-xs text-muted-foreground">
-							Enter your product URL and AI will analyze the page to create a submission profile.
+							{t('quickCreate.addProductDesc')}
 						</div>
 
 						{llmReady === false && (
 							<div className="text-xs text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded p-2 space-y-1">
-								<div className="font-medium">LLM not configured</div>
-								<div>Please configure your LLM settings to use AI features.</div>
+								<div className="font-medium">{t('quickCreate.llmNotConfigured')}</div>
+								<div>{t('quickCreate.llmNotConfiguredDesc')}</div>
 								{onOpenSettings && (
 									<Button size="sm" className="w-full" onClick={onOpenSettings}>
-										Open Settings
+										{t('quickCreate.openSettings')}
 									</Button>
 								)}
 							</div>
@@ -221,7 +225,7 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 							onClick={handleGenerate}
 							disabled={!url.trim() || llmReady === false}
 						>
-							Generate Profile
+							{t('quickCreate.generateProfile')}
 						</Button>
 
 						<button
@@ -229,7 +233,7 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 							className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
 							onClick={onSkip}
 						>
-							or create a profile manually
+							{t('quickCreate.orManually')}
 						</button>
 					</div>
 				)}
