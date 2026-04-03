@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "CursorMCP对话插件": {
+      "command": "node",
+      "args": [
+        "/Users/yz/.cursor/extensions/local.xw-cursor-message-8.8.8/dist/mcp-server.mjs"
+      ],
+      "env": {
+        "MESSENGER_DATA_DIR": "/Users/yz/.moyu-message/3bf4b5d16309"
+      }
+    }
+  }
+}

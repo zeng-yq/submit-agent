@@ -84,6 +84,14 @@ export interface LLMSettings {
 	model: string
 }
 
+export type ProviderKey = 'builtin' | 'openai' | 'deepseek' | 'custom'
+
+/** Per-provider LLM configs + active provider selection */
+export interface ProviderConfigs {
+	active: ProviderKey
+	configs: Record<ProviderKey, LLMSettings>
+}
+
 /** Extension-wide settings persisted in chrome.storage.local */
 export interface ExtSettings {
 	llm: LLMSettings

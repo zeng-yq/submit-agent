@@ -1,12 +1,12 @@
 @import 'tailwindcss';
 
 @theme {
-	--color-background: #ffffff;
-	--color-foreground: #0a0a0a;
-	--color-muted: #f5f5f5;
-	--color-muted-foreground: #737373;
-	--color-border: #e5e5e5;
-	--color-primary: #2563eb;
+	--color-background: #FAFAF7;
+	--color-foreground: #1C1917;
+	--color-muted: #F5F3EF;
+	--color-muted-foreground: #78716C;
+	--color-border: #E7E5E4;
+	--color-primary: #D4990A;
 	--color-primary-foreground: #ffffff;
 	--color-destructive: #ef4444;
 	--color-destructive-foreground: #ffffff;
@@ -15,23 +15,24 @@
 	--color-warning: #f59e0b;
 	--color-warning-foreground: #ffffff;
 	--color-card: #ffffff;
-	--color-card-foreground: #0a0a0a;
+	--color-card-foreground: #1C1917;
 	--color-popover: #ffffff;
-	--color-popover-foreground: #0a0a0a;
-	--color-accent: #f5f5f5;
+	--color-popover-foreground: #1C1917;
+	--color-accent: #FEF9EC;
 	--radius-sm: 0.25rem;
-	--radius-md: 0.375rem;
-	--radius-lg: 0.5rem;
+	--radius-md: 0.5rem;
+	--radius-lg: 0.75rem;
+	--radius-xl: 1rem;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--color-background: #0a0a0a;
-		--color-foreground: #fafafa;
-		--color-muted: #262626;
-		--color-muted-foreground: #a3a3a3;
-		--color-border: #2e2e2e;
-		--color-primary: #3b82f6;
+		--color-background: #0C0A09;
+		--color-foreground: #FAFAF9;
+		--color-muted: #1C1917;
+		--color-muted-foreground: #A8A29E;
+		--color-border: #292524;
+		--color-primary: #E5AB18;
 		--color-primary-foreground: #ffffff;
 		--color-destructive: #dc2626;
 		--color-destructive-foreground: #ffffff;
@@ -39,11 +40,11 @@
 		--color-success-foreground: #ffffff;
 		--color-warning: #d97706;
 		--color-warning-foreground: #ffffff;
-		--color-card: #171717;
-		--color-card-foreground: #fafafa;
-		--color-popover: #1a1a1a;
-		--color-popover-foreground: #fafafa;
-		--color-accent: #262626;
+		--color-card: #1C1917;
+		--color-card-foreground: #FAFAF9;
+		--color-popover: #1C1917;
+		--color-popover-foreground: #FAFAF9;
+		--color-accent: #1C1917;
 	}
 }
 
@@ -53,4 +54,6 @@ body {
 	background-color: var(--color-background);
 	color: var(--color-foreground);
 	margin: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }

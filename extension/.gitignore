@@ -3,3 +3,4 @@
 .wxt
 
 node_modules
+.env

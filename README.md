@@ -1,177 +1,170 @@
-# Awesome AI Launch List
+# Submit Agent
 
 [English](README.md) | [中文](README_CN.md)
 
-[![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
-![GitHub stars](https://img.shields.io/github/stars/your-username/Awesome-AI-Launch-List?style=social)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> A curated list of **100+ websites** where you can submit your AI product to get early users, backlinks, and SEO boost — for free.
-
-Launching an AI product is hard. Getting noticed is harder. This list saves you days of research by collecting every directory, platform, and community that accepts AI product submissions, complete with DR scores, traffic estimates, pricing, and direct submission links.
-
-It's not a technical SEO problem. Google literally doesn't know you're there. Search engines decide whether to recommend a website based on **how many other websites link to it**. Each link pointing to you is called a backlink — essentially a trust vote. Someone else putting their reputation on the line to vouch for you.
-
-A new website is like a fresh graduate with no credit history. Might be brilliant, but the bank won't approve your loan because nobody has vouched for you yet.
-
-### How to read the tables
-
-**DR (Domain Rating):** A website's credit score, 0–100, calculated by [Ahrefs](https://ahrefs.com/website-authority-checker). A backlink from G2 (DR 92) and one from a random small site (DR 20) are not the same thing in Google's eyes — the former is a Fortune 500 CEO writing you a reference letter, the latter is your college roommate.
-
-**Dofollow (DF):** Real trust transfer. Google counts it toward your authority. This is what you want.
-
-**Nofollow (NF):** Links to you, but tells Google "I'm not vouching for them." Still brings traffic and brand exposure, but limited SEO weight.
-
-So the first move in a cold start is clear: submit your product to every site willing to list you.
-
-**This is a list of 96 sites willing to vouch for you — with their credit scores, traffic, pricing, and submission links.**
-
+> A browser extension that uses AI to auto-fill product submission forms on directory sites. You provide your product info once; the agent fills every form for you.
 
 ---
 
-## What's Inside
+## The problem
 
-| Category | Count | Highlights |
-|----------|:-----:|------------|
-| [AI Directories](#ai-directories) | 25 | There's An AI For That, Futurepedia, Toolify.ai |
-| [Startup & Product Directories](#startup--product-directories) | 20 | G2, Capterra, Crunchbase, Product Hunt |
-| [Launch & Review Platforms](#launch--review-platforms) | 8 | Product Hunt, Trustpilot, SourceForge |
-| [Developer Communities](#developer-communities) | 10 | Hacker News, Reddit, Dev.to, GitHub |
-| [Deal Platforms](#deal-platforms) | 5 | AppSumo, PitchGround |
-| [Social & Content Platforms](#social--content-platforms) | 6 | LinkedIn, Medium, Quora |
-| [General Directories (SEO)](#general-directories-seo-backlinks) | 12 | Gartner, Software Advice, GoodFirms |
-| **Total** | **96** | |
+You built an AI product. Now you need people to find it.
 
-> DR and traffic values are approximate. Last verified: March 2026. PRs with updated data are welcome.
+Google decides whether to show your site based on how many other sites link to you. A new website has zero links — Google doesn't know you exist. The fix: submit your product to directory sites. Each listing creates a backlink, each backlink builds your authority.
 
----
+96+ sites accept submissions. Manually filling each form — product name, URL, description, logo, categories — takes 3 to 5 days of copy-paste work.
 
-## AI Directories
+Submit Agent does this in about 2 hours.
 
-Sites built for discovering AI tools. The people here are actively looking for AI products — highest conversion intent.
+## How it works
 
-| Site | DR | Traffic | Pricing | Link | Submit |
-|------|:--:|---------|---------|:----:|--------|
-| [There's An AI For That](https://theresanaiforthat.com/) | 75 | 5M+ | Free / Paid boost | DF | [Submit](https://theresanaiforthat.com/submit/) |
-| [Futurepedia](https://www.futurepedia.io/) | 65 | 1.5M+ | Free / Paid boost | DF | [Submit](https://www.futurepedia.io/submit-tool) |
-| [Toolify.ai](https://www.toolify.ai/) | 62 | 3M+ | Free / Paid | DF | [Submit](https://www.toolify.ai/submit) |
-| [TopAI.tools](https://topai.tools/) | 55 | 800K+ | Free / Paid | DF | [Submit](https://topai.tools/submit) |
-| [FutureTools](https://www.futuretools.io/) | 52 | 500K+ | Free | NF | [Submit](https://www.futuretools.io/submit-a-tool) |
+1. You fill in your product info once (name, URL, descriptions, logo, social links).
+2. You open a submission page — say, [Futurepedia](https://www.futurepedia.io/submit-tool) or [G2](https://www.g2.com/products/new).
+3. Click the extension. The AI reads the page, figures out which fields need what, and fills them in. Descriptions are auto-rewritten so each submission is unique (Google penalizes duplicate content).
+4. You review the filled form, then submit it yourself.
 
-> **+ 20 more AI directories** — see [`sites.json`](sites.json) for the full list
+The agent never clicks "submit" for you. You stay in control.
 
-## Startup & Product Directories
+## Install
 
-General product directories. DR is consistently high here — one backlink from these sites is worth ten from smaller ones.
+### From release (recommended)
 
-| Site | DR | Traffic | Pricing | Link | Submit |
-|------|:--:|---------|---------|:----:|--------|
-| [G2](https://www.g2.com/) | 92 | 8M+ | Free listing | DF | [Submit](https://www.g2.com/products/new) |
-| [Crunchbase](https://www.crunchbase.com/) | 91 | 5M+ | Free basic | DF | [Submit](https://www.crunchbase.com/add-new) |
-| [Capterra](https://www.capterra.com/) | 90 | 6M+ | Free listing | DF | [Submit](https://www.capterra.com/vendors/sign-up) |
-| [AlternativeTo](https://alternativeto.net/) | 82 | 5M+ | Free | DF | [Submit](https://alternativeto.net/manage/new/) |
-| [BetaList](https://betalist.com/) | 72 | 200K+ | Free / Paid | DF | [Submit](https://betalist.com/submit) |
+1. Download the latest `.zip` from [Releases](https://github.com/your-username/submit-agent/releases).
+2. Unzip it.
+3. Open Chrome → `chrome://extensions` → turn on **Developer mode** (top right).
+4. Click **Load unpacked** → select the unzipped folder.
+5. Pin the extension from the puzzle icon in the toolbar.
 
-> **+ 15 more startup directories** — see [`sites.json`](sites.json) for the full list
+### Build from source
 
-## Launch & Review Platforms
+```bash
+cd extension
+npm install
+npm run build
+```
 
-Where launch day happens. Community upvotes and user reviews drive visibility.
+The built extension lands in `extension/.output/chrome-mv3/`. Load that folder as unpacked in Chrome.
 
-| Site | DR | Traffic | Pricing | Link | Submit |
-|------|:--:|---------|---------|:----:|--------|
-| [Trustpilot](https://www.trustpilot.com/) | 93 | 60M+ | Free | NF | [Claim profile](https://business.trustpilot.com/) |
-| [Product Hunt](https://www.producthunt.com/) | 91 | 10M+ | Free | NF | [Launch](https://www.producthunt.com/posts/new) |
-| [SourceForge](https://sourceforge.net/) | 90 | 30M+ | Free | DF | [Create project](https://sourceforge.net/create/) |
+## Setup
 
-> **+ 5 more platforms** — see [`sites.json`](sites.json) for the full list
+### 1. Configure the AI model
 
-## Developer Communities
+Click the extension icon → **Settings**.
 
-Where technical audiences hang out. Most links here are Nofollow, but the traffic and word-of-mouth are worth it.
+Submit Agent works with any OpenAI-compatible API. You have four options:
 
-| Site | DR | Traffic | Link | Notes |
-|------|:--:|---------|:----:|-------|
-| [Reddit](https://www.reddit.com/) | 97 | 2B+ | NF | r/artificial, r/SideProject, r/startups |
-| [Hacker News](https://news.ycombinator.com/) | 91 | 15M+ | NF | "Show HN" post |
-| [Dev.to](https://dev.to/) | 86 | 10M+ | NF | Write a launch article |
-| [GitHub](https://github.com/) | 97 | 100M+ | DF | Open source repo + README |
+| Provider | What you need |
+|----------|--------------|
+| **Built-in** | Nothing. Free tier, works out of the box. |
+| **OpenAI** | Your API key. Uses `gpt-4o-mini` by default. |
+| **DeepSeek** | Your API key. Uses `deepseek-chat` by default. |
+| **Custom** | Any OpenAI-compatible endpoint — base URL, model name, and optionally an API key. |
 
-> **+ 6 more communities** — see [`sites.json`](sites.json) for the full list
+Hit **Test Connection** to verify it works before saving.
 
-## Deal Platforms
+### 2. Add your product
 
-Trade a revenue share for their marketing muscle. Best for products with lifetime deal (LTD) pricing.
+First time you open the extension, it asks for your product URL. The AI fetches your site, reads it, and generates a profile: name, tagline, short description, long description, categories. You review and edit, then save.
 
-| Site | DR | Traffic | Submit |
-|------|:--:|---------|--------|
-| [AppSumo](https://appsumo.com/) | 82 | 3M+ | [Apply](https://sell.appsumo.com/) |
-| [PitchGround](https://pitchground.com/) | 55 | 200K+ | [Apply](https://pitchground.com/sell-with-us) |
+You can also fill everything manually — click "or fill in manually" to open the full form.
 
-> **+ 3 more deal platforms** — see [`sites.json`](sites.json) for the full list
+Want to submit multiple products? The dropdown in the top-left corner of the side panel lets you switch between products or add new ones.
 
-## Social & Content Platforms
+## Using the extension
 
-Amplify your launch through content. Links are Nofollow, but the reach is massive.
+### Method 1: Pick a site from the dashboard
 
-| Site | DR | Traffic | Link | Notes |
-|------|:--:|---------|:----:|-------|
-| [LinkedIn](https://www.linkedin.com/) | 98 | 1B+ | NF | Company page + launch post |
-| [Medium](https://medium.com/) | 95 | 200M+ | NF | Write a launch story |
-| [Quora](https://www.quora.com/) | 93 | 300M+ | NF | Answer related questions |
+Open the side panel (click the extension icon). You'll see a dashboard with all 96 sites, sorted by DR (Domain Rating — higher means a more valuable backlink). Sites you've already submitted to are tracked.
 
-> **+ 3 more platforms** — see [`sites.json`](sites.json) for the full list
+Click any site → **Start Auto-fill**. The extension opens the submission page and the AI fills the form. When it's done, review and submit.
 
-## General Directories (SEO Backlinks)
+### Method 2: Fill the current page
 
-Users here aren't specifically looking for AI products, but the DR is high and the backlinks are real. Pure credit-building.
+Already on a submission page? Click the floating button that appears in the bottom-right corner of any webpage (you can toggle this off in Settings). The agent fills the form on whatever page you're on.
 
-| Site | DR | Traffic | Pricing | Link | Submit |
-|------|:--:|---------|---------|:----:|--------|
-| [Gartner Digital Markets](https://www.gartner.com/reviews/) | 90 | 10M+ | Free listing | DF | Apply via contact |
-| [Software Advice](https://www.softwareadvice.com/) | 80 | 4M+ | Free listing | DF | Apply via contact |
-| [GoodFirms](https://www.goodfirms.co/) | 72 | 1M+ | Free listing | DF | [Submit](https://www.goodfirms.co/add-software) |
+### What the dashboard shows
 
-> **+ 9 more directories** — see [`sites.json`](sites.json) for the full list
+- **Recommended** — sites you haven't submitted to yet, sorted by DR. Start here.
+- **All** — every site in the database, searchable.
+- **Done** — sites you've already submitted to or skipped.
+- A progress bar showing how many of the 96 sites you've covered.
 
----
+## Sites database
 
-## Submission strategy
+The full list of 96 submission sites lives in [`sites.json`](sites.json). Each entry includes:
 
-Don't just grind through the list top to bottom. Be strategic:
+| Field | Meaning |
+|-------|---------|
+| `dr` | Domain Rating (0–100). Higher = more valuable backlink. |
+| `link_type` | `dofollow` (real SEO value) or `nofollow` (traffic only). |
+| `pricing` | Free, freemium, or paid. |
+| `submit_url` | Direct link to the submission form. |
+| `submission_method` | How you submit: self-serve form, community post, profile claim, etc. |
 
-1. **Hit the highest-DR sites first.** G2 (92), Crunchbase (91), Product Hunt (91) — one backlink from these is worth ten from smaller sites. Get the strongest references first.
-2. **Rewrite your description for each platform.** Copy-pasting the same text to 50 sites tells Google it's spam. Change at least 30% per submission.
-3. **Prep all assets before you start.** Logo (square + landscape), screenshots, one-liner, short description (50 words), long description (150 words), founder bio, social links. Hunting for assets mid-flow kills momentum.
-4. **Treat Product Hunt differently.** Launch at 12:01 AM PST, Tuesday–Thursday. Reply to every comment. This isn't a submission — it's a 24-hour roadshow.
-5. **Verify your backlinks afterward.** Use [Ahrefs Backlink Checker](https://ahrefs.com/backlink-checker) (free tier works) to see which submissions actually produced Dofollow links. If one didn't, check whether your listing is still pending review.
+Six categories: AI directories, startup directories, review platforms, developer communities, deal platforms, and general SEO directories.
 
----
+Missing a site? Data outdated? PRs welcome.
 
-## Submit Agent
+## Development
 
-What does manually submitting to 96 sites feel like? Open a page, find the form, fill in product name, URL, description, upload logo, hit submit. Open the next page. Do it again.
+```bash
+cd extension
+npm install      # also runs wxt prepare
+npm run dev      # launches Chrome with HMR and a persistent profile
+npm run build    # production build
+npm run zip      # package as .zip for distribution
+```
 
-About 3–5 days of that.
+### Tech stack
 
-**Submit Agent** is a browser extension that does one thing: you open any submission page, click the extension, and AI identifies the form fields and fills them with your product info. Each description is auto-rewritten to be unique. You review, hit submit.
+- **[WXT](https://wxt.dev/)** — browser extension framework (Manifest V3)
+- **React 19** + **Tailwind CSS v4** — side panel and options page UI
+- **[@page-agent/core](https://github.com/anthropics/page-agent)** — the AI engine that drives DOM analysis and form-filling (Alibaba PageAgent)
+- **IndexedDB** — stores product profiles and submission records locally
+- **chrome.storage** — persists LLM settings and preferences
 
-40 hours of work, compressed to 2.
+### Project structure
 
-[Get Submit Agent →](#) *(Coming soon)*
+```
+extension/
+├── src/
+│   ├── entrypoints/
+│   │   ├── background.ts      # Service worker: routes messages between components
+│   │   ├── content.ts          # Injected into every page, enables remote DOM control
+│   │   ├── sidepanel/          # Main UI (React) — dashboard, settings, submission flow
+│   │   └── options/            # Full-page product profile editor
+│   ├── agent/
+│   │   ├── SubmitAgent.ts      # Core agent: builds prompt, runs ReAct loop
+│   │   ├── RemotePageController.ts  # Bridges agent actions to content script
+│   │   ├── TabsController.ts   # Opens/focuses/closes browser tabs
+│   │   └── submit-prompt.md    # System prompt for the AI
+│   ├── components/             # React components (Dashboard, SubmitFlow, Settings...)
+│   ├── hooks/                  # React hooks (useProduct, useSites, useSubmitAgent...)
+│   └── lib/                    # Storage, i18n, types, profile generator
+├── sites.json                  # Symlinked from repo root
+└── wxt.config.ts               # WXT + Vite configuration
+```
 
----
+### Data flow
 
-## Contributing
+```
+Side Panel
+ → creates SubmitAgent with product data + LLM config
+ → agent.execute(task)
+ → ReAct loop: observe page → LLM decides action → execute via content script
+ → fires events → React updates UI
+ → user reviews filled form → submits manually
+```
 
-Found a missing site? Outdated data? PRs are welcome.
+## Tips
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Star
-
-If this list saved you time, star it — helps other makers find it too.
+- **Submit high-DR sites first.** G2 (92), Crunchbase (91), Product Hunt (91) — one link from these is worth ten from smaller sites.
+- **Descriptions are auto-rewritten**, but review them. The AI keeps your key selling points while making each version unique.
+- **Prep your assets before starting.** Logo (square + landscape), screenshots, one-liner, founder bio, social links. Having everything ready keeps the momentum going.
+- **Verify your backlinks after.** Use [Ahrefs Backlink Checker](https://ahrefs.com/backlink-checker) (free tier) to confirm which submissions actually produced dofollow links.
 
 ## License
 

@@ -10,7 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<Variant, string> = {
-	default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+	default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20',
 	outline: 'border border-border bg-transparent hover:bg-muted',
 	ghost: 'hover:bg-muted',
 	destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
@@ -18,18 +18,19 @@ const variantStyles: Record<Variant, string> = {
 }
 
 const sizeStyles: Record<Size, string> = {
-	sm: 'h-7 px-2.5 text-xs',
-	md: 'h-9 px-4 text-sm',
-	lg: 'h-11 px-6 text-base',
-	icon: 'h-8 w-8',
+	sm: 'h-8 px-3 text-xs',
+	md: 'h-10 px-4 text-sm',
+	lg: 'h-12 px-6 text-base',
+	icon: 'h-9 w-9',
 }
 
 export function Button({ variant = 'default', size = 'md', className, ...props }: ButtonProps) {
 	return (
 		<button
 			className={cn(
-				'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+				'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium',
+				'transition-all duration-150 active:scale-[0.98]',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
 				'disabled:pointer-events-none disabled:opacity-50',
 				'cursor-pointer',
 				variantStyles[variant],

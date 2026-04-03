@@ -1,22 +1,51 @@
 import { BUILTIN_LLM_CONFIG } from '@/agent/constants'
-import type { ExtSettings, LLMSettings } from './types'
+import type { ExtSettings, LLMSettings, ProviderConfigs, ProviderKey } from './types'
 
 const STORAGE_KEYS = {
 	llmConfig: 'submitAgent_llmConfig',
+	providerConfigs: 'submitAgent_providerConfigs',
 	language: 'submitAgent_language',
 	autoRewrite: 'submitAgent_autoRewrite',
 	activeProductId: 'submitAgent_activeProductId',
 	floatButtonEnabled: 'submitAgent_floatButtonEnabled',
 } as const
 
+const EMPTY_LLM: LLMSettings = { apiKey: '', baseUrl: '', model: '' }
+
+function defaultProviderConfigs(): ProviderConfigs {
+	return {
+		active: 'builtin',
+		configs: {
+			builtin: { ...EMPTY_LLM },
+			openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+			deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+			custom: { ...EMPTY_LLM },
+		},
+	}
+}
+
+export async function getProviderConfigs(): Promise<ProviderConfigs> {
+	const result = await chrome.storage.local.get(STORAGE_KEYS.providerConfigs)
+	const stored = result[STORAGE_KEYS.providerConfigs] as ProviderConfigs | undefined
+	if (stored?.active && stored?.configs) return stored
+	return defaultProviderConfigs()
+}
+
+export async function setProviderConfigs(configs: ProviderConfigs): Promise<void> {
+	await chrome.storage.local.set({ [STORAGE_KEYS.providerConfigs]: configs })
+}
+
+/** Resolves the active provider config into a single LLMSettings for the agent to use */
 export async function getLLMConfig(): Promise<LLMSettings> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.llmConfig)
-	const stored = result[STORAGE_KEYS.llmConfig] as LLMSettings | undefined
-	// Fall back to built-in Groq config if user hasn't configured their own
-	if (!stored || (!stored.baseUrl && !stored.model)) {
+	const pc = await getProviderConfigs()
+	if (pc.active === 'builtin') {
 		return BUILTIN_LLM_CONFIG
 	}
-	return stored
+	const cfg = pc.configs[pc.active]
+	if (!cfg || (!cfg.baseUrl && !cfg.model)) {
+		return BUILTIN_LLM_CONFIG
+	}
+	return cfg
 }
 
 export async function setLLMConfig(config: LLMSettings): Promise<void> {

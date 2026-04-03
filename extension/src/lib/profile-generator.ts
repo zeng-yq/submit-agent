@@ -106,7 +106,9 @@ function parseJsonResponse(text: string): GeneratedProfile {
 		if (objectMatch) {
 			return JSON.parse(objectMatch[0])
 		}
-		throw new Error('Failed to parse LLM response as JSON')
+		throw new Error(
+			'The AI model returned an unexpected format. This usually means the model doesn\'t support structured JSON output well. Try a different model in Settings.'
+		)
 	}
 }
 
@@ -158,7 +160,20 @@ export async function generateProfile(
 
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
-		throw new Error(`LLM API error ${response.status}: ${errorText}`)
+		if (response.status === 401 || response.status === 403) {
+			throw new Error('Authentication failed — please check your API Key in Settings.')
+		}
+		if (response.status === 404) {
+			throw new Error('API endpoint not found — please check the Base URL in Settings.')
+		}
+		if (response.status === 429) {
+			throw new Error('Rate limited by the API provider. Please wait a moment and try again.')
+		}
+		const lower = errorText.toLowerCase()
+		if (response.status === 400 && lower.includes('model') && (lower.includes('not found') || lower.includes('not exist'))) {
+			throw new Error(`Model "${config.model}" was not found. Please check the model name in Settings.`)
+		}
+		throw new Error(`API error (${response.status}): ${errorText || 'Unknown error'}. Check your LLM configuration in Settings.`)
 	}
 
 	// Step 4: Parse response
@@ -166,7 +181,7 @@ export async function generateProfile(
 	const data = await response.json()
 	const content = data.choices?.[0]?.message?.content
 	if (!content) {
-		throw new Error('No content in LLM response')
+		throw new Error('The AI model returned an empty response. Try again or switch to a different model in Settings.')
 	}
 
 	const profile = parseJsonResponse(content)

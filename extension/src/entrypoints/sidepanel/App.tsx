@@ -83,8 +83,8 @@ export default function App() {
 	if (view.name === 'quick-create') {
 		return (
 			<div className="flex flex-col h-screen bg-background">
-				<header className="flex items-center justify-between border-b px-3 py-2">
-					<span className="text-sm font-semibold">{t('common.submitAgent')}</span>
+				<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+					<span className="text-base font-semibold">{t('common.submitAgent')}</span>
 					<Button variant="ghost" size="sm" onClick={() => setView({ name: 'dashboard' })}>
 						{t('common.back')}
 					</Button>
@@ -131,8 +131,8 @@ export default function App() {
 	if (view.name === 'float-fill') {
 		return (
 			<div className="flex flex-col h-screen bg-background">
-				<header className="flex items-center justify-between border-b px-3 py-2">
-					<span className="text-sm font-semibold">{t('sidepanel.autoFilling')}</span>
+				<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+					<span className="text-base font-semibold">{t('sidepanel.autoFilling')}</span>
 					<Button variant="ghost" size="sm" onClick={() => { stop(); setView({ name: 'dashboard' }) }}>
 						{t('common.cancel')}
 					</Button>
@@ -156,24 +156,26 @@ export default function App() {
 
 	return (
 		<div className="flex flex-col h-screen bg-background">
-			<header className="border-b px-3 py-2">
+			<header className="border-b border-border/60 px-4 py-3">
 				<div className="flex items-center justify-between">
 					<div className="relative" ref={dropdownRef}>
 						<button
 							type="button"
-							className="text-sm font-semibold flex items-center gap-1 hover:text-primary transition-colors"
+							className="text-base font-semibold flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
 							onClick={() => setDropdownOpen((o) => !o)}
 						>
 							{activeProduct?.name ?? t('common.submitAgent')}
-							<span className="text-muted-foreground text-xs">{dropdownOpen ? '▲' : '▼'}</span>
+							<svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-150 ${dropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+								<path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+							</svg>
 						</button>
 						{dropdownOpen && (
-							<div className="absolute top-full left-0 mt-1 bg-popover border rounded shadow-md z-50 min-w-[160px] py-1">
+							<div className="absolute top-full left-0 mt-1.5 bg-popover border border-border/60 rounded-lg shadow-lg z-50 min-w-[180px] py-1.5">
 								{products.map((p) => (
 									<button
 										key={p.id}
 										type="button"
-										className={`w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors ${
+										className={`w-full text-left px-3.5 py-2 text-sm hover:bg-accent transition-colors cursor-pointer ${
 											p.id === activeProduct?.id ? 'font-semibold text-primary' : ''
 										}`}
 										onClick={() => { setActive(p.id); setDropdownOpen(false) }}
@@ -181,10 +183,10 @@ export default function App() {
 										{p.name}
 									</button>
 								))}
-								<div className="border-t my-1" />
+								<div className="border-t border-border/60 my-1" />
 								<button
 									type="button"
-									className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors text-muted-foreground"
+									className="w-full text-left px-3.5 py-2 text-sm hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
 									onClick={() => { setView({ name: 'quick-create' }); setDropdownOpen(false) }}
 								>
 									{t('common.addProduct')}
@@ -192,7 +194,7 @@ export default function App() {
 							</div>
 						)}
 					</div>
-					<div className="flex items-center gap-1">
+					<div className="flex items-center gap-0.5">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -211,9 +213,9 @@ export default function App() {
 				</div>
 			</header>
 
-			<main className="flex-1 overflow-hidden p-3">
+			<main className={`flex-1 overflow-hidden ${activeProduct ? 'p-3' : ''}`}>
 				{isLoading ? (
-					<div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+					<div className="flex items-center justify-center h-full text-sm text-muted-foreground">
 						{t('common.loading')}
 					</div>
 				) : !activeProduct ? (

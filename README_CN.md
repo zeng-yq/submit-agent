@@ -1,178 +1,184 @@
-# Awesome AI Launch List
+# Submit Agent
 
 [English](README.md) | [中文](README_CN.md)
 
-[![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
-![GitHub stars](https://img.shields.io/github/stars/your-username/Awesome-AI-Launch-List?style=social)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> 精选 **100+ 个网站**，让你的 AI 产品获得早期用户、高质量外链和 SEO 提升——大部分免费。
-
-做出 AI 产品不容易，让人发现更难。这份列表帮你省下几天调研时间，收录了所有接受 AI 产品提交的导航站、目录站和开发者社区，每个站点都标注了 DR 权重、流量、费用和提交链接。
-
-搜索引擎判断一个网站值不值得推荐，看的不是代码多漂亮，而是**有多少别的网站愿意链接到你**。每一条指向你的链接叫外链（Backlink），本质上是一次信任投票——别人拿自己的信誉替你担保。
-
-新网站的处境像一个刚毕业、没有信用记录的人。能力可能很强，但银行不认你，因为没人替你担保过。
-
-### 读懂表格里的几个关键词
-
-**DR（Domain Rating）**：网站的信用评分，0–100，由 [Ahrefs](https://ahrefs.com/website-authority-checker) 计算。DR 92 的 G2 给你一条外链，和 DR 20 的小站给你一条，在 Google 眼里完全不是一回事——前者是世界 500 强 CEO 写推荐信，后者是你大学同学。
-
-**Dofollow（DF）**：实打实的信任传递，Google 会计入你的权重。这是你真正想要的。
-
-**Nofollow（NF）**：链接到你，但告诉 Google"我不为它担保"。仍然能带来流量和品牌曝光，但对 SEO 权重帮助有限。
-
-所以冷启动的第一步很明确：去所有愿意收录你的地方，把产品提交上去。
-
-**这份列表就是 96 个愿意替你背书的网站——附上信用评分、流量、费用和提交入口。**
-
-完整数据见 [`sites.json`](sites.json)
+> 一个浏览器扩展，用 AI 自动填写产品提交表单。你填一次产品信息，它帮你填所有网站的表。
 
 ---
 
-## 列表概览
+## 要解决的问题
 
-| 分类 | 数量 | 代表站点 |
-|------|:----:|----------|
-| [AI 导航站](#ai-导航站) | 25 | There's An AI For That, Futurepedia, Toolify |
-| [创业产品目录](#创业产品目录) | 20 | G2, Capterra, Crunchbase, Product Hunt |
-| [发布与评测平台](#发布与评测平台) | 8 | Product Hunt, Trustpilot, SourceForge |
-| [开发者社区](#开发者社区) | 10 | Hacker News, Reddit, Dev.to, GitHub |
-| [Deal 平台](#deal-平台) | 5 | AppSumo, PitchGround |
-| [社交与内容平台](#社交与内容平台) | 6 | LinkedIn, Medium, Quora |
-| [通用目录站 (SEO)](#通用目录站-seo-外链) | 12 | Gartner, Software Advice, GoodFirms |
-| **合计** | **96** | |
+你做了一个 AI 产品，但没人知道。
 
-> DR 和流量为近似值，最后更新：2026 年 3 月。欢迎提 PR 更新。
+Google 判断一个网站值不值得推荐，看的是有多少别的网站链接到你。新网站零链接——Google 压根不知道你存在。解法：把产品提交到各种目录站。每个收录页面都会生成一条外链，每条外链都在帮你攒信用。
 
----
+但是手动打开每个站点、找表单、逐项填写，往往要耗费数天。
 
-## AI 导航站
+Submit Agent 能把这个时间压到 2 小时左右。
 
-专门收录 AI 工具的站点。来这里的人就是在找 AI 产品，转化率最高。
+## 怎么运作
 
-| 站点 | DR | 月流量 | 费用 | 外链 | 提交 |
-|------|:--:|--------|------|:----:|------|
-| [There's An AI For That](https://theresanaiforthat.com/) | 75 | 5M+ | 免费 / 付费加速 | DF | [提交](https://theresanaiforthat.com/submit/) |
-| [Futurepedia](https://www.futurepedia.io/) | 65 | 1.5M+ | 免费 / 付费加速 | DF | [提交](https://www.futurepedia.io/submit-tool) |
-| [Toolify.ai](https://www.toolify.ai/) | 62 | 3M+ | 免费 / 付费 | DF | [提交](https://www.toolify.ai/submit) |
-| [TopAI.tools](https://topai.tools/) | 55 | 800K+ | 免费 / 付费 | DF | [提交](https://topai.tools/submit) |
-| [FutureTools](https://www.futuretools.io/) | 52 | 500K+ | 免费 | NF | [提交](https://www.futuretools.io/submit-a-tool) |
+**Submit Agent** 在浏览器里运行：AI 读取当前页面的表单结构，把你的产品档案映射到各字段，并自动改写描述以避免重复内容。
 
-> **还有 20 个 AI 导航站** — 完整列表见 [`sites.json`](sites.json)
+1. 你填一次产品信息（名字、网址、描述、Logo、社交链接）。
+2. 打开一个提交页面，比如 [Futurepedia](https://www.futurepedia.io/submit-tool) 或者 [G2](https://www.g2.com/products/new)。
+3. 点击扩展。AI 读取页面结构，判断每个字段该填什么，然后自动填好。描述会自动改写，保证每个站点的提交内容不重复（Google 会惩罚重复内容）。
+4. 你检查一遍填好的表单，自己点提交。
 
-## 创业产品目录
+## 特性
 
-综合型产品目录。DR 普遍很高，一条外链顶小站十条。
+| 方向 | 说明 |
+|------|------|
+| **385+ 健康检查站点** | [`sites.json`](sites.json) 由脚本合并多份清单并做 HTTP 探测；死链（如 404）会剔除；对反爬返回 403 但浏览器可访问的大站单独标记为可用。 |
+| **进度可视化** | 侧边栏仪表盘：总体进度条、推荐 / 全部 / 已完成 分栏、按 DR 排序；单站提交流程中可看到 Agent 状态与活动日志。 |
+| **可中断、可继续** | 提交记录与产品档案存本地（IndexedDB / `chrome.storage`），关闭扩展后下次打开仍可从断点继续。 |
+| **基于 Alibaba PageAgent** | 核心引擎为 [@page-agent/core](https://github.com/alibaba/page-agent) 等包（阿里 PageAgent 生态），在页面上做 **结构化观测 + ReAct 循环**，按需决策点击、输入、读 DOM。 |
+| **更省 Token** | **不依赖整页截图做视觉理解**，以 DOM / 页面状态为主，Prompt 与上下文更聚焦 |
+| **描述去重** | 系统提示要求各站点改写文案，降低被判定为重复内容的风险。 |
+| **自带模型可选** | 支持内置、OpenAI、DeepSeek、自定义 OpenAI 兼容接口；设置内可「测试连接」。 |
 
-| 站点 | DR | 月流量 | 费用 | 外链 | 提交 |
-|------|:--:|--------|------|:----:|------|
-| [G2](https://www.g2.com/) | 92 | 8M+ | 免费列表 | DF | [提交](https://www.g2.com/products/new) |
-| [Crunchbase](https://www.crunchbase.com/) | 91 | 5M+ | 免费基础版 | DF | [提交](https://www.crunchbase.com/add-new) |
-| [Capterra](https://www.capterra.com/) | 90 | 6M+ | 免费列表 | DF | [提交](https://www.capterra.com/vendors/sign-up) |
-| [AlternativeTo](https://alternativeto.net/) | 82 | 5M+ | 免费 | DF | [提交](https://alternativeto.net/manage/new/) |
-| [BetaList](https://betalist.com/) | 72 | 200K+ | 免费 / 付费 | DF | [提交](https://betalist.com/submit) |
+## 安装
 
-> **还有 15 个产品目录** — 完整列表见 [`sites.json`](sites.json)
+### 下载安装（推荐）
 
-## 发布与评测平台
+1. 从 [Releases](https://github.com/beanu/submit-agent/releases) 下载最新的 `.zip`。
+2. 解压。
+3. 打开 Chrome → 地址栏输入 `chrome://extensions` → 右上角开启 **开发者模式**。
+4. 点 **加载已解压的扩展程序** → 选刚才解压的文件夹。
+5. 在工具栏的拼图图标里把扩展固定到工具栏。
 
-产品发布日的主战场。社区投票和用户评测决定曝光。
+### 从源码构建
 
-| 站点 | DR | 月流量 | 费用 | 外链 | 提交 |
-|------|:--:|--------|------|:----:|------|
-| [Trustpilot](https://www.trustpilot.com/) | 93 | 60M+ | 免费 | NF | [认领](https://business.trustpilot.com/) |
-| [Product Hunt](https://www.producthunt.com/) | 91 | 10M+ | 免费 | NF | [发布](https://www.producthunt.com/posts/new) |
-| [SourceForge](https://sourceforge.net/) | 90 | 30M+ | 免费 | DF | [创建项目](https://sourceforge.net/create/) |
+```bash
+cd extension
+npm install
+npm run build
+```
 
-> **还有 5 个平台** — 完整列表见 [`sites.json`](sites.json)
+构建产物在 `extension/.output/chrome-mv3/`，把这个文件夹作为"已解压的扩展程序"加载到 Chrome。
 
-## 开发者社区
+## 配置
 
-技术受众聚集地。适合开发者工具、API、开源项目。这些站点的外链大多是 Nofollow，但流量和口碑价值很大。
+### 1. 设置 AI 模型
 
-| 站点 | DR | 月流量 | 外链 | 说明 |
-|------|:--:|--------|:----:|------|
-| [Reddit](https://www.reddit.com/) | 97 | 2B+ | NF | r/artificial, r/SideProject, r/startups |
-| [Hacker News](https://news.ycombinator.com/) | 91 | 15M+ | NF | 用 "Show HN" 格式发帖 |
-| [Dev.to](https://dev.to/) | 86 | 10M+ | NF | 写一篇发布文章 |
-| [GitHub](https://github.com/) | 97 | 100M+ | DF | 开源仓库 + README |
+点击扩展图标 → **设置**。
 
-> **还有 6 个社区** — 完整列表见 [`sites.json`](sites.json)
+Submit Agent 兼容任何 OpenAI 格式的 API。四个选项：
 
-## Deal 平台
+| 提供商 | 需要什么 |
+|--------|---------|
+| **内置** | 什么都不用。免费，开箱即用。 |
+| **OpenAI** | 你的 API Key。默认模型 `gpt-4o-mini`。 |
+| **DeepSeek** | 你的 API Key。默认模型 `deepseek-chat`。 |
+| **自定义** | 任意 OpenAI 兼容接口——填 Base URL、模型名，API Key 选填。 |
 
-用收入分成换平台的营销资源。适合有 LTD（终身买断）定价的产品。
+保存前点 **测试连接**，确认能通。
 
-| 站点 | DR | 月流量 | 提交 |
-|------|:--:|--------|------|
-| [AppSumo](https://appsumo.com/) | 82 | 3M+ | [申请](https://sell.appsumo.com/) |
-| [PitchGround](https://pitchground.com/) | 55 | 200K+ | [申请](https://pitchground.com/sell-with-us) |
+优先建议使用 “qwen3.5-flash”,“gemini-3-flash”或“claude-haiku-4.5”模型。因为填表这个事不需要智商不是第一位的。
 
-> **还有 3 个 Deal 平台** — 完整列表见 [`sites.json`](sites.json)
+### 2. 添加产品
 
-## 社交与内容平台
+第一次打开扩展，会让你输入产品网址。AI 自动访问你的网站，读取内容，生成一份产品档案：名字、标语、短描述、长描述、分类。你检查修改后保存。
 
-用内容放大发布声量。外链是 Nofollow，但触达的人多。
+也可以手动填——点"手动填写"打开完整表单。
 
-| 站点 | DR | 月流量 | 外链 | 说明 |
-|------|:--:|--------|:----:|------|
-| [LinkedIn](https://www.linkedin.com/) | 98 | 1B+ | NF | 公司页面 + 发布动态 |
-| [Medium](https://medium.com/) | 95 | 200M+ | NF | 写一篇产品故事 |
-| [Quora](https://www.quora.com/) | 93 | 300M+ | NF | 回答相关问题 |
+要提交多个产品？侧边栏左上角的下拉菜单可以切换产品或添加新产品。
 
-> **还有 3 个平台** — 完整列表见 [`sites.json`](sites.json)
+## 使用方式
 
-## 通用目录站 (SEO 外链)
+### 方式一：从仪表盘选站点
 
-这些站点的用户不一定在找 AI 产品，但 DR 高，外链实在。纯粹为了攒信用。
+打开侧边栏（点扩展图标）。你会看到一个仪表盘，列出了全部 96 个站点，按 DR（域名权重）排序。已提交的站点有标记。
 
-| 站点 | DR | 月流量 | 费用 | 外链 | 提交 |
-|------|:--:|--------|------|:----:|------|
-| [Gartner Digital Markets](https://www.gartner.com/reviews/) | 90 | 10M+ | 免费列表 | DF | 联系申请 |
-| [Software Advice](https://www.softwareadvice.com/) | 80 | 4M+ | 免费列表 | DF | 联系申请 |
-| [GoodFirms](https://www.goodfirms.co/) | 72 | 1M+ | 免费列表 | DF | [提交](https://www.goodfirms.co/add-software) |
+点任意站点 → **开始自动填写**。扩展会打开提交页面，AI 自动填写表单。填完后你检查确认，自己提交。
 
-> **还有 9 个目录站** — 完整列表见 [`sites.json`](sites.json)
+### 方式二：直接填当前页面
 
----
+已经在提交页面上了？页面右下角会出现一个悬浮按钮（可以在设置里关掉），点一下，AI 直接填当前页面的表单。
 
-## 提交顺序建议
+### 仪表盘说明
 
-别上来就一个个提交。有策略地来：
+- **推荐** — 还没提交过的站点，按 DR 从高到低排。从这里开始。
+- **全部** — 数据库里所有站点，支持搜索。
+- **已完成** — 已提交或已跳过的站点。
+- 顶部有进度条，显示 96 个站点你完成了多少。
 
-1. **先提交 DR 最高的。** G2（92）、Crunchbase（91）、Product Hunt（91）——一条外链顶小站十条。信用评分最高的担保人先搞定。
-2. **每个平台重写描述。** 复制粘贴同一段话到 50 个网站，Google 会把它当垃圾内容。每个站点的描述至少改 30%。
-3. **提前备好素材。** Logo（方形 + 横版）、产品截图、一句话介绍、50 词短描述、150 词长描述、创始人简介、社交链接。开始提交前全部准备好，中途找素材会打断节奏。
-4. **Product Hunt 单独对待。** 太平洋时间 00:01 发布，选周二到周四。每条评论都回复。这不是提交，是一场 24 小时的路演。
-5. **提交完验证外链。** 用 [Ahrefs Backlink Checker](https://ahrefs.com/backlink-checker)（免费版够用）看看哪些提交真的产生了 Dofollow 外链。没产生的，去看看是不是信息没审核通过。
+## 站点数据库
 
----
+96 个提交站点的完整数据在 [`sites.json`](sites.json)，每条记录包含：
 
-## Submit Agent
+| 字段 | 含义 |
+|------|------|
+| `dr` | 域名权重（0–100）。越高，外链越值钱。 |
+| `link_type` | `dofollow`（有 SEO 价值）或 `nofollow`（只带流量）。 |
+| `pricing` | 免费、免费增值或付费。 |
+| `submit_url` | 提交表单的直接链接。 |
+| `submission_method` | 提交方式：自助表单、社区发帖、认领主页等。 |
 
-手动提交 96 个网站是什么体验？打开页面，找表单，填产品名，填网址，填描述，传 Logo，点提交。然后打开下一个页面，再来一遍。
+六大分类：AI 导航站、创业产品目录、评测平台、开发者社区、Deal 平台、通用 SEO 目录站。
 
-大概要 3–5 天。
+少了哪个站？数据过时了？欢迎提 PR。
 
-**Submit Agent** 是一个浏览器插件，干的事情很简单：你打开任何一个提交页面，点一下插件，AI 识别表单字段，用你预设的产品信息自动填好。每份描述自动改写，避免重复内容。你检查一遍，点提交。
+## 开发
 
-40 小时的活，压到 2 小时。
+```bash
+cd extension
+npm install      # 同时运行 wxt prepare
+npm run dev      # 启动带热更新的 Chrome 开发模式
+npm run build    # 生产构建
+npm run zip      # 打包为 .zip
+```
 
-[获取 Submit Agent →](#) *(即将上线)*
+### 技术栈
 
----
+- **[WXT](https://wxt.dev/)** — 浏览器扩展框架（Manifest V3）
+- **React 19** + **Tailwind CSS v4** — 侧边栏和选项页 UI
+- **[page-agent](https://github.com/alibaba/page-agent)** — AI 引擎，负责 DOM 分析和表单填写（阿里 PageAgent）
+- **IndexedDB** — 本地存储产品档案和提交记录
+- **chrome.storage** — 存储 LLM 设置和偏好
 
-## 贡献
+### 项目结构
 
-发现遗漏的网站？数据过时了？欢迎提 PR。
+```
+extension/
+├── src/
+│   ├── entrypoints/
+│   │   ├── background.ts      # Service Worker：在各组件间路由消息
+│   │   ├── content.ts          # 注入每个页面，提供远程 DOM 控制能力
+│   │   ├── sidepanel/          # 主 UI（React）— 仪表盘、设置、提交流程
+│   │   └── options/            # 完整的产品档案编辑页
+│   ├── agent/
+│   │   ├── SubmitAgent.ts      # 核心 agent：构建 prompt，运行 ReAct 循环
+│   │   ├── RemotePageController.ts  # 将 agent 动作桥接到 content script
+│   │   ├── TabsController.ts   # 开/切/关浏览器标签页
+│   │   └── submit-prompt.md    # AI 的系统提示词
+│   ├── components/             # React 组件（Dashboard、SubmitFlow、Settings…）
+│   ├── hooks/                  # React hooks（useProduct、useSites、useSubmitAgent…）
+│   └── lib/                    # 存储、国际化、类型定义、产品档案生成器
+├── sites.json                  # 从仓库根目录软链接
+└── wxt.config.ts               # WXT + Vite 配置
+```
 
-详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+### 数据流
 
-## Star
+```
+侧边栏
+ → 创建 SubmitAgent（产品数据 + LLM 配置）
+ → agent.execute(task)
+ → ReAct 循环：读取页面 → LLM 决定动作 → 通过 content script 执行
+ → 触发事件 → React 更新界面
+ → 用户检查填好的表单 → 手动提交
+```
 
-如果这份列表帮你省了时间，给个 star——帮其他开发者也找到它。
+## 提交技巧
+
+- **先提交 DR 最高的站点。** G2（92）、Crunchbase（91）、Product Hunt（91）——一条外链顶小站十条。
+- **描述会自动改写**，但提交前看一眼。AI 保留核心卖点的同时让每份描述都不重复。
+- **提前备好素材。** Logo（方形 + 横版）、截图、一句话介绍、创始人简介、社交链接。东西齐了再开始，中途找素材会断节奏。
+- **提交完验证外链。** 用 [Ahrefs Backlink Checker](https://ahrefs.com/backlink-checker)（免费版够用）确认哪些提交真的生成了 dofollow 外链。
 
 ## 许可证
 
