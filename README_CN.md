@@ -9,7 +9,7 @@
 
 ---
 
-<video src="assets/submit_agent.mp4" controls="controls" style="max-width:100%;"></video>
+[<video src="assets/submit_agent.mp4" controls="controls" style="max-width:100%;"></video>](https://github.com/user-attachments/assets/c2cf752c-349a-441f-b59c-d3114cf8cee2)
 
 ## 要解决的问题
 
