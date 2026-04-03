@@ -2,3 +2,5 @@
 /page-agent-main
 /memory
 extension/.env
+.cursor
+.claude
