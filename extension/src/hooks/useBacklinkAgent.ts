@@ -14,6 +14,7 @@ export function useBacklinkAgent() {
 	const [batchSize, setBatchSize] = useState(0)
 	const [backlinks, setBacklinks] = useState<BacklinkRecord[]>([])
 	const [isRunning, setIsRunning] = useState(false)
+	const [analyzingId, setAnalyzingId] = useState<string | null>(null)
 
 	/** Analyze a single backlink */
 	const analyzeOne = useCallback(
@@ -21,6 +22,7 @@ export function useBacklinkAgent() {
 			abortRef.current?.abort()
 			const ac = new AbortController()
 			abortRef.current = ac
+			setAnalyzingId(backlink.id)
 
 			try {
 				const result = await analyzeBacklink(
@@ -71,6 +73,8 @@ export function useBacklinkAgent() {
 				} catch {
 					console.error('Failed to update backlink error status:', errorMsg)
 				}
+			} finally {
+				setAnalyzingId(null)
 			}
 		},
 		[]
@@ -124,6 +128,7 @@ export function useBacklinkAgent() {
 		setCurrentIndex(0)
 		setBatchSize(0)
 		setIsRunning(false)
+		setAnalyzingId(null)
 	}, [])
 
 	/** Reload backlinks from DB */
@@ -168,6 +173,7 @@ export function useBacklinkAgent() {
 	)
 
 	return {
+		analyzingId,
 		status,
 		currentStep,
 		currentIndex,
