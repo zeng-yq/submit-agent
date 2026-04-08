@@ -7,9 +7,9 @@ export interface AnalysisResult {
 	summary: string
 }
 
-export type AnalysisStep = 'opening' | 'loading' | 'analyzing' | 'done'
+export type AnalysisStep = 'loading' | 'analyzing' | 'done'
 
-const SYSTEM_PROMPT = `You are a Backlink Analyzer. Analyze the webpage content and determine two things:
+const SYSTEM_PROMPT = `You are a Backlink Analyzer. You will receive the HTML source of a webpage along with detected form elements. Determine:
 
 1. Is this a blog page? (A blog post, article, or similar content page — NOT a directory, forum, homepage, or navigation page)
 2. Can you submit a comment on this page? (Look for comment forms, reply boxes, especially ones with URL/Website fields)
@@ -18,13 +18,13 @@ Return ONLY valid JSON:
 {
   "isBlog": true/false,
   "canComment": true/false,
-  "summary": "brief explanation (1-2 sentences)"
+  "summary": "brief explanation in Chinese (1-2 sentences)"
 }
 
 Rules:
 - isBlog: true only if the page is a blog post or article with editorial content
 - canComment: true if there is a visible comment/reply form that allows posting (ideally with a URL field)
-- summary: concise description
+- summary: MUST be written in Chinese (简体中文), concise description of the analysis result
 - Return ONLY the JSON object, no markdown fences`
 
 function parseJsonResponse(text: string): AnalysisResult {
@@ -45,30 +45,67 @@ function parseJsonResponse(text: string): AnalysisResult {
 	}
 }
 
-function waitForTabLoaded(tabId: number, timeout = 10_000): Promise<void> {
-	const start = Date.now()
-	return new Promise((resolve, reject) => {
-		function poll() {
-			if (Date.now() - start > timeout) {
-				reject(new Error(`Tab ${tabId} did not load within ${timeout / 1000}s`))
-				return
+/** Strip HTML to plain text for LLM consumption */
+function htmlToText(html: string): string {
+	return html
+		.replace(/<script[\s\S]*?<\/script>/gi, '')
+		.replace(/<style[\s\S]*?<\/style>/gi, '')
+		.replace(/<nav[\s\S]*?<\/nav>/gi, '')
+		.replace(/<footer[\s\S]*?<\/footer>/gi, '')
+		.replace(/<[^>]+>/g, ' ')
+		.replace(/&nbsp;/g, ' ')
+		.replace(/&amp;/g, '&')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&#\d+;/g, '')
+		.replace(/\s+/g, ' ')
+		.trim()
+}
+
+/** Extract <title> from HTML */
+function extractTitle(html: string): string {
+	const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+	return match ? match[1].trim() : ''
+}
+
+/** Detect comment form elements in raw HTML */
+function detectCommentSignals(html: string): { found: boolean; details: string } {
+	const signals: string[] = []
+
+	// Common comment form patterns
+	if (/<textarea[^>]*>/i.test(html)) {
+		// Check if textarea is near comment-related context
+		const textareaCtx = html.match(/.{0,80}<textarea[\s\S]{0,200}/gi)
+		if (textareaCtx) {
+			const first = textareaCtx[0].toLowerCase()
+			if (first.includes('comment') || first.includes('reply') || first.includes('message') || first.includes('respond')) {
+				signals.push('textarea with comment context')
+			} else {
+				signals.push('textarea element found')
 			}
-			chrome.runtime.sendMessage({
-				type: 'TAB_CONTROL',
-				action: 'get_tab_info',
-				payload: { tabId },
-			}).then((tab: any) => {
-				if (tab?.status === 'complete') {
-					resolve()
-				} else {
-					setTimeout(poll, 500)
-				}
-			}).catch(() => {
-				setTimeout(poll, 500)
-			})
+		} else {
+			signals.push('textarea element found')
 		}
-		poll()
-	})
+	}
+
+	if (/id\s*=\s*["'][^"']*(?:respond|comment-?form|commentform|replytocom)/i.test(html)) {
+		signals.push('comment form container (id)')
+	}
+	if (/class\s*=\s*["'][^"']*(?:comment-?form|comment-?respond|comments-?area|reply-?form)/i.test(html)) {
+		signals.push('comment form container (class)')
+	}
+	if (/<input[^>]*name\s*=\s*["'](?:url|website|site)/i.test(html)) {
+		signals.push('URL/Website input field')
+	}
+	if (/id\s*=\s*["']comments["']/i.test(html) || /class\s*=\s*["'][^"']*comments[\s"']/i.test(html)) {
+		signals.push('comments section')
+	}
+
+	return {
+		found: signals.length > 0,
+		details: signals.join('; '),
+	}
 }
 
 export async function analyzeBacklink(
@@ -77,105 +114,81 @@ export async function analyzeBacklink(
 	onProgress?: (step: AnalysisStep) => void,
 ): Promise<AnalysisResult> {
 	const config: LLMSettings = await getLLMConfig()
-	if (!config.baseUrl) throw new Error('LLM not configured. Please set the Base URL in Settings.')
-	if (!config.model) throw new Error('Model not configured. Please set the model name in Settings.')
+	if (!config.baseUrl) throw new Error('LLM 未配置，请在设置中填写 Base URL')
+	if (!config.model) throw new Error('模型未配置，请在设置中填写模型名称')
 
-	// Step 1: Open tab
-	onProgress?.('opening')
-	const tabResponse = await chrome.runtime.sendMessage({
-		type: 'TAB_CONTROL',
-		action: 'open_new_tab',
-		payload: { url },
+	// Step 1: Fetch page HTML via background service worker
+	onProgress?.('loading')
+	const fetchResponse = await chrome.runtime.sendMessage({
+		type: 'FETCH_PAGE_CONTENT',
+		url,
 	})
-	if (!tabResponse?.success || !tabResponse.tabId) {
-		throw new Error(`Failed to open tab for ${url}`)
+
+	if (!fetchResponse?.ok || !fetchResponse.html) {
+		throw new Error(fetchResponse?.error || `无法获取页面内容: ${url}`)
 	}
-	const tabId: number = tabResponse.tabId
 
-	try {
-		// Step 2: Wait for tab to load
-		onProgress?.('loading')
-		await waitForTabLoaded(tabId)
+	const html: string = fetchResponse.html
 
-		// Step 3: Get page content from content script
-		const browserState = await chrome.runtime.sendMessage({
-			type: 'PAGE_CONTROL',
-			action: 'get_browser_state',
-			targetTabId: tabId,
-		})
+	// Step 2: Extract content from HTML
+	const title = extractTitle(html)
+	const textContent = htmlToText(html)
+	const commentSignals = detectCommentSignals(html)
 
-		// Step 4: Close tab (we have the content now)
-		chrome.runtime.sendMessage({
-			type: 'TAB_CONTROL',
-			action: 'close_tab',
-			payload: { tabId },
-		}).catch(() => {}) // best-effort close
-
-		// Step 5: Build page content for LLM
-		const pageContent = [
-			`URL: ${url}`,
-			browserState?.title ? `Title: ${browserState.title}` : '',
-			browserState?.header || '',
-			browserState?.content || '',
-			browserState?.footer || '',
-		].filter(Boolean).join('\n\n')
-
-		if (!pageContent.trim() || pageContent.length < 50) {
-			return { isBlog: false, canComment: false, summary: 'Page content is empty or too short to analyze.' }
-		}
-
-		// Truncate if too long to save tokens
-		const truncated = pageContent.length > 8000 ? pageContent.slice(0, 8000) + '\n...[truncated]' : pageContent
-
-		// Step 6: Single LLM call
-		onProgress?.('analyzing')
-		const baseUrl = config.baseUrl.replace(/\/+$/, '')
-		const endpoint = `${baseUrl}/chat/completions`
-
-		const response = await fetch(endpoint, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-			},
-			body: JSON.stringify({
-				model: config.model,
-				messages: [
-					{ role: 'system', content: SYSTEM_PROMPT },
-					{ role: 'user', content: `Analyze this webpage for backlink opportunities:\n\n${truncated}` },
-				],
-				temperature: 0.3,
-				max_tokens: 512,
-			}),
-			signal,
-		})
-
-		if (!response.ok) {
-			const errorText = await response.text().catch(() => '')
-			if (response.status === 401 || response.status === 403) {
-				throw new Error('Authentication failed — please check your API Key in Settings.')
-			}
-			if (response.status === 429) {
-				throw new Error('Rate limited by the API provider. Please wait and try again.')
-			}
-			throw new Error(`API error (${response.status}): ${errorText || 'Unknown error'}`)
-		}
-
-		const data = await response.json()
-		const content = data.choices?.[0]?.message?.content
-		if (!content) {
-			throw new Error('LLM returned an empty response.')
-		}
-
-		onProgress?.('done')
-		return parseJsonResponse(content)
-	} catch (error) {
-		// Ensure tab is closed on error
-		chrome.runtime.sendMessage({
-			type: 'TAB_CONTROL',
-			action: 'close_tab',
-			payload: { tabId },
-		}).catch(() => {})
-		throw error
+	if (textContent.length < 50) {
+		return { isBlog: false, canComment: false, summary: '页面内容为空或过短，无法分析。' }
 	}
+
+	// Step 3: Build prompt content
+	const truncated = textContent.length > 8000 ? textContent.slice(0, 8000) + '\n...[truncated]' : textContent
+
+	const pageContent = [
+		`URL: ${url}`,
+		title ? `Title: ${title}` : '',
+		`Comment form detection: ${commentSignals.found ? `YES (${commentSignals.details})` : 'No comment form elements detected'}`,
+		`Page text content:\n${truncated}`,
+	].filter(Boolean).join('\n\n')
+
+	// Step 4: LLM analysis
+	onProgress?.('analyzing')
+	const baseUrl = config.baseUrl.replace(/\/+$/, '')
+	const endpoint = `${baseUrl}/chat/completions`
+
+	const response = await fetch(endpoint, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+		},
+		body: JSON.stringify({
+			model: config.model,
+			messages: [
+				{ role: 'system', content: SYSTEM_PROMPT },
+				{ role: 'user', content: `Analyze this webpage for backlink opportunities:\n\n${pageContent}` },
+			],
+			temperature: 0.3,
+			max_tokens: 512,
+		}),
+		signal,
+	})
+
+	if (!response.ok) {
+		const errorText = await response.text().catch(() => '')
+		if (response.status === 401 || response.status === 403) {
+			throw new Error('API 认证失败，请检查设置中的 API Key')
+		}
+		if (response.status === 429) {
+			throw new Error('API 请求频率超限，请稍后重试')
+		}
+		throw new Error(`API 错误 (${response.status}): ${errorText || '未知错误'}`)
+	}
+
+	const data = await response.json()
+	const content = data.choices?.[0]?.message?.content
+	if (!content) {
+		throw new Error('LLM 返回了空响应')
+	}
+
+	onProgress?.('done')
+	return parseJsonResponse(content)
 }

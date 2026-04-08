@@ -206,6 +206,12 @@ const en = {
 	'backlink.logExpanded': 'Hide log',
 	'backlink.analyze': 'Analyze',
 	'backlink.action': '',
+	'backlink.addUrl': 'Add URL',
+	'backlink.addUrlTitle': 'Add URL for Analysis',
+	'backlink.addUrlPlaceholder': 'Enter a URL (e.g. https://example.com/blog/post)',
+	'backlink.addUrlInvalid': 'Please enter a valid URL',
+	'backlink.addUrlDuplicate': 'This URL already exists',
+	'backlink.adding': 'Adding...',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -414,6 +420,12 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.logExpanded': '收起日志',
 	'backlink.analyze': '分析',
 	'backlink.action': '操作',
+	'backlink.addUrl': '添加 URL',
+	'backlink.addUrlTitle': '添加 URL 进行分析',
+	'backlink.addUrlPlaceholder': '输入 URL（如 https://example.com/blog/post）',
+	'backlink.addUrlInvalid': '请输入有效的 URL',
+	'backlink.addUrlDuplicate': '该 URL 已存在',
+	'backlink.adding': '添加中...',
 }
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }

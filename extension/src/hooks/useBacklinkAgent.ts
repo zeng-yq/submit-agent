@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { BacklinkRecord, BacklinkStatus, SiteRecord } from '@/lib/types'
-import { updateBacklink, listBacklinksByStatus, addSite, listBacklinks } from '@/lib/db'
+import { updateBacklink, listBacklinksByStatus, addSite, listBacklinks, saveBacklink, getBacklinkByUrl } from '@/lib/db'
 import { extractDomain } from '@/lib/backlinks'
 import { analyzeBacklink, type AnalysisStep } from '@/lib/backlink-analyzer'
 
@@ -65,7 +65,7 @@ export function useBacklinkAgent() {
 					const updated = await updateBacklink({
 						...backlink,
 						status: 'error',
-						analysisLog: [...backlink.analysisLog, `Error: ${errorMsg}`],
+						analysisLog: [...backlink.analysisLog, `错误: ${errorMsg}`],
 					})
 					setBacklinks(prev => prev.map(b => b.id === backlink.id ? updated : b))
 				} catch {
@@ -131,6 +131,42 @@ export function useBacklinkAgent() {
 		setBacklinks(await listBacklinks())
 	}, [])
 
+	/** Add a URL manually and immediately analyze it */
+	const addAndAnalyzeUrl = useCallback(
+		async (url: string): Promise<{ success: boolean; error?: string }> => {
+			// Validate URL
+			try {
+				new URL(url)
+			} catch {
+				return { success: false, error: 'Invalid URL' }
+			}
+
+			// Check duplicate
+			const existing = await getBacklinkByUrl(url)
+			if (existing) {
+				return { success: false, error: 'Duplicate URL' }
+			}
+
+			// Create pending record
+			const record = await saveBacklink({
+				sourceUrl: url,
+				sourceTitle: '',
+				pageAscore: 0,
+				targetUrl: '',
+				status: 'pending',
+				analysisLog: [],
+			})
+
+			setBacklinks(prev => [...prev, record])
+
+			// Trigger analysis
+			await analyzeOne(record)
+
+			return { success: true }
+		},
+		[analyzeOne]
+	)
+
 	return {
 		status,
 		currentStep,
@@ -143,5 +179,6 @@ export function useBacklinkAgent() {
 		reset,
 		reload,
 		analyzeOne,
+		addAndAnalyzeUrl,
 	}
 }

@@ -40,6 +40,7 @@ export default function App() {
 		stop: stopBacklinkAnalysis,
 		reset: resetBacklinkAgent,
 		reload: reloadBacklinks,
+		addAndAnalyzeUrl,
 	} = useBacklinkAgent()
 	const [agentError, setAgentError] = useState<string | null>(null)
 
@@ -164,6 +165,7 @@ export default function App() {
 					onReload={reloadBacklinks}
 					onStartAnalysis={startAnalysis}
 					onAnalyzeOne={analyzeBacklink}
+					onAddUrl={addAndAnalyzeUrl}
 					onStop={stopBacklinkAnalysis}
 					onBack={() => {
 						if (!isBacklinkRunning) resetBacklinkAgent()

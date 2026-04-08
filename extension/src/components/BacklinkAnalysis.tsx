@@ -15,6 +15,7 @@ interface BacklinkAnalysisProps {
 	onReload: () => void
 	onStartAnalysis: (count: number) => void
 	onAnalyzeOne: (backlink: BacklinkRecord) => void
+	onAddUrl: (url: string) => Promise<{ success: boolean; error?: string }>
 	onStop: () => void
 	onBack: () => void
 }
@@ -27,8 +28,7 @@ const STATUS_COLORS: Record<BacklinkStatus, string> = {
 }
 
 const STEP_LABELS: Record<AnalysisStep, string> = {
-	opening: 'Opening page...',
-	loading: 'Loading page...',
+	loading: 'Fetching page...',
 	analyzing: 'Analyzing content...',
 	done: 'Done',
 }
@@ -43,14 +43,19 @@ export function BacklinkAnalysis({
 	onReload,
 	onStartAnalysis,
 	onAnalyzeOne,
+	onAddUrl,
 	onStop,
 	onBack,
 }: BacklinkAnalysisProps) {
 	const t = useT()
 	const fileInputRef = useRef<HTMLInputElement>(null)
+	const dialogRef = useRef<HTMLDialogElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const [statusFilter, setStatusFilter] = useState<BacklinkStatus | 'all'>('all')
+	const [urlInput, setUrlInput] = useState('')
+	const [urlError, setUrlError] = useState<string | null>(null)
+	const [adding, setAdding] = useState(false)
 
 	const filteredBacklinks = [...(statusFilter === 'all'
 		? backlinks
@@ -71,6 +76,27 @@ export function BacklinkAnalysis({
 		setImportMsg(t('backlink.importResult', { imported: result.imported, skipped: result.skipped }))
 		if (fileInputRef.current) fileInputRef.current.value = ''
 		setTimeout(() => setImportMsg(null), 5000)
+	}
+
+	const handleAddUrl = async () => {
+		setUrlError(null)
+		const url = urlInput.trim()
+		if (!url) {
+			setUrlError(t('backlink.addUrlInvalid'))
+			return
+		}
+		setAdding(true)
+		try {
+			const result = await onAddUrl(url)
+			if (!result.success) {
+				setUrlError(t(result.error === 'Duplicate URL' ? 'backlink.addUrlDuplicate' : 'backlink.addUrlInvalid'))
+				return
+			}
+			dialogRef.current?.close()
+			setUrlInput('')
+		} finally {
+			setAdding(false)
+		}
 	}
 
 	return (
@@ -99,6 +125,14 @@ export function BacklinkAnalysis({
 					disabled={isRunning}
 				>
 					{t('backlink.importCsv')}
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => dialogRef.current?.showModal()}
+					disabled={isRunning}
+				>
+					{t('backlink.addUrl')}
 				</Button>
 
 				{isRunning ? (
@@ -204,7 +238,10 @@ export function BacklinkAnalysis({
 										</a>
 									</td>
 									<td className="px-3 py-1.5">
-										<span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[b.status]}`}>
+										<span
+											className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium cursor-default ${STATUS_COLORS[b.status]}`}
+											title={(b.status === 'error' || b.status === 'not_publishable') && b.analysisLog?.length ? b.analysisLog.join('\n') : undefined}
+										>
 											{t(`backlink.status.${b.status}` as any)}
 										</span>
 									</td>
@@ -225,6 +262,50 @@ export function BacklinkAnalysis({
 					</table>
 				)}
 			</div>
+
+			{/* Add URL Dialog */}
+			<dialog
+				ref={dialogRef}
+				className="bg-background border border-border rounded-lg p-0 max-w-sm w-full backdrop:bg-black/50"
+				onClose={() => { setUrlInput(''); setUrlError(null) }}
+			>
+				<form
+					method="dialog"
+					onSubmit={(e) => { e.preventDefault(); handleAddUrl() }}
+					className="p-4"
+				>
+					<h3 className="text-sm font-semibold mb-3">{t('backlink.addUrlTitle')}</h3>
+					<input
+						type="url"
+						className="w-full text-xs bg-background border border-border rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+						placeholder={t('backlink.addUrlPlaceholder')}
+						value={urlInput}
+						onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
+						autoFocus
+					/>
+					{urlError && (
+						<p className="text-[10px] text-destructive mt-1.5">{urlError}</p>
+					)}
+					<div className="flex justify-end gap-2 mt-4">
+						<Button
+							variant="ghost"
+							size="sm"
+							type="button"
+							onClick={() => dialogRef.current?.close()}
+						>
+							{t('common.cancel')}
+						</Button>
+						<Button
+							variant="default"
+							size="sm"
+							type="submit"
+							disabled={adding}
+						>
+							{adding ? t('backlink.adding') : t('backlink.addUrl')}
+						</Button>
+					</div>
+				</form>
+			</dialog>
 		</div>
 	)
 }
