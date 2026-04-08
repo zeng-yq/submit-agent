@@ -1,8 +1,6 @@
 import { type AgentConfig, PageAgentCore } from '@page-agent/core'
 import type { ProductProfile } from '@/lib/types'
 
-import ANALYSIS_PROMPT from './analysis-prompt.md?raw'
-import { analysisTools } from './analysisTools'
 import { RemotePageController } from './RemotePageController'
 import { TabsController } from './TabsController'
 import SUBMIT_PROMPT from './submit-prompt.md?raw'
@@ -13,8 +11,6 @@ export interface SubmitAgentConfig extends AgentConfig {
 	product: ProductProfile
 	siteName: string
 	includeInitialTab?: boolean
-	/** 'analysis' mode uses the backlink analysis prompt and tools instead of submit */
-	mode?: 'submit' | 'analysis'
 }
 
 function detectLanguage(): 'en-US' | 'zh-CN' {
@@ -40,23 +36,14 @@ export class SubmitAgent extends PageAgentCore {
 		const pageController = new RemotePageController(tabsController)
 		const tabTools = createTabTools(tabsController)
 
-		const isAnalysisMode = config.mode === 'analysis'
-
 		const language = config.language ?? detectLanguage()
 		const targetLanguage = language === 'zh-CN' ? '中文' : 'English'
-		const systemPrompt = isAnalysisMode
-			? ANALYSIS_PROMPT.replace(
-					/Default working language: \*\*.*?\*\*/,
-					`Default working language: **${targetLanguage}**`
-				)
-			: SUBMIT_PROMPT.replace(
-					/Default working language: \*\*.*?\*\*/,
-					`Default working language: **${targetLanguage}**`
-				)
+		const systemPrompt = SUBMIT_PROMPT.replace(
+			/Default working language: \*\*.*?\*\*/,
+			`Default working language: **${targetLanguage}**`
+		)
 
-		const mergedTools = isAnalysisMode
-			? { ...tabTools, ...analysisTools }
-			: { ...tabTools, ...submitTools }
+		const mergedTools = { ...tabTools, ...submitTools }
 
 		const includeInitialTab = config.includeInitialTab ?? true
 
@@ -67,7 +54,7 @@ export class SubmitAgent extends PageAgentCore {
 			pageController: pageController as any,
 			customTools: mergedTools,
 			customSystemPrompt: systemPrompt,
-			maxSteps: config.maxSteps ?? (isAnalysisMode ? 10 : 30),
+			maxSteps: config.maxSteps ?? 30,
 
 			onBeforeTask: async (agent) => {
 				await tabsController.init(includeInitialTab)
@@ -104,11 +91,6 @@ export class SubmitAgent extends PageAgentCore {
 
 		this.product = config.product
 		this.siteName = config.siteName
-	}
-
-	/** Get the analysis result (only available in analysis mode after agent runs) */
-	get analysisResult() {
-		return (this as any)._analysisResult ?? null
 	}
 }
 
