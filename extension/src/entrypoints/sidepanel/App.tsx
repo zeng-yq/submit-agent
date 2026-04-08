@@ -157,6 +157,7 @@ export default function App() {
 					batchSize={batchSize}
 					isRunning={isBacklinkRunning}
 					onImportCsv={importBacklinksFromCsv}
+					onReload={reloadBacklinks}
 					onStartAnalysis={startAnalysis}
 					onStop={stopBacklinkAnalysis}
 					onBack={() => { resetBacklinkAgent(); setView({ name: 'dashboard' }) }}

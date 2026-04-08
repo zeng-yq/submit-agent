@@ -14,6 +14,7 @@ interface BacklinkAnalysisProps {
 	batchSize: number
 	isRunning: boolean
 	onImportCsv: (csvText: string) => Promise<{ imported: number; skipped: number }>
+	onReload: () => void
 	onStartAnalysis: (count: number) => void
 	onStop: () => void
 	onBack: () => void
@@ -36,6 +37,7 @@ export function BacklinkAnalysis({
 	batchSize,
 	isRunning,
 	onImportCsv,
+	onReload,
 	onStartAnalysis,
 	onStop,
 	onBack,
@@ -62,6 +64,7 @@ export function BacklinkAnalysis({
 		if (!file) return
 		const text = await file.text()
 		const result = await onImportCsv(text)
+		await onReload()
 		setImportMsg(t('backlink.importResult', { imported: result.imported, skipped: result.skipped }))
 		if (fileInputRef.current) fileInputRef.current.value = ''
 		setTimeout(() => setImportMsg(null), 5000)
