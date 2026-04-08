@@ -68,7 +68,8 @@ export function useBacklinkAgent() {
 			wireEvents(agent)
 
 			const task = [
-				`Analyze this page for backlink opportunities: ${backlink.sourceUrl}`,
+				`Open this URL in a new tab first: ${backlink.sourceUrl}`,
+				`After the page loads, analyze it for backlink opportunities.`,
 				`The page title is: "${backlink.sourceTitle || '(unknown)'}"`,
 				`Page Authority Score: ${backlink.pageAscore}`,
 				`Current link is ${backlink.nofollow ? 'nofollow' : 'dofollow'}.`,
@@ -128,6 +129,7 @@ export function useBacklinkAgent() {
 	/** Start batch analysis of pending backlinks */
 	const startAnalysis = useCallback(
 		async (count: number = 20) => {
+			if (isRunning) return
 			stopRequestedRef.current = false
 			setIsRunning(true)
 			setStatus('running')

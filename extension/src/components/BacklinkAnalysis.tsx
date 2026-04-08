@@ -64,6 +64,7 @@ export function BacklinkAnalysis({
 		const result = await onImportCsv(text)
 		setImportMsg(t('backlink.importResult', { imported: result.imported, skipped: result.skipped }))
 		if (fileInputRef.current) fileInputRef.current.value = ''
+		setTimeout(() => setImportMsg(null), 5000)
 	}
 
 	const stepHistory = agentHistory.filter(e => e.type === 'step')
