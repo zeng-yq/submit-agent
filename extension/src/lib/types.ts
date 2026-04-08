@@ -106,3 +106,26 @@ export interface ExtMessage {
 	payload?: unknown
 	targetTabId?: number
 }
+
+/** Analysis status for imported backlinks */
+export type BacklinkStatus =
+	| 'pending'
+	| 'analyzing'
+	| 'publishable'
+	| 'not_publishable'
+	| 'error'
+
+/** Backlink record imported from Semrush CSV, stored in IndexedDB */
+export interface BacklinkRecord {
+	id: string
+	sourceUrl: string
+	sourceTitle: string
+	pageAscore: number
+	nofollow: boolean
+	targetUrl: string
+	status: BacklinkStatus
+	analysisLog: string[]
+	category?: string
+	createdAt: number
+	updatedAt: number
+}
