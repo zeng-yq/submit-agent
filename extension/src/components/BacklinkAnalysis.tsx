@@ -1,6 +1,6 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
-import { useRef, useState, Fragment } from 'react'
+import { useRef, useState, Fragment, useEffect } from 'react'
 import { useT } from '@/hooks/useLanguage'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { Button } from './ui/Button'
@@ -53,6 +53,19 @@ export function BacklinkAnalysis({
 	const [urlError, setUrlError] = useState<string | null>(null)
 	const [adding, setAdding] = useState(false)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
+	const lastAnalyzedRef = useRef<string | null>(null)
+
+	useEffect(() => {
+		if (analyzingId) {
+			lastAnalyzedRef.current = analyzingId
+		} else if (lastAnalyzedRef.current) {
+			// Analysis just completed — auto-expand if not in batch mode
+			if (!isRunning) {
+				setExpandedId(lastAnalyzedRef.current)
+			}
+			lastAnalyzedRef.current = null
+		}
+	}, [analyzingId, isRunning])
 
 	const filteredBacklinks = [...(statusFilter === 'all'
 		? backlinks
