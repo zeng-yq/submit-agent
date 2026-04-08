@@ -99,6 +99,10 @@ export function initPageController() {
 					)
 				break
 
+			case 'get_page_html':
+				sendResponse({ ok: true, html: document.documentElement.outerHTML })
+				break
+
 			default:
 				sendResponse({
 					success: false,
