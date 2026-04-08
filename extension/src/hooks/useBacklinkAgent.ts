@@ -72,7 +72,6 @@ export function useBacklinkAgent() {
 				`After the page loads, analyze it for backlink opportunities.`,
 				`The page title is: "${backlink.sourceTitle || '(unknown)'}"`,
 				`Page Authority Score: ${backlink.pageAscore}`,
-				`Current link is ${backlink.nofollow ? 'nofollow' : 'dofollow'}.`,
 				'',
 				'Determine if this page allows placing new external backlinks. Report your findings using the report_analysis_result tool.',
 			].join('\n')

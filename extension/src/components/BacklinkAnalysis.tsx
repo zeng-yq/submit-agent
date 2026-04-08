@@ -200,7 +200,6 @@ export function BacklinkAnalysis({
 							<tr className="border-b border-border/60 text-muted-foreground">
 								<th className="text-left px-3 py-1.5 font-normal w-10">{t('backlink.ascore')}</th>
 								<th className="text-left px-3 py-1.5 font-normal">{t('backlink.source')}</th>
-								<th className="text-left px-3 py-1.5 font-normal w-16">Type</th>
 								<th className="text-left px-3 py-1.5 font-normal w-20">Status</th>
 							</tr>
 						</thead>
@@ -212,11 +211,6 @@ export function BacklinkAnalysis({
 										<div className="truncate max-w-[200px]" title={b.sourceUrl}>
 											{b.sourceTitle || b.sourceUrl}
 										</div>
-									</td>
-									<td className="px-3 py-1.5">
-										<span className={b.nofollow ? 'text-yellow-500' : 'text-green-400'}>
-											{b.nofollow ? 'NF' : 'DF'}
-										</span>
 									</td>
 									<td className="px-3 py-1.5">
 										<span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[b.status]}`}>

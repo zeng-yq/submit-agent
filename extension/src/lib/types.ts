@@ -121,7 +121,6 @@ export interface BacklinkRecord {
 	sourceUrl: string
 	sourceTitle: string
 	pageAscore: number
-	nofollow: boolean
 	targetUrl: string
 	status: BacklinkStatus
 	analysisLog: string[]

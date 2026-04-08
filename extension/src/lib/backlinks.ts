@@ -80,13 +80,10 @@ export async function importBacklinksFromCsv(csvText: string): Promise<ImportRes
 		}
 
 		const ascore = parseInt(row['Page ascore'] ?? '0', 10)
-		const nofollow = (row['Nofollow'] ?? '').toLowerCase().trim() === 'true'
-
 		await saveBacklink({
 			sourceUrl,
 			sourceTitle: row['Source title']?.trim() ?? '',
 			pageAscore: isNaN(ascore) ? 0 : ascore,
-			nofollow,
 			targetUrl: row['Target url']?.trim() ?? '',
 			status: 'pending',
 			analysisLog: [],
