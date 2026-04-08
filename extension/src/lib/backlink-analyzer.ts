@@ -18,13 +18,13 @@ Return ONLY valid JSON:
 {
   "isBlog": true/false,
   "canComment": true/false,
-  "summary": "brief explanation in Chinese (1-2 sentences)"
+  "summary": "简短结论，不超过10个汉字"
 }
 
 Rules:
 - isBlog: true only if the page is a blog post or article with editorial content
 - canComment: true if there is a visible comment/reply form that allows posting (ideally with a URL field)
-- summary: MUST be written in Chinese (简体中文), concise description of the analysis result
+- summary: MUST be written in Chinese (简体中文), ultra-short conclusion within 10 characters, e.g. "博客文章，可评论" or "非博客，无评论框"
 - Return ONLY the JSON object, no markdown fences`
 
 /** Fix unquoted property names in JSON-like text, e.g. {isBlog: true} → {"isBlog": true} */
