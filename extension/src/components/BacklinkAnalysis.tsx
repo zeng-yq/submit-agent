@@ -16,13 +16,13 @@ interface BacklinkAnalysisProps {
 	onImportCsv: (csvText: string) => Promise<{ imported: number; skipped: number }>
 	onReload: () => void
 	onStartAnalysis: (count: number) => void
+	onAnalyzeOne: (backlink: BacklinkRecord) => void
 	onStop: () => void
 	onBack: () => void
 }
 
 const STATUS_COLORS: Record<BacklinkStatus, string> = {
 	pending: 'bg-muted text-muted-foreground',
-	analyzing: 'bg-blue-500/20 text-blue-400',
 	publishable: 'bg-green-500/20 text-green-400',
 	not_publishable: 'bg-red-500/20 text-red-400',
 	error: 'bg-destructive/20 text-destructive',
@@ -39,6 +39,7 @@ export function BacklinkAnalysis({
 	onImportCsv,
 	onReload,
 	onStartAnalysis,
+	onAnalyzeOne,
 	onStop,
 	onBack,
 }: BacklinkAnalysisProps) {
@@ -49,9 +50,9 @@ export function BacklinkAnalysis({
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const [statusFilter, setStatusFilter] = useState<BacklinkStatus | 'all'>('all')
 
-	const filteredBacklinks = statusFilter === 'all'
+	const filteredBacklinks = [...(statusFilter === 'all'
 		? backlinks
-		: backlinks.filter(b => b.status === statusFilter)
+		: backlinks.filter(b => b.status === statusFilter))].sort((a, b) => b.pageAscore - a.pageAscore)
 
 	const stats = {
 		total: backlinks.length,
@@ -201,6 +202,7 @@ export function BacklinkAnalysis({
 								<th className="text-left px-3 py-1.5 font-normal w-10">{t('backlink.ascore')}</th>
 								<th className="text-left px-3 py-1.5 font-normal">{t('backlink.source')}</th>
 								<th className="text-left px-3 py-1.5 font-normal w-20">Status</th>
+								<th className="text-right px-3 py-1.5 font-normal w-16">{t('backlink.action')}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -208,14 +210,31 @@ export function BacklinkAnalysis({
 								<tr key={b.id} className="border-b border-border/40 hover:bg-accent/30 transition-colors">
 									<td className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</td>
 									<td className="px-3 py-1.5">
-										<div className="truncate max-w-[200px]" title={b.sourceUrl}>
+										<a
+											href={b.sourceUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="truncate max-w-[200px] block text-primary hover:underline"
+											title={b.sourceUrl}
+										>
 											{b.sourceTitle || b.sourceUrl}
-										</div>
+										</a>
 									</td>
 									<td className="px-3 py-1.5">
 										<span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[b.status]}`}>
 											{t(`backlink.status.${b.status}` as any)}
 										</span>
+									</td>
+									<td className="px-3 py-1.5 text-right">
+										<Button
+											variant="ghost"
+											size="sm"
+											className="text-xs h-6 px-2"
+											disabled={isRunning}
+											onClick={() => onAnalyzeOne(b)}
+										>
+											{t('backlink.analyze')}
+										</Button>
 									</td>
 								</tr>
 							))}

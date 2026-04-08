@@ -38,6 +38,7 @@ export default function App() {
 		backlinks,
 		isRunning: isBacklinkRunning,
 		startAnalysis,
+		analyzeOne: analyzeBacklink,
 		stop: stopBacklinkAnalysis,
 		reset: resetBacklinkAgent,
 		reload: reloadBacklinks,
@@ -166,6 +167,7 @@ export default function App() {
 					onImportCsv={importBacklinksFromCsv}
 					onReload={reloadBacklinks}
 					onStartAnalysis={startAnalysis}
+					onAnalyzeOne={analyzeBacklink}
 					onStop={stopBacklinkAnalysis}
 					onBack={() => {
 						if (!isBacklinkRunning) resetBacklinkAgent()

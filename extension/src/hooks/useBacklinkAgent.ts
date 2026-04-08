@@ -58,9 +58,6 @@ export function useBacklinkAgent() {
 	/** Analyze a single backlink */
 	const analyzeOne = useCallback(
 		async (backlink: BacklinkRecord): Promise<void> => {
-			// Update status to analyzing
-			await updateBacklink({ ...backlink, status: 'analyzing', analysisLog: [] })
-			setBacklinks(prev => prev.map(b => b.id === backlink.id ? { ...b, status: 'analyzing' as const, analysisLog: [] } : b))
 
 			agentRef.current?.dispose()
 			const agent = await buildAnalysisAgent()

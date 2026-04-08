@@ -190,7 +190,6 @@ const en = {
 	'backlink.batchSize': 'Batch size',
 	'backlink.analyzing': 'Analyzing ({current}/{total})...',
 	'backlink.status.pending': 'Pending',
-	'backlink.status.analyzing': 'Analyzing',
 	'backlink.status.publishable': 'Publishable',
 	'backlink.status.not_publishable': 'Not Publishable',
 	'backlink.status.error': 'Error',
@@ -205,6 +204,8 @@ const en = {
 	'backlink.log': 'Analysis Log',
 	'backlink.logCollapsed': 'Show log',
 	'backlink.logExpanded': 'Hide log',
+	'backlink.analyze': 'Analyze',
+	'backlink.action': '',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -397,7 +398,6 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.batchSize': '批次大小',
 	'backlink.analyzing': '分析中 ({current}/{total})...',
 	'backlink.status.pending': '待分析',
-	'backlink.status.analyzing': '分析中',
 	'backlink.status.publishable': '可发布',
 	'backlink.status.not_publishable': '不可发布',
 	'backlink.status.error': '错误',
@@ -412,6 +412,8 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.log': '分析日志',
 	'backlink.logCollapsed': '展开日志',
 	'backlink.logExpanded': '收起日志',
+	'backlink.analyze': '分析',
+	'backlink.action': '操作',
 }
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }

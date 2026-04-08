@@ -110,7 +110,6 @@ export interface ExtMessage {
 /** Analysis status for imported backlinks */
 export type BacklinkStatus =
 	| 'pending'
-	| 'analyzing'
 	| 'publishable'
 	| 'not_publishable'
 	| 'error'
