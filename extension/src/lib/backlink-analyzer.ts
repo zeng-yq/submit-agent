@@ -27,6 +27,14 @@ Rules:
 - summary: MUST be written in Chinese (简体中文), concise description of the analysis result
 - Return ONLY the JSON object, no markdown fences`
 
+/** Fix unquoted property names in JSON-like text, e.g. {isBlog: true} → {"isBlog": true} */
+function fixUnquotedKeys(json: string): string {
+	return json.replace(
+		/([{,]\s*)([a-zA-Z_$][\w$]*)\s*:/g,
+		'$1"$2":',
+	)
+}
+
 function parseJsonResponse(text: string): AnalysisResult {
 	let cleaned = text.trim()
 	const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/)
@@ -34,14 +42,27 @@ function parseJsonResponse(text: string): AnalysisResult {
 		cleaned = fenceMatch[1].trim()
 	}
 
+	// Try direct parse
 	try {
 		return JSON.parse(cleaned)
 	} catch {
+		// Try extracting first {...} block
 		const objectMatch = cleaned.match(/\{[\s\S]*\}/)
-		if (objectMatch) {
-			return JSON.parse(objectMatch[0])
+		if (!objectMatch) {
+			throw new Error('Failed to parse analysis result from LLM response')
 		}
-		throw new Error('Failed to parse analysis result from LLM response')
+
+		// Try fixing unquoted keys (common LLM output issue)
+		try {
+			return JSON.parse(fixUnquotedKeys(objectMatch[0]))
+		} catch {
+			// Last resort: try the original extracted block as-is
+			try {
+				return JSON.parse(objectMatch[0])
+			} catch {
+				throw new Error('Failed to parse analysis result from LLM response')
+			}
+		}
 	}
 }
 

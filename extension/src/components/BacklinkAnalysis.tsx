@@ -296,7 +296,7 @@ export function BacklinkAnalysis({
 													className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
 														b.status !== 'pending' ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
 													} ${STATUS_COLORS[b.status]}`}
-													title={(b.status === 'error' || b.status === 'not_publishable') && b.analysisLog?.length ? b.analysisLog.join('\n') : undefined}
+													title={(b.status === 'error' || b.status === 'not_publishable') && b.analysisLog?.length ? b.analysisLog.map(l => typeof l === 'string' ? l : JSON.stringify(l)).join('\n') : undefined}
 													onClick={() => {
 														if (b.status !== 'pending') {
 															setExpandedId(isExpanded ? null : b.id)
@@ -337,7 +337,7 @@ export function BacklinkAnalysis({
 																: 'bg-red-500/5 border-red-400/70 text-red-300/80'
 													}`}>
 														{b.analysisLog.map((log, i) => (
-															<div key={i}>{log}</div>
+															<div key={i}>{typeof log === 'string' ? log : JSON.stringify(log)}</div>
 														))}
 													</div>
 												</td>
