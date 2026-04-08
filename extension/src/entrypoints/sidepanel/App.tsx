@@ -89,6 +89,13 @@ export default function App() {
 		return () => document.removeEventListener('mousedown', handler)
 	}, [dropdownOpen])
 
+	// Reload backlinks from DB when entering the backlink analysis view
+	useEffect(() => {
+		if (view.name === 'backlink-analysis') {
+			reloadBacklinks()
+		}
+	}, [view.name, reloadBacklinks])
+
 	if (view.name === 'settings') {
 		return (
 			<div className="flex flex-col h-screen bg-background">
@@ -160,7 +167,10 @@ export default function App() {
 					onReload={reloadBacklinks}
 					onStartAnalysis={startAnalysis}
 					onStop={stopBacklinkAnalysis}
-					onBack={() => { resetBacklinkAgent(); setView({ name: 'dashboard' }) }}
+					onBack={() => {
+						if (!isBacklinkRunning) resetBacklinkAgent()
+						setView({ name: 'dashboard' })
+					}}
 				/>
 			</div>
 		)
