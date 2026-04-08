@@ -1,5 +1,5 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
-import type { AgentActivity, AgentStatus, HistoricalEvent } from '@page-agent/core'
+import type { AnalysisStep } from '@/lib/backlink-analyzer'
 import { useRef, useState } from 'react'
 import { useT } from '@/hooks/useLanguage'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
@@ -7,9 +7,7 @@ import { Button } from './ui/Button'
 
 interface BacklinkAnalysisProps {
 	backlinks: BacklinkRecord[]
-	agentStatus: AgentStatus
-	agentHistory: HistoricalEvent[]
-	agentActivity: AgentActivity | null
+	currentStep: AnalysisStep | null
 	currentIndex: number
 	batchSize: number
 	isRunning: boolean
@@ -28,11 +26,16 @@ const STATUS_COLORS: Record<BacklinkStatus, string> = {
 	error: 'bg-destructive/20 text-destructive',
 }
 
+const STEP_LABELS: Record<AnalysisStep, string> = {
+	opening: 'Opening page...',
+	loading: 'Loading page...',
+	analyzing: 'Analyzing content...',
+	done: 'Done',
+}
+
 export function BacklinkAnalysis({
 	backlinks,
-	agentStatus,
-	agentHistory,
-	agentActivity,
+	currentStep,
 	currentIndex,
 	batchSize,
 	isRunning,
@@ -46,7 +49,6 @@ export function BacklinkAnalysis({
 	const t = useT()
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
-	const [logExpanded, setLogExpanded] = useState(true)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const [statusFilter, setStatusFilter] = useState<BacklinkStatus | 'all'>('all')
 
@@ -70,8 +72,6 @@ export function BacklinkAnalysis({
 		if (fileInputRef.current) fileInputRef.current.value = ''
 		setTimeout(() => setImportMsg(null), 5000)
 	}
-
-	const stepHistory = agentHistory.filter(e => e.type === 'step')
 
 	return (
 		<div className="flex flex-col h-full">
@@ -142,33 +142,16 @@ export function BacklinkAnalysis({
 				</div>
 			)}
 
-			{/* Log area */}
+			{/* Progress indicator */}
 			{isRunning && (
-				<div className="border-b border-border/60">
-					<button
-						type="button"
-						className="w-full px-3 py-1.5 flex items-center justify-between text-xs text-muted-foreground hover:bg-accent/50 transition-colors cursor-pointer"
-						onClick={() => setLogExpanded(!logExpanded)}
-					>
-						<span className="flex items-center gap-1.5">
-							<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-							{t('backlink.analyzing', { current: currentIndex + 1, total: batchSize })}
+				<div className="px-3 py-1.5 flex items-center gap-1.5 text-xs text-muted-foreground border-b border-border/60">
+					<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+					{t('backlink.analyzing', { current: currentIndex + 1, total: batchSize })}
+					{currentStep && (
+						<span className="text-muted-foreground/60">
+							{' — '}
+							{STEP_LABELS[currentStep]}
 						</span>
-						<span>{logExpanded ? t('backlink.logExpanded') : t('backlink.logCollapsed')}</span>
-					</button>
-					{logExpanded && (
-						<div className="px-3 pb-2 max-h-40 overflow-y-auto text-xs space-y-0.5">
-							{stepHistory.length === 0 ? (
-								<div className="text-muted-foreground">...</div>
-							) : (
-								stepHistory.map((event, i) => (
-									<div key={i} className="text-muted-foreground">
-										<span className="text-muted-foreground/60">&#x25B8; </span>
-										{(event as any).reflection?.next_goal ?? (event as any).action ?? `Step ${i + 1}`}
-									</div>
-								))
-							)}
-						</div>
 					)}
 				</div>
 			)}
