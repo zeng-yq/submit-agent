@@ -39,6 +39,16 @@ export interface SubmissionRecord {
 	updatedAt: number
 }
 
+/** Site data source type */
+export type SiteSource = 'curated' | 'crawled' | 'manual'
+
+/** Site record stored in IndexedDB, extends SiteData with DB metadata */
+export interface SiteRecord extends SiteData {
+  source: SiteSource
+  createdAt: number
+  updatedAt: number
+}
+
 /** One entry from sites.json */
 export interface SiteData {
 	name: string

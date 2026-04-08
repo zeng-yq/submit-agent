@@ -1,8 +1,8 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
-import type { ProductProfile, SubmissionRecord } from './types'
+import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord } from './types'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
@@ -20,6 +20,15 @@ interface SubmitAgentDB extends DBSchema {
 			'by-updated': number
 		}
 	}
+	sites: {
+		key: string
+		value: SiteRecord
+		indexes: {
+			'by-category': string
+			'by-dr': number
+			'by-source': string
+		}
+	}
 }
 
 let dbPromise: Promise<IDBPDatabase<SubmitAgentDB>> | null = null
@@ -27,15 +36,23 @@ let dbPromise: Promise<IDBPDatabase<SubmitAgentDB>> | null = null
 function getDB() {
 	if (!dbPromise) {
 		dbPromise = openDB<SubmitAgentDB>(DB_NAME, DB_VERSION, {
-			upgrade(db) {
-				const products = db.createObjectStore('products', { keyPath: 'id' })
-				products.createIndex('by-updated', 'updatedAt')
+			upgrade(db, oldVersion) {
+				if (oldVersion < 1) {
+					const products = db.createObjectStore('products', { keyPath: 'id' })
+					products.createIndex('by-updated', 'updatedAt')
 
-				const submissions = db.createObjectStore('submissions', { keyPath: 'id' })
-				submissions.createIndex('by-site', 'siteName')
-				submissions.createIndex('by-product', 'productId')
-				submissions.createIndex('by-status', 'status')
-				submissions.createIndex('by-updated', 'updatedAt')
+					const submissions = db.createObjectStore('submissions', { keyPath: 'id' })
+					submissions.createIndex('by-site', 'siteName')
+					submissions.createIndex('by-product', 'productId')
+					submissions.createIndex('by-status', 'status')
+					submissions.createIndex('by-updated', 'updatedAt')
+				}
+				if (oldVersion < 2) {
+					const sites = db.createObjectStore('sites', { keyPath: 'name' })
+					sites.createIndex('by-category', 'category')
+					sites.createIndex('by-dr', 'dr')
+					sites.createIndex('by-source', 'source')
+				}
 			},
 		})
 	}
@@ -135,4 +152,58 @@ export async function deleteSubmission(id: string): Promise<void> {
 export async function clearSubmissions(): Promise<void> {
 	const db = await getDB()
 	await db.clear('submissions')
+}
+
+// ---- Site CRUD ----
+
+/** Seed sites from sites.json into IndexedDB. Uses put (upsert) so existing records are preserved. */
+export async function seedSites(sites: SiteData[]): Promise<void> {
+	const db = await getDB()
+	const tx = db.transaction('sites', 'readwrite')
+	const now = Date.now()
+	for (const site of sites) {
+		const existing = await tx.store.get(site.name)
+		if (!existing) {
+			const record: SiteRecord = {
+				...site,
+				source: 'curated',
+				createdAt: now,
+				updatedAt: now,
+			}
+			await tx.store.put(record)
+		}
+	}
+	await tx.done
+}
+
+export async function getSite(name: string): Promise<SiteRecord | undefined> {
+	const db = await getDB()
+	return db.get('sites', name)
+}
+
+export async function listSites(): Promise<SiteRecord[]> {
+	const db = await getDB()
+	return db.getAll('sites')
+}
+
+export async function addSite(site: SiteRecord): Promise<void> {
+	const db = await getDB()
+	await db.put('sites', site)
+}
+
+export async function updateSite(site: SiteRecord): Promise<SiteRecord> {
+	const db = await getDB()
+	const updated = { ...site, updatedAt: Date.now() }
+	await db.put('sites', updated)
+	return updated
+}
+
+export async function deleteSite(name: string): Promise<void> {
+	const db = await getDB()
+	await db.delete('sites', name)
+}
+
+export async function clearSites(): Promise<void> {
+	const db = await getDB()
+	await db.clear('sites')
 }
