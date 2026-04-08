@@ -213,7 +213,7 @@ export function BacklinkAnalysis({
 						{t('backlink.noData')}
 					</div>
 				) : (
-					<table className="w-full text-xs">
+					<table className="w-full text-xs table-fixed">
 						<thead className="sticky top-0 bg-background">
 							<tr className="border-b border-border/60 text-muted-foreground">
 								<th className="text-left px-3 py-1.5 font-normal w-10">{t('backlink.ascore')}</th>
@@ -226,12 +226,12 @@ export function BacklinkAnalysis({
 							{filteredBacklinks.map(b => (
 								<tr key={b.id} className="border-b border-border/40 hover:bg-accent/30 transition-colors">
 									<td className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</td>
-									<td className="px-3 py-1.5">
+									<td className="px-3 py-1.5 overflow-hidden">
 										<a
 											href={b.sourceUrl}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="truncate max-w-[200px] block text-primary hover:underline"
+											className="truncate block text-primary hover:underline"
 											title={b.sourceUrl}
 										>
 											{b.sourceTitle || b.sourceUrl}
