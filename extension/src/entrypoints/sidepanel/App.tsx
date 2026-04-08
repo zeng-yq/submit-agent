@@ -30,6 +30,7 @@ export default function App() {
 	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped } = useSites(activeProduct?.id ?? null)
 	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop, reset } = useSubmitAgent()
 	const {
+		analyzingId,
 		currentStep: backlinkStep,
 		currentIndex,
 		batchSize,
@@ -157,6 +158,7 @@ export default function App() {
 			<div className="flex flex-col h-screen bg-background">
 				<BacklinkAnalysis
 					backlinks={backlinks}
+					analyzingId={analyzingId}
 					currentStep={backlinkStep}
 					currentIndex={currentIndex}
 					batchSize={batchSize}

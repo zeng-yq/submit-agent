@@ -1,12 +1,13 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
-import { useRef, useState } from 'react'
+import { useRef, useState, Fragment } from 'react'
 import { useT } from '@/hooks/useLanguage'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { Button } from './ui/Button'
 
 interface BacklinkAnalysisProps {
 	backlinks: BacklinkRecord[]
+	analyzingId: string | null
 	currentStep: AnalysisStep | null
 	currentIndex: number
 	batchSize: number
@@ -27,14 +28,9 @@ const STATUS_COLORS: Record<BacklinkStatus, string> = {
 	error: 'bg-destructive/20 text-destructive',
 }
 
-const STEP_LABELS: Record<AnalysisStep, string> = {
-	loading: 'Fetching page...',
-	analyzing: 'Analyzing content...',
-	done: 'Done',
-}
-
 export function BacklinkAnalysis({
 	backlinks,
+	analyzingId,
 	currentStep,
 	currentIndex,
 	batchSize,
@@ -56,6 +52,7 @@ export function BacklinkAnalysis({
 	const [urlInput, setUrlInput] = useState('')
 	const [urlError, setUrlError] = useState<string | null>(null)
 	const [adding, setAdding] = useState(false)
+	const [expandedId, setExpandedId] = useState<string | null>(null)
 
 	const filteredBacklinks = [...(statusFilter === 'all'
 		? backlinks
@@ -66,6 +63,12 @@ export function BacklinkAnalysis({
 		analyzed: backlinks.filter(b => b.status !== 'pending').length,
 		publishable: backlinks.filter(b => b.status === 'publishable').length,
 	}
+
+	const getDomain = (url: string) => {
+		try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
+	}
+
+	const analyzingBacklink = analyzingId ? backlinks.find(b => b.id === analyzingId) : null
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
@@ -177,16 +180,31 @@ export function BacklinkAnalysis({
 			)}
 
 			{/* Progress indicator */}
-			{isRunning && (
+			{(isRunning || analyzingId) && (
 				<div className="px-3 py-1.5 flex items-center gap-1.5 text-xs text-muted-foreground border-b border-border/60">
 					<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-					{t('backlink.analyzing', { current: currentIndex + 1, total: batchSize })}
-					{currentStep && (
-						<span className="text-muted-foreground/60">
-							{' — '}
-							{STEP_LABELS[currentStep]}
-						</span>
-					)}
+					{analyzingBacklink ? (
+						<>
+							{isRunning
+								? t('backlink.analyzing', { current: currentIndex + 1, total: batchSize })
+								: t('backlink.analyzingSingle', { domain: getDomain(analyzingBacklink.sourceUrl) })
+							}
+							{isRunning && (
+								<span className="text-muted-foreground/80">
+									{' — '}
+									{getDomain(analyzingBacklink.sourceUrl)}
+								</span>
+							)}
+							{currentStep && (
+								<span className="text-muted-foreground/60">
+									{' — '}
+									{t(`backlink.step.${currentStep}` as any)}
+								</span>
+							)}
+						</>
+					) : isRunning ? (
+						t('backlink.analyzingIn')
+					) : null}
 				</div>
 			)}
 
@@ -223,41 +241,81 @@ export function BacklinkAnalysis({
 							</tr>
 						</thead>
 						<tbody>
-							{filteredBacklinks.map(b => (
-								<tr key={b.id} className="border-b border-border/40 hover:bg-accent/30 transition-colors">
-									<td className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</td>
-									<td className="px-3 py-1.5 overflow-hidden">
-										<a
-											href={b.sourceUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="truncate block text-primary hover:underline"
-											title={b.sourceUrl}
-										>
-											{b.sourceTitle || b.sourceUrl}
-										</a>
-									</td>
-									<td className="px-3 py-1.5">
-										<span
-											className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium cursor-default ${STATUS_COLORS[b.status]}`}
-											title={(b.status === 'error' || b.status === 'not_publishable') && b.analysisLog?.length ? b.analysisLog.join('\n') : undefined}
-										>
-											{t(`backlink.status.${b.status}` as any)}
-										</span>
-									</td>
-									<td className="px-3 py-1.5 text-right">
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-xs h-6 px-2"
-											disabled={isRunning}
-											onClick={() => onAnalyzeOne(b)}
-										>
-											{t('backlink.analyze')}
-										</Button>
-									</td>
-								</tr>
-							))}
+							{filteredBacklinks.map(b => {
+								const isAnalyzing = analyzingId === b.id
+								const isDisabled = analyzingId !== null || isRunning
+								const isExpanded = expandedId === b.id
+
+								return (
+									<Fragment key={b.id}>
+										<tr className={`border-b border-border/40 transition-colors ${isAnalyzing ? 'bg-blue-500/5' : 'hover:bg-accent/30'}`}>
+											<td className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</td>
+											<td className="px-3 py-1.5 overflow-hidden">
+												<a
+													href={b.sourceUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="truncate block text-primary hover:underline"
+													title={b.sourceUrl}
+												>
+													{b.sourceTitle || b.sourceUrl}
+												</a>
+											</td>
+											<td className="px-3 py-1.5">
+												<span
+													className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+														b.status !== 'pending' ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
+													} ${STATUS_COLORS[b.status]}`}
+													title={(b.status === 'error' || b.status === 'not_publishable') && b.analysisLog?.length ? b.analysisLog.join('\n') : undefined}
+													onClick={() => {
+														if (b.status !== 'pending') {
+															setExpandedId(isExpanded ? null : b.id)
+														}
+													}}
+												>
+													{t(`backlink.status.${b.status}` as any)}
+												</span>
+											</td>
+											<td className="px-3 py-1.5 text-right">
+												<Button
+													variant="ghost"
+													size="sm"
+													className="text-xs h-6 px-2"
+													disabled={isDisabled}
+													onClick={() => onAnalyzeOne(b)}
+												>
+													{isAnalyzing ? (
+														<span className="flex items-center gap-1">
+															<svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+																<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+																<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+															</svg>
+															{t('backlink.analyzingIn')}
+														</span>
+													) : (
+														t('backlink.analyze')
+													)}
+												</Button>
+											</td>
+										</tr>
+										{isExpanded && b.status !== 'pending' && b.analysisLog?.length > 0 && (
+											<tr className="border-b border-border/40">
+												<td colSpan={4} className="px-4 py-2">
+													<div className={`text-xs rounded px-3 py-1.5 border-l-2 ${
+														b.status === 'publishable' ? 'bg-green-500/5 border-green-400 text-green-300'
+															: b.status === 'error' ? 'bg-red-500/5 border-red-400 text-red-300'
+																: 'bg-red-500/5 border-red-400/70 text-red-300/80'
+													}`}>
+														{b.analysisLog.map((log, i) => (
+															<div key={i}>{log}</div>
+														))}
+													</div>
+												</td>
+											</tr>
+										)}
+									</Fragment>
+								)
+							})}
 						</tbody>
 					</table>
 				)}
