@@ -2,7 +2,6 @@ import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
 import { useRef, useState, Fragment, useEffect } from 'react'
 import { useT } from '@/hooks/useLanguage'
-import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { Button } from './ui/Button'
 
 interface BacklinkAnalysisProps {
