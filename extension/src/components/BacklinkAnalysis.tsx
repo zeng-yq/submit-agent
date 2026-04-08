@@ -1,6 +1,6 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
-import { useRef, useState, Fragment, useEffect } from 'react'
+import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
 import { useT } from '@/hooks/useLanguage'
 import { Button } from './ui/Button'
 
@@ -44,7 +44,7 @@ export function BacklinkAnalysis({
 }: BacklinkAnalysisProps) {
 	const t = useT()
 	const fileInputRef = useRef<HTMLInputElement>(null)
-	const dialogRef = useRef<HTMLDialogElement>(null)
+	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const [statusFilter, setStatusFilter] = useState<BacklinkStatus | 'all'>('all')
@@ -93,7 +93,7 @@ export function BacklinkAnalysis({
 		setTimeout(() => setImportMsg(null), 5000)
 	}
 
-	const handleAddUrl = async () => {
+	const handleAddUrl = useCallback(async () => {
 		setUrlError(null)
 		const url = urlInput.trim()
 		if (!url) {
@@ -107,12 +107,12 @@ export function BacklinkAnalysis({
 				setUrlError(t(result.error === 'Duplicate URL' ? 'backlink.addUrlDuplicate' : 'backlink.addUrlInvalid'))
 				return
 			}
-			dialogRef.current?.close()
 			setUrlInput('')
+			urlInputRef.current?.focus()
 		} finally {
 			setAdding(false)
 		}
-	}
+	}, [urlInput, onAddUrl, t])
 
 	return (
 		<div className="flex flex-col h-full">
@@ -141,15 +141,6 @@ export function BacklinkAnalysis({
 				>
 					{t('backlink.importCsv')}
 				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => dialogRef.current?.showModal()}
-					disabled={isRunning}
-				>
-					{t('backlink.addUrl')}
-				</Button>
-
 				{isRunning ? (
 					<Button variant="destructive" size="sm" onClick={onStop}>
 						{t('backlink.stopAnalysis')}
@@ -183,6 +174,33 @@ export function BacklinkAnalysis({
 					)}
 				</div>
 			</div>
+
+			{/* Inline Add URL */}
+			<div className="border-b border-border/60 px-3 py-2 flex items-center gap-2">
+				<input
+					ref={urlInputRef}
+					type="url"
+					className="flex-1 text-xs bg-background border border-border rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+					placeholder={t('backlink.addUrlPlaceholder')}
+					value={urlInput}
+					onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
+					onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl() }}
+					disabled={adding || isRunning}
+				/>
+				<Button
+					variant="default"
+					size="sm"
+					onClick={handleAddUrl}
+					disabled={adding || isRunning}
+				>
+					{adding ? t('backlink.adding') : t('backlink.addUrl')}
+				</Button>
+			</div>
+			{urlError && (
+				<div className="px-3 py-1 text-[10px] text-destructive border-b border-border/60">
+					{urlError}
+				</div>
+			)}
 
 			{/* Import feedback */}
 			{importMsg && (
@@ -332,50 +350,6 @@ export function BacklinkAnalysis({
 					</table>
 				)}
 			</div>
-
-			{/* Add URL Dialog */}
-			<dialog
-				ref={dialogRef}
-				className="bg-background border border-border rounded-lg p-0 max-w-sm w-full backdrop:bg-black/50"
-				onClose={() => { setUrlInput(''); setUrlError(null) }}
-			>
-				<form
-					method="dialog"
-					onSubmit={(e) => { e.preventDefault(); handleAddUrl() }}
-					className="p-4"
-				>
-					<h3 className="text-sm font-semibold mb-3">{t('backlink.addUrlTitle')}</h3>
-					<input
-						type="url"
-						className="w-full text-xs bg-background border border-border rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
-						placeholder={t('backlink.addUrlPlaceholder')}
-						value={urlInput}
-						onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
-						autoFocus
-					/>
-					{urlError && (
-						<p className="text-[10px] text-destructive mt-1.5">{urlError}</p>
-					)}
-					<div className="flex justify-end gap-2 mt-4">
-						<Button
-							variant="ghost"
-							size="sm"
-							type="button"
-							onClick={() => dialogRef.current?.close()}
-						>
-							{t('common.cancel')}
-						</Button>
-						<Button
-							variant="default"
-							size="sm"
-							type="submit"
-							disabled={adding}
-						>
-							{adding ? t('backlink.adding') : t('backlink.addUrl')}
-						</Button>
-					</div>
-				</form>
-			</dialog>
 		</div>
 	)
 }
