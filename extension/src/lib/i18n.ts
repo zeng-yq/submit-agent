@@ -181,6 +181,30 @@ const en = {
 	'options.generateWithAi': 'Generate Profile with AI',
 	'options.orManually': 'or fill in manually',
 	'options.generationFailed': 'Generation failed',
+
+	// backlink analysis
+	'backlink.title': 'Backlink Analysis',
+	'backlink.importCsv': 'Import CSV',
+	'backlink.startAnalysis': 'Start Analysis',
+	'backlink.stopAnalysis': 'Stop',
+	'backlink.batchSize': 'Batch size',
+	'backlink.analyzing': 'Analyzing ({current}/{total})...',
+	'backlink.status.pending': 'Pending',
+	'backlink.status.analyzing': 'Analyzing',
+	'backlink.status.publishable': 'Publishable',
+	'backlink.status.not_publishable': 'Not Publishable',
+	'backlink.status.error': 'Error',
+	'backlink.stats': '{analyzed} analyzed / {total} total',
+	'backlink.statsPublishable': '{count} publishable',
+	'backlink.importResult': 'Imported {imported} new backlinks, {skipped} duplicates skipped',
+	'backlink.noData': 'No backlink data. Import a Semrush CSV to get started.',
+	'backlink.nofollow': 'Nofollow',
+	'backlink.dofollow': 'Dofollow',
+	'backlink.ascore': 'AS',
+	'backlink.source': 'Source',
+	'backlink.log': 'Analysis Log',
+	'backlink.logCollapsed': 'Show log',
+	'backlink.logExpanded': 'Hide log',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -364,6 +388,30 @@ const zh: Record<keyof typeof en, string> = {
 	'options.generateWithAi': '用 AI 生成资料',
 	'options.orManually': '或手动填写',
 	'options.generationFailed': '生成失败',
+
+	// backlink analysis
+	'backlink.title': '外链分析',
+	'backlink.importCsv': '导入 CSV',
+	'backlink.startAnalysis': '开始分析',
+	'backlink.stopAnalysis': '停止',
+	'backlink.batchSize': '批次大小',
+	'backlink.analyzing': '分析中 ({current}/{total})...',
+	'backlink.status.pending': '待分析',
+	'backlink.status.analyzing': '分析中',
+	'backlink.status.publishable': '可发布',
+	'backlink.status.not_publishable': '不可发布',
+	'backlink.status.error': '错误',
+	'backlink.stats': '已分析 {analyzed} / 共 {total} 条',
+	'backlink.statsPublishable': '{count} 条可发布',
+	'backlink.importResult': '成功导入 {imported} 条新外链，{skipped} 条重复被跳过',
+	'backlink.noData': '暂无外链数据。请导入 Semrush 导出的 CSV 文件。',
+	'backlink.nofollow': 'Nofollow',
+	'backlink.dofollow': 'Dofollow',
+	'backlink.ascore': 'AS',
+	'backlink.source': '来源',
+	'backlink.log': '分析日志',
+	'backlink.logCollapsed': '展开日志',
+	'backlink.logExpanded': '收起日志',
 }
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }
