@@ -29,21 +29,21 @@ export function useBacklinkAgent() {
 					(step) => setCurrentStep(step),
 				)
 
-				const newStatus: BacklinkStatus = result?.publishable ? 'publishable' : 'not_publishable'
+				const publishable = result?.isBlog && result?.canComment
+				const newStatus: BacklinkStatus = publishable ? 'publishable' : 'not_publishable'
 
 				const updated = await updateBacklink({
 					...backlink,
 					status: newStatus,
 					analysisLog: [result.summary || 'Analysis complete'],
-					category: result.category,
 				})
 
 				// If publishable, add to sites table
-				if (result?.publishable) {
+				if (publishable) {
 					const siteRecord: SiteRecord = {
 						name: backlink.sourceTitle || extractDomain(backlink.sourceUrl),
 						submit_url: backlink.sourceUrl,
-						category: result.category || 'Other',
+						category: 'Blog Comment',
 						lang: '',
 						dr: null,
 						monthly_traffic: '',

@@ -123,7 +123,6 @@ export interface BacklinkRecord {
 	targetUrl: string
 	status: BacklinkStatus
 	analysisLog: string[]
-	category?: string
 	createdAt: number
 	updatedAt: number
 }

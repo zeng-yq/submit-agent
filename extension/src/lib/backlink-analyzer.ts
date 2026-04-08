@@ -2,33 +2,30 @@ import type { LLMSettings } from './types'
 import { getLLMConfig } from './storage'
 
 export interface AnalysisResult {
-	publishable: boolean
-	category: string
+	isBlog: boolean
+	canComment: boolean
 	summary: string
 }
 
 export type AnalysisStep = 'opening' | 'loading' | 'analyzing' | 'done'
 
-const SYSTEM_PROMPT = `You are a Backlink Analyzer. Analyze the webpage content below and determine if the page allows placing new external backlinks.
+const SYSTEM_PROMPT = `You are a Backlink Analyzer. Analyze the webpage content and determine two things:
 
-Look for:
-1. Blog comment sections with URL/Website fields
-2. Directory sites with submission forms or "Submit" / "Add listing" buttons
-3. Forum/community threads with reply forms that allow links
-4. Other link placement opportunities (guestbook, profile page, resource page)
+1. Is this a blog page? (A blog post, article, or similar content page — NOT a directory, forum, homepage, or navigation page)
+2. Can you submit a comment on this page? (Look for comment forms, reply boxes, especially ones with URL/Website fields)
 
-Return ONLY valid JSON with these exact fields:
+Return ONLY valid JSON:
 {
-  "publishable": true/false,
-  "category": "blog_comment" | "directory" | "forum" | "guestbook" | "profile" | "resource_page" | "other",
-  "summary": "brief explanation of what you found (1-2 sentences)"
+  "isBlog": true/false,
+  "canComment": true/false,
+  "summary": "brief explanation (1-2 sentences)"
 }
 
 Rules:
-- publishable: true if the page has ANY viable method for placing an external backlink
-- category: the most relevant category for how the backlink would be placed
-- summary: concise description of the opportunity found, or why the page is not suitable
-- Return ONLY the JSON object, no markdown fences, no explanation`
+- isBlog: true only if the page is a blog post or article with editorial content
+- canComment: true if there is a visible comment/reply form that allows posting (ideally with a URL field)
+- summary: concise description
+- Return ONLY the JSON object, no markdown fences`
 
 function parseJsonResponse(text: string): AnalysisResult {
 	let cleaned = text.trim()
@@ -124,7 +121,7 @@ export async function analyzeBacklink(
 		].filter(Boolean).join('\n\n')
 
 		if (!pageContent.trim() || pageContent.length < 50) {
-			return { publishable: false, category: 'other', summary: 'Page content is empty or too short to analyze.' }
+			return { isBlog: false, canComment: false, summary: 'Page content is empty or too short to analyze.' }
 		}
 
 		// Truncate if too long to save tokens
