@@ -1,8 +1,8 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
-import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord } from './types'
+import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRecord, BacklinkStatus } from './types'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
@@ -29,6 +29,15 @@ interface SubmitAgentDB extends DBSchema {
 			'by-source': string
 		}
 	}
+	backlinks: {
+		key: string
+		value: BacklinkRecord
+		indexes: {
+			'by-status': string
+			'by-url': string
+			'by-updated': number
+		}
+	}
 }
 
 let dbPromise: Promise<IDBPDatabase<SubmitAgentDB>> | null = null
@@ -52,6 +61,12 @@ function getDB() {
 					sites.createIndex('by-category', 'category')
 					sites.createIndex('by-dr', 'dr')
 					sites.createIndex('by-source', 'source')
+				}
+				if (oldVersion < 3) {
+					const backlinks = db.createObjectStore('backlinks', { keyPath: 'id' })
+					backlinks.createIndex('by-status', 'status')
+					backlinks.createIndex('by-url', 'sourceUrl')
+					backlinks.createIndex('by-updated', 'updatedAt')
 				}
 			},
 		})
@@ -206,4 +221,59 @@ export async function deleteSite(name: string): Promise<void> {
 export async function clearSites(): Promise<void> {
 	const db = await getDB()
 	await db.clear('sites')
+}
+
+// ---- Backlink CRUD ----
+
+export async function saveBacklink(
+	data: Omit<BacklinkRecord, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<BacklinkRecord> {
+	const db = await getDB()
+	const now = Date.now()
+	const record: BacklinkRecord = {
+		...data,
+		id: crypto.randomUUID(),
+		createdAt: now,
+		updatedAt: now,
+	}
+	await db.put('backlinks', record)
+	return record
+}
+
+export async function updateBacklink(backlink: BacklinkRecord): Promise<BacklinkRecord> {
+	const db = await getDB()
+	const updated = { ...backlink, updatedAt: Date.now() }
+	await db.put('backlinks', updated)
+	return updated
+}
+
+export async function getBacklink(id: string): Promise<BacklinkRecord | undefined> {
+	const db = await getDB()
+	return db.get('backlinks', id)
+}
+
+export async function getBacklinkByUrl(sourceUrl: string): Promise<BacklinkRecord | undefined> {
+	const db = await getDB()
+	return db.getFromIndex('backlinks', 'by-url', sourceUrl)
+}
+
+export async function listBacklinks(): Promise<BacklinkRecord[]> {
+	const db = await getDB()
+	const all = await db.getAllFromIndex('backlinks', 'by-updated')
+	return all.reverse()
+}
+
+export async function listBacklinksByStatus(status: BacklinkStatus): Promise<BacklinkRecord[]> {
+	const db = await getDB()
+	return db.getAllFromIndex('backlinks', 'by-status', status)
+}
+
+export async function deleteBacklink(id: string): Promise<void> {
+	const db = await getDB()
+	await db.delete('backlinks', id)
+}
+
+export async function clearBacklinks(): Promise<void> {
+	const db = await getDB()
+	await db.clear('backlinks')
 }
