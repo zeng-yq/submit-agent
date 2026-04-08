@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/Button'
 import { useProduct } from '@/hooks/useProduct'
 import { useSites } from '@/hooks/useSites'
 import { useSubmitAgent } from '@/hooks/useSubmitAgent'
+import { useBacklinkAgent } from '@/hooks/useBacklinkAgent'
 import { useT } from '@/hooks/useLanguage'
+import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
+import { importBacklinksFromCsv } from '@/lib/backlinks'
 
 type View =
 	| { name: 'dashboard' }
@@ -16,6 +19,7 @@ type View =
 	| { name: 'site-detail'; site: SiteData }
 	| { name: 'settings' }
 	| { name: 'float-fill' }
+	| { name: 'backlink-analysis' }
 
 export default function App() {
 	const t = useT()
@@ -25,6 +29,19 @@ export default function App() {
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
 	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped } = useSites(activeProduct?.id ?? null)
 	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop, reset } = useSubmitAgent()
+	const {
+		status: backlinkAgentStatus,
+		history: backlinkHistory,
+		activity: backlinkActivity,
+		currentIndex,
+		batchSize,
+		backlinks,
+		isRunning: isBacklinkRunning,
+		startAnalysis,
+		stop: stopBacklinkAnalysis,
+		reset: resetBacklinkAgent,
+		reload: reloadBacklinks,
+	} = useBacklinkAgent()
 	const [agentError, setAgentError] = useState<string | null>(null)
 
 	// Listen for float-fill trigger from content script via background
@@ -128,6 +145,26 @@ export default function App() {
 		)
 	}
 
+	if (view.name === 'backlink-analysis') {
+		return (
+			<div className="flex flex-col h-screen bg-background">
+				<BacklinkAnalysis
+					backlinks={backlinks}
+					agentStatus={backlinkAgentStatus}
+					agentHistory={backlinkHistory}
+					agentActivity={backlinkActivity}
+					currentIndex={currentIndex}
+					batchSize={batchSize}
+					isRunning={isBacklinkRunning}
+					onImportCsv={importBacklinksFromCsv}
+					onStartAnalysis={startAnalysis}
+					onStop={stopBacklinkAnalysis}
+					onBack={() => { resetBacklinkAgent(); setView({ name: 'dashboard' }) }}
+				/>
+			</div>
+		)
+	}
+
 	if (view.name === 'float-fill') {
 		return (
 			<div className="flex flex-col h-screen bg-background">
@@ -195,6 +232,13 @@ export default function App() {
 						)}
 					</div>
 					<div className="flex items-center gap-0.5">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setView({ name: 'backlink-analysis' })}
+						>
+							{t('backlink.title')}
+						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
