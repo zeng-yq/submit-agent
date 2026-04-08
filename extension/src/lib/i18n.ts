@@ -212,6 +212,12 @@ const en = {
 	'backlink.addUrlInvalid': 'Please enter a valid URL',
 	'backlink.addUrlDuplicate': 'This URL already exists',
 	'backlink.adding': 'Adding...',
+	'backlink.step.loading': 'Fetching page...',
+	'backlink.step.analyzing': 'Analyzing content...',
+	'backlink.step.done': 'Done',
+	'backlink.analyzingSingle': 'Analyzing — {domain}',
+	'backlink.analyzingDone': 'Done — {domain}',
+	'backlink.analyzingIn': 'Analyzing in progress...',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -426,6 +432,12 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.addUrlInvalid': '请输入有效的 URL',
 	'backlink.addUrlDuplicate': '该 URL 已存在',
 	'backlink.adding': '添加中...',
+	'backlink.step.loading': '正在获取页面...',
+	'backlink.step.analyzing': '正在分析内容...',
+	'backlink.step.done': '完成',
+	'backlink.analyzingSingle': '正在分析 — {domain}',
+	'backlink.analyzingDone': '分析完成 — {domain}',
+	'backlink.analyzingIn': '分析进行中...',
 }
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }
