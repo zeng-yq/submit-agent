@@ -5,6 +5,10 @@ import { getAuthToken, removeCachedToken } from './google-auth'
 
 const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets'
 
+const CHUNK_SIZE = 500
+const MAX_RETRIES = 3
+const FETCH_TIMEOUT = 30_000
+
 /**
  * Extract spreadsheet ID from a Google Sheet URL.
  * Handles URLs like:
@@ -44,6 +48,84 @@ async function sheetsFetch(token: string, path: string, init?: RequestInit): Pro
     throw new Error(`HTTP ${res.status}: ${body}`)
   }
   return res
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Fetch with retry, timeout, and error classification.
+ * - 401: no retry, clear token, throw
+ * - 429: read Retry-After, wait, retry
+ * - 5xx: retry with exponential backoff
+ * - other 4xx: no retry, throw
+ * - network error / AbortError: retry with exponential backoff
+ */
+async function sheetsFetchWithRetry(
+  token: string,
+  path: string,
+  init?: RequestInit,
+  maxRetries: number = MAX_RETRIES,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
+
+    try {
+      const res = await fetch(`${SHEETS_BASE}/${path}`, {
+        ...init,
+        signal: init?.signal ?? controller.signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...init?.headers,
+        },
+      })
+      clearTimeout(timeoutId)
+
+      if (res.status === 401) {
+        await removeCachedToken(token)
+        throw new Error('401')
+      }
+
+      if (res.status === 429) {
+        if (attempt < maxRetries) {
+          const retryAfter = parseInt(res.headers.get('Retry-After') || '5')
+          await sleep(retryAfter * 1000)
+          continue
+        }
+        const body = await res.text()
+        throw new Error(`HTTP 429: ${body}`)
+      }
+
+      if (res.status >= 500) {
+        if (attempt < maxRetries) {
+          await sleep(1000 * Math.pow(2, attempt))
+          continue
+        }
+        const body = await res.text()
+        throw new Error(`HTTP ${res.status}: ${body}`)
+      }
+
+      if (!res.ok) {
+        const body = await res.text()
+        throw new Error(`HTTP ${res.status}: ${body}`)
+      }
+
+      return res
+    } catch (err) {
+      clearTimeout(timeoutId)
+      if (err instanceof Error && err.message === '401') throw err
+      if (attempt < maxRetries) {
+        await sleep(1000 * Math.pow(2, attempt))
+        continue
+      }
+      throw err
+    }
+  }
+
+  throw new Error('Max retries exceeded')
 }
 
 /**
