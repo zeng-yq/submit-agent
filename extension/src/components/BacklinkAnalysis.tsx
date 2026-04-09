@@ -309,7 +309,7 @@ export function BacklinkAnalysis({
 
 				{/* Filter tabs + batch start */}
 				<div className="flex items-center px-4 py-2 gap-1">
-					{(['all', 'pending', 'publishable', 'not_publishable', 'skipped', 'error'] as const).map(s => (
+					{(['all', 'publishable', 'not_publishable', 'skipped', 'error'] as const).map(s => (
 						<button
 							key={s}
 							type="button"
