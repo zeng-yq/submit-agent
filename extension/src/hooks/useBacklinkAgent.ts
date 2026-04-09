@@ -82,7 +82,7 @@ export function useBacklinkAgent() {
 					(step) => setCurrentStep(step),
 				)
 
-				const publishable = result?.isBlog && result?.canComment
+				const publishable = !!result?.canComment
 				const newStatus: BacklinkStatus = publishable ? 'publishable' : 'not_publishable'
 
 				const updated = await updateBacklink({

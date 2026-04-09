@@ -2,7 +2,6 @@ import type { LLMSettings } from './types'
 import { getLLMConfig } from './storage'
 
 export interface AnalysisResult {
-	isBlog: boolean
 	canComment: boolean
 	summary: string
 }
@@ -11,23 +10,20 @@ export type AnalysisStep = 'loading' | 'analyzing' | 'done'
 
 const SYSTEM_PROMPT = `You are a Backlink Analyzer. You will receive the HTML source of a webpage along with detected form elements. Determine:
 
-1. Is this a blog page? (A blog post, article, or similar content page — NOT a directory, forum, homepage, or navigation page)
-2. Can you submit a comment on this page? (Look for comment forms, reply boxes, especially ones with URL/Website fields)
+Can you submit a comment on this page? (Look for comment forms, reply boxes, especially ones with URL/Website fields)
 
 Return ONLY valid JSON:
 {
-  "isBlog": true/false,
   "canComment": true/false,
   "summary": "简短结论，不超过10个汉字"
 }
 
 Rules:
-- isBlog: true only if the page is a blog post or article with editorial content
-- canComment: true if there is a visible comment/reply form that allows posting (ideally with a URL field)
-- summary: MUST be written in Chinese (简体中文), ultra-short conclusion within 10 characters, e.g. "博客文章，可评论" or "非博客，无评论框"
+- canComment: true if there is a visible comment/reply form that allows posting (ideally with a URL field). Page type (blog, game, news, etc.) does NOT matter — any page with a comment form counts.
+- summary: MUST be written in Chinese (简体中文), ultra-short conclusion within 10 characters, e.g. "可评论" or "无评论框"
 - Return ONLY the JSON object, no markdown fences`
 
-/** Fix unquoted property names in JSON-like text, e.g. {isBlog: true} → {"isBlog": true} */
+/** Fix unquoted property names in JSON-like text, e.g. {canComment: true} → {"canComment": true} */
 function fixUnquotedKeys(json: string): string {
 	return json.replace(
 		/([{,]\s*)([a-zA-Z_$][\w$]*)\s*:/g,
@@ -157,7 +153,7 @@ export async function analyzeBacklink(
 	const commentSignals = detectCommentSignals(html)
 
 	if (textContent.length < 50) {
-		return { isBlog: false, canComment: false, summary: '页面内容为空或过短，无法分析。' }
+		return { canComment: false, summary: '页面内容为空或过短，无法分析。' }
 	}
 
 	// Step 3: Build prompt content
