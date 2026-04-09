@@ -14,6 +14,7 @@ function obfuscateKey(key: string): string {
 
 export default defineConfig({
 	srcDir: 'src',
+	outDir: 'dist',
 	modules: ['@wxt-dev/module-react'],
 	webExt: {
 		chromiumProfile: chromeProfile,
