@@ -1,5 +1,5 @@
 import { SHEET_DEFS } from './types'
-import type { SyncResult } from './types'
+import type { SyncResult, ExportProgress, ProgressCallback, ExportResult } from './types'
 import { serializeSheet, deserializeSheet } from './serializer'
 import { getAuthToken, removeCachedToken } from './google-auth'
 
@@ -150,13 +150,97 @@ async function ensureSheetTab(token: string, spreadsheetId: string, tabName: str
 }
 
 /**
- * Export all data to Google Sheets.
- * For each data type, creates the tab (if missing), clears it, and writes header + data rows.
+ * Read current tab content for backup. Returns empty array if tab doesn't exist.
+ */
+async function backupTab(
+  token: string,
+  spreadsheetId: string,
+  tabName: string,
+): Promise<string[][]> {
+  try {
+    const range = encodeURIComponent(`${tabName}!A1:Z`)
+    const res = await sheetsFetch(token, `${spreadsheetId}/values/${range}`)
+    const body = await res.json()
+    return (body.values as string[][]) ?? []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Upload a single tab's data in chunks with retry.
+ * Returns true on success, false on failure.
+ */
+async function uploadTabChunked(
+  token: string,
+  spreadsheetId: string,
+  tabName: string,
+  rows: string[][],
+  onProgress?: ProgressCallback,
+  abortSignal?: AbortSignal,
+): Promise<boolean> {
+  // Clear existing data
+  try {
+    await sheetsFetchWithRetry(
+      token,
+      `${spreadsheetId}/values/${encodeURIComponent(tabName)}:clear`,
+      { method: 'POST', signal: abortSignal },
+    )
+  } catch {
+    // Tab might not exist yet, ignore clear errors
+  }
+
+  if (rows.length === 0) return true
+
+  // Split rows into chunks
+  const chunks: string[][][] = []
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    chunks.push(rows.slice(i, i + CHUNK_SIZE))
+  }
+
+  for (let c = 0; c < chunks.length; c++) {
+    if (abortSignal?.aborted) return false
+
+    const chunkRows = chunks[c]
+    const startRow = c * CHUNK_SIZE + 1
+    const range = encodeURIComponent(`${tabName}!A${startRow}`)
+
+    try {
+      await sheetsFetchWithRetry(
+        token,
+        `${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ values: chunkRows }),
+          signal: abortSignal,
+        },
+      )
+    } catch (err) {
+      onProgress?.({
+        phase: 'upload',
+        currentTab: tabName,
+        totalTabs: 0,
+        completedTabs: 0,
+        currentChunk: c + 1,
+        totalChunks: chunks.length,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      return false
+    }
+  }
+
+  return true
+}
+
+/**
+ * Export all data to Google Sheets with backup, chunked upload, and rollback.
  */
 export async function exportToSheets(
   sheetUrl: string,
-  data: Record<string, Record<string, unknown>[]>
-): Promise<SyncResult> {
+  data: Record<string, Record<string, unknown>[]>,
+  onProgress?: ProgressCallback,
+  abortSignal?: AbortSignal,
+): Promise<ExportResult> {
   const spreadsheetId = parseSheetUrl(sheetUrl)
   if (!spreadsheetId) {
     return { success: false, counts: {}, error: 'Invalid Google Sheet URL' }
@@ -169,53 +253,155 @@ export async function exportToSheets(
     return { success: false, counts: {}, error: `Authentication failed: ${String(err)}` }
   }
 
-  const counts: Record<string, number> = {}
+  const tabEntries: Array<{ dataType: string; tabName: string }> = []
+  for (const [dataType] of Object.entries(data)) {
+    const sheetDef = SHEET_DEFS[dataType]
+    if (sheetDef) tabEntries.push({ dataType, tabName: sheetDef.tabName })
+  }
 
+  // ---- Phase 1: Create tabs & Backup ----
   try {
-    // Collect all needed tab names and create missing ones
-    const neededTabs: string[] = []
-    for (const [dataType] of Object.entries(data)) {
-      const sheetDef = SHEET_DEFS[dataType]
-      if (sheetDef) neededTabs.push(sheetDef.tabName)
-    }
-    for (const tabName of neededTabs) {
+    for (const { tabName } of tabEntries) {
+      if (abortSignal?.aborted) {
+        return { success: false, counts: {}, error: 'Cancelled' }
+      }
       await ensureSheetTab(token, spreadsheetId, tabName)
     }
-    // Get fresh token in case it was refreshed
     token = await getAuthToken()
-
-    for (const [dataType, records] of Object.entries(data)) {
-      const sheetDef = SHEET_DEFS[dataType]
-      if (!sheetDef) continue
-
-      const rows = serializeSheet(records, sheetDef)
-      const range = encodeURIComponent(`${sheetDef.tabName}!A1`)
-
-      // Clear existing data in the tab
-      try {
-        await sheetsFetch(token, `${spreadsheetId}/values/${encodeURIComponent(sheetDef.tabName)}:clear`, {
-          method: 'POST',
-        })
-      } catch {
-        // Tab might not exist yet, ignore clear errors
-      }
-
-      // Write header + data rows
-      await sheetsFetch(token, `${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
-        method: 'PUT',
-        body: JSON.stringify({ values: rows }),
-      })
-
-      counts[dataType] = records.length
-    }
-
-    return { success: true, counts }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('401')) {
-      return { success: false, counts, error: 'Authentication expired. Please try again.' }
+      return { success: false, counts: {}, error: 'Authentication expired. Please try again.' }
     }
-    return { success: false, counts, error: msg }
+    return { success: false, counts: {}, error: msg }
+  }
+
+  const backups = new Map<string, string[][]>()
+  for (const { tabName } of tabEntries) {
+    if (abortSignal?.aborted) {
+      return { success: false, counts: {}, error: 'Cancelled' }
+    }
+    onProgress?.({
+      phase: 'backup',
+      currentTab: tabName,
+      totalTabs: tabEntries.length,
+      completedTabs: 0,
+      currentChunk: 0,
+      totalChunks: 0,
+    })
+    const backup = await backupTab(token, spreadsheetId, tabName)
+    backups.set(tabName, backup)
+  }
+
+  // ---- Phase 2: Chunked Upload ----
+  const counts: Record<string, number> = {}
+  const failedTabs: string[] = []
+  const succeededTabs: string[] = []
+
+  for (let i = 0; i < tabEntries.length; i++) {
+    const { dataType, tabName } = tabEntries[i]
+    if (abortSignal?.aborted) break
+
+    const sheetDef = SHEET_DEFS[dataType]!
+    const records = data[dataType] ?? []
+    const rows = serializeSheet(records, sheetDef)
+    const totalChunks = Math.ceil(rows.length / CHUNK_SIZE)
+
+    onProgress?.({
+      phase: 'upload',
+      currentTab: tabName,
+      totalTabs: tabEntries.length,
+      completedTabs: i,
+      currentChunk: 0,
+      totalChunks,
+    })
+
+    const success = await uploadTabChunked(
+      token,
+      spreadsheetId,
+      tabName,
+      rows,
+      onProgress,
+      abortSignal,
+    )
+
+    if (success) {
+      counts[dataType] = records.length
+      succeededTabs.push(tabName)
+    } else {
+      failedTabs.push(tabName)
+    }
+  }
+
+  // ---- Phase 3: Rollback failed tabs ----
+  const rolledBack: string[] = []
+  const rollbackFailed: string[] = []
+
+  if (failedTabs.length > 0 || abortSignal?.aborted) {
+    const tabsToRollback = abortSignal?.aborted
+      ? [...failedTabs, ...succeededTabs]
+      : failedTabs
+
+    for (const tabName of tabsToRollback) {
+      const backup = backups.get(tabName)
+      if (!backup || backup.length === 0) {
+        try {
+          await sheetsFetch(
+            token,
+            `${spreadsheetId}/values/${encodeURIComponent(tabName)}:clear`,
+            { method: 'POST' },
+          )
+          rolledBack.push(tabName)
+        } catch {
+          rollbackFailed.push(tabName)
+        }
+        continue
+      }
+
+      onProgress?.({
+        phase: 'rollback',
+        currentTab: tabName,
+        totalTabs: tabsToRollback.length,
+        completedTabs: rolledBack.length + rollbackFailed.length,
+        currentChunk: 0,
+        totalChunks: 0,
+      })
+
+      try {
+        const range = encodeURIComponent(`${tabName}!A1`)
+        await sheetsFetch(
+          token,
+          `${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`,
+          { method: 'PUT', body: JSON.stringify({ values: backup }) },
+        )
+        rolledBack.push(tabName)
+      } catch {
+        rollbackFailed.push(tabName)
+      }
+    }
+  }
+
+  // Build result
+  const wasCancelled = abortSignal?.aborted ?? false
+  if (failedTabs.length === 0 && !wasCancelled) {
+    return { success: true, counts }
+  }
+
+  const parts: string[] = []
+  if (wasCancelled) parts.push('Export cancelled.')
+  if (failedTabs.length > 0) parts.push(`Failed tabs: ${failedTabs.join(', ')}`)
+  if (rolledBack.length > 0) parts.push(`Rolled back: ${rolledBack.join(', ')}`)
+  if (rollbackFailed.length > 0) {
+    parts.push(`Rollback failed (check manually): ${rollbackFailed.join(', ')}`)
+  }
+
+  return {
+    success: false,
+    counts,
+    error: parts.join(' '),
+    failedTabs,
+    rolledBack,
+    rollbackFailed,
   }
 }
 
