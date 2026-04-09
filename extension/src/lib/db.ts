@@ -118,6 +118,16 @@ export async function deleteProduct(id: string): Promise<void> {
 	await db.delete('products', id)
 }
 
+export async function bulkPutProducts(records: ProductProfile[]): Promise<void> {
+	const db = await getDB()
+	const tx = db.transaction('products', 'readwrite')
+	await db.clear('products')
+	for (const record of records) {
+		await tx.store.put(record)
+	}
+	await tx.done
+}
+
 // ---- Submission CRUD ----
 
 export async function saveSubmission(
@@ -173,6 +183,16 @@ export async function clearSubmissions(): Promise<void> {
 	await db.clear('submissions')
 }
 
+export async function bulkPutSubmissions(records: SubmissionRecord[]): Promise<void> {
+	const db = await getDB()
+	const tx = db.transaction('submissions', 'readwrite')
+	await db.clear('submissions')
+	for (const record of records) {
+		await tx.store.put(record)
+	}
+	await tx.done
+}
+
 // ---- Site CRUD ----
 
 /** Seed sites from sites.json into IndexedDB. Uses put (upsert) so existing records are preserved. */
@@ -225,6 +245,16 @@ export async function deleteSite(name: string): Promise<void> {
 export async function clearSites(): Promise<void> {
 	const db = await getDB()
 	await db.clear('sites')
+}
+
+export async function bulkPutSites(records: SiteRecord[]): Promise<void> {
+	const db = await getDB()
+	const tx = db.transaction('sites', 'readwrite')
+	await db.clear('sites')
+	for (const record of records) {
+		await tx.store.put(record)
+	}
+	await tx.done
 }
 
 // ---- Backlink CRUD ----
@@ -294,4 +324,14 @@ export async function deleteBacklink(id: string): Promise<void> {
 export async function clearBacklinks(): Promise<void> {
 	const db = await getDB()
 	await db.clear('backlinks')
+}
+
+export async function bulkPutBacklinks(records: BacklinkRecord[]): Promise<void> {
+	const db = await getDB()
+	const tx = db.transaction('backlinks', 'readwrite')
+	await db.clear('backlinks')
+	for (const record of records) {
+		await tx.store.put(record)
+	}
+	await tx.done
 }
