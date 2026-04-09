@@ -57,7 +57,8 @@ export function BacklinkAnalysis({
 	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
-	const [statusFilter, setStatusFilter] = useState<BacklinkStatus | 'all'>('all')
+	type AnalysisTab = 'all' | 'done' | 'failed'
+	const [statusFilter, setStatusFilter] = useState<AnalysisTab>('all')
 	const [urlInput, setUrlInput] = useState('')
 	const [urlError, setUrlError] = useState<string | null>(null)
 	const [adding, setAdding] = useState(false)
@@ -77,9 +78,14 @@ export function BacklinkAnalysis({
 	}, [analyzingId, isRunning])
 
 	const activeBatch = activeBatchId ? batchHistory.find(b => b.id === activeBatchId) : null
+	const DONE_STATUSES: BacklinkStatus[] = ['publishable', 'not_publishable', 'skipped']
 	const filteredBacklinks = [...backlinks
 		.filter(b => activeBatch ? activeBatch.itemIds.includes(b.id) : true)
-		.filter(b => statusFilter === 'all' || b.status === statusFilter)
+		.filter(b => {
+			if (statusFilter === 'all') return true
+			if (statusFilter === 'done') return DONE_STATUSES.includes(b.status)
+			return b.status === 'error'
+		})
 	].sort((a, b) => b.pageAscore - a.pageAscore)
 
 	const stats = {
@@ -87,6 +93,14 @@ export function BacklinkAnalysis({
 		analyzed: backlinks.filter(b => b.status !== 'pending').length,
 		publishable: backlinks.filter(b => b.status === 'publishable').length,
 	}
+
+	const doneCount = backlinks.filter(b => DONE_STATUSES.includes(b.status)).length
+	const failedCount = backlinks.filter(b => b.status === 'error').length
+	const tabs: { id: AnalysisTab; label: string; count: number }[] = [
+		{ id: 'all', label: t('backlink.all'), count: stats.total },
+		{ id: 'done', label: t('backlink.done'), count: doneCount },
+		{ id: 'failed', label: t('backlink.failed'), count: failedCount },
+	]
 
 	const getDomain = (url: string) => {
 		try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
@@ -307,42 +321,47 @@ export function BacklinkAnalysis({
 					</div>
 				)}
 
-				{/* Filter tabs + batch start */}
-				<div className="flex items-center px-4 py-2 gap-1">
-					{(['all', 'publishable', 'not_publishable', 'skipped', 'error'] as const).map(s => (
+				{/* Filter tabs */}
+				<div className="flex gap-0 border-b">
+					{tabs.map((tabItem) => (
 						<button
-							key={s}
+							key={tabItem.id}
 							type="button"
-							className={`text-xs px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
-								statusFilter === s ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+							onClick={() => setStatusFilter(tabItem.id)}
+							className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${
+								statusFilter === tabItem.id
+									? 'border-primary text-foreground'
+									: 'border-transparent text-muted-foreground hover:text-foreground'
 							}`}
-							onClick={() => setStatusFilter(s)}
 						>
-							{s === 'all' ? 'All' : t(`backlink.status.${s}` as any)}
+							{tabItem.label}
+							<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 						</button>
 					))}
-					{!isRunning && (
-						<div className="ml-auto flex items-center gap-1.5">
-							<select
-								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
-								value={batchCount}
-								onChange={e => setBatchCount(Number(e.target.value))}
-							>
-								<option value={10}>10</option>
-								<option value={20}>20</option>
-								<option value={50}>50</option>
-							</select>
-							<Button
-								variant="default"
-								size="xs"
-								onClick={() => onStartAnalysis(batchCount)}
-								disabled={stats.total === 0 || stats.analyzed === stats.total}
-							>
-								{t('backlink.startAnalysis')}
-							</Button>
-						</div>
-					)}
 				</div>
+
+				{/* Batch start controls */}
+				{!isRunning && (
+					<div className="flex items-center justify-end px-4 py-2 gap-1.5">
+						<select
+							className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
+							value={batchCount}
+							onChange={e => setBatchCount(Number(e.target.value))}
+						>
+							<option value={10}>10</option>
+							<option value={20}>20</option>
+							<option value={50}>50</option>
+						</select>
+						<Button
+							variant="default"
+							size="xs"
+							onClick={() => onStartAnalysis(batchCount)}
+							disabled={stats.total === 0 || stats.analyzed === stats.total}
+						>
+							{t('backlink.startAnalysis')}
+						</Button>
+					</div>
+				)}
 			</div>
 
 			{/* Table */}
