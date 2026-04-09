@@ -210,8 +210,8 @@ export function useBacklinkAgent() {
 		setBacklinks(await listBacklinks())
 	}, [])
 
-	/** Add a URL manually and immediately analyze it */
-	const addAndAnalyzeUrl = useCallback(
+	/** Add a URL manually to the pending list (no automatic analysis) */
+	const addUrl = useCallback(
 		async (url: string): Promise<{ success: boolean; error?: string }> => {
 			// Validate URL
 			try {
@@ -238,12 +238,9 @@ export function useBacklinkAgent() {
 
 			setBacklinks(prev => [...prev, record])
 
-			// Trigger analysis
-			await analyzeOne(record)
-
 			return { success: true }
 		},
-		[analyzeOne]
+		[]
 	)
 
 	/** Select a batch to filter the table view */
@@ -270,7 +267,7 @@ export function useBacklinkAgent() {
 		reset,
 		reload,
 		analyzeOne,
-		addAndAnalyzeUrl,
+		addUrl,
 		batchHistory,
 		activeBatchId,
 		selectBatch,

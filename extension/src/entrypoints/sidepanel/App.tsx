@@ -41,7 +41,7 @@ export default function App() {
 		stop: stopBacklinkAnalysis,
 		reset: resetBacklinkAgent,
 		reload: reloadBacklinks,
-		addAndAnalyzeUrl,
+		addUrl,
 		batchHistory,
 		activeBatchId,
 		selectBatch,
@@ -269,7 +269,7 @@ export default function App() {
 					onReload={reloadBacklinks}
 					onStartAnalysis={startAnalysis}
 					onAnalyzeOne={analyzeBacklink}
-					onAddUrl={addAndAnalyzeUrl}
+					onAddUrl={addUrl}
 					onStop={stopBacklinkAnalysis}
 					onBack={() => {
 						if (!isBacklinkRunning) resetBacklinkAgent()
