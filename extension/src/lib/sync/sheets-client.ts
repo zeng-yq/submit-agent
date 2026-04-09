@@ -216,6 +216,8 @@ async function uploadTabChunked(
         },
       )
     } catch (err) {
+      // 401 means auth is gone — re-throw so the caller aborts the entire export
+      if (err instanceof Error && err.message === '401') throw err
       onProgress?.({
         phase: 'upload',
         currentTab: tabName,
@@ -298,9 +300,10 @@ export async function exportToSheets(
   const failedTabs: string[] = []
   const succeededTabs: string[] = []
 
+  let authExpired = false
   for (let i = 0; i < tabEntries.length; i++) {
     const { dataType, tabName } = tabEntries[i]
-    if (abortSignal?.aborted) break
+    if (abortSignal?.aborted || authExpired) break
 
     const sheetDef = SHEET_DEFS[dataType]!
     const records = data[dataType] ?? []
@@ -316,20 +319,30 @@ export async function exportToSheets(
       totalChunks,
     })
 
-    const success = await uploadTabChunked(
-      token,
-      spreadsheetId,
-      tabName,
-      rows,
-      onProgress,
-      abortSignal,
-    )
+    try {
+      const success = await uploadTabChunked(
+        token,
+        spreadsheetId,
+        tabName,
+        rows,
+        onProgress,
+        abortSignal,
+      )
 
-    if (success) {
-      counts[dataType] = records.length
-      succeededTabs.push(tabName)
-    } else {
-      failedTabs.push(tabName)
+      if (success) {
+        counts[dataType] = records.length
+        succeededTabs.push(tabName)
+      } else {
+        failedTabs.push(tabName)
+      }
+    } catch (err) {
+      // 401 from uploadTabChunked — abort entire export, proceed to rollback
+      if (err instanceof Error && err.message === '401') {
+        authExpired = true
+        failedTabs.push(tabName)
+        break
+      }
+      throw err
     }
   }
 
@@ -388,6 +401,7 @@ export async function exportToSheets(
   }
 
   const parts: string[] = []
+  if (authExpired) parts.push('Authentication expired. Please try again.')
   if (wasCancelled) parts.push('Export cancelled.')
   if (failedTabs.length > 0) parts.push(`Failed tabs: ${failedTabs.join(', ')}`)
   if (rolledBack.length > 0) parts.push(`Rolled back: ${rolledBack.join(', ')}`)
