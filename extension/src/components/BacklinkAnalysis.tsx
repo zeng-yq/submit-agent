@@ -128,103 +128,82 @@ export function BacklinkAnalysis({
 
 	return (
 		<div className="flex flex-col h-full">
-			{/* Header */}
-			<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-				<span className="text-base font-semibold">{t('backlink.title')}</span>
+			{/* ── Header: title + stats ── */}
+			<header className="flex items-center justify-between px-4 py-3 shrink-0">
+				<div className="flex items-center gap-3">
+					<span className="text-base font-semibold">{t('backlink.title')}</span>
+					<span className="text-[11px] text-muted-foreground tabular-nums">
+						{stats.analyzed}/{stats.total}
+					</span>
+					{stats.publishable > 0 && (
+						<span className="text-[11px] text-green-400 tabular-nums">
+							{t('backlink.statsPublishable', { count: stats.publishable })}
+						</span>
+					)}
+				</div>
 				<Button variant="ghost" size="sm" onClick={onBack}>
 					{t('common.back')}
 				</Button>
 			</header>
 
-			{/* Action bar */}
-			<div className="border-b border-border/60 px-3 py-2 flex items-center gap-2 flex-wrap">
-				<input
-					ref={fileInputRef}
-					type="file"
-					accept=".csv"
-					className="hidden"
-					onChange={handleFileChange}
-				/>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => fileInputRef.current?.click()}
-					disabled={isRunning}
-				>
-					{t('backlink.importCsv')}
-				</Button>
-				{isRunning ? (
-					<Button variant="destructive" size="sm" onClick={onStop}>
-						{t('backlink.stopAnalysis')}
+			{/* ── Toolbar: data actions + batch controls ── */}
+			<div className="shrink-0 px-4 pb-3 space-y-2">
+				<div className="flex items-center gap-2">
+					<input
+						ref={fileInputRef}
+						type="file"
+						accept=".csv"
+						className="hidden"
+						onChange={handleFileChange}
+					/>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => fileInputRef.current?.click()}
+						disabled={isRunning}
+					>
+						{t('backlink.importCsv')}
 					</Button>
-				) : (
-					<div className="flex items-center gap-1.5">
-						<select
-							className="text-xs bg-background border border-border rounded px-1.5 py-1"
-							value={batchCount}
-							onChange={e => setBatchCount(Number(e.target.value))}
-						>
-							<option value={10}>10</option>
-							<option value={20}>20</option>
-							<option value={50}>50</option>
-						</select>
+
+					<div className="w-px h-5 bg-border/60" />
+
+					<div className="flex items-center gap-1.5 flex-1 min-w-0">
+						<input
+							ref={urlInputRef}
+							type="url"
+							className="flex-1 min-w-0 text-xs bg-background border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
+							placeholder={t('backlink.addUrlPlaceholder')}
+							value={urlInput}
+							onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
+							onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl() }}
+							disabled={adding || isRunning}
+						/>
 						<Button
 							variant="default"
 							size="sm"
-							onClick={() => onStartAnalysis(batchCount)}
-							disabled={stats.total === 0 || stats.analyzed === stats.total}
+							onClick={handleAddUrl}
+							disabled={adding || isRunning || !urlInput.trim()}
 						>
-							{t('backlink.startAnalysis')}
+							{adding ? t('backlink.adding') : t('backlink.addUrl')}
 						</Button>
 					</div>
+				</div>
+
+				{/* Inline messages */}
+				{urlError && (
+					<p className="text-[10px] text-destructive pl-0.5">{urlError}</p>
 				)}
-
-				<div className="ml-auto text-xs text-muted-foreground flex items-center gap-2">
-					<span>{t('backlink.stats', { analyzed: stats.analyzed, total: stats.total })}</span>
-					{stats.publishable > 0 && (
-						<span className="text-green-400">{t('backlink.statsPublishable', { count: stats.publishable })}</span>
-					)}
-				</div>
+				{importMsg && (
+					<p className="text-[11px] text-green-400 pl-0.5">{importMsg}</p>
+				)}
 			</div>
 
-			{/* Inline Add URL */}
-			<div className="border-b border-border/60 px-3 py-2 flex items-center gap-2">
-				<input
-					ref={urlInputRef}
-					type="url"
-					className="flex-1 text-xs bg-background border border-border rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
-					placeholder={t('backlink.addUrlPlaceholder')}
-					value={urlInput}
-					onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
-					onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl() }}
-					disabled={adding || isRunning}
-				/>
-				<Button
-					variant="default"
-					size="sm"
-					onClick={handleAddUrl}
-					disabled={adding || isRunning}
-				>
-					{adding ? t('backlink.adding') : t('backlink.addUrl')}
-				</Button>
-			</div>
-			{urlError && (
-				<div className="px-3 py-1 text-[10px] text-destructive border-b border-border/60">
-					{urlError}
-				</div>
-			)}
+			<div className="shrink-0 h-px bg-border/60 mx-4" />
 
-			{/* Import feedback */}
-			{importMsg && (
-				<div className="px-3 py-1.5 text-xs bg-green-500/10 text-green-400 border-b border-border/60">
-					{importMsg}
-				</div>
-			)}
-
-			{/* Progress indicator */}
+			{/* ── Progress bar (shown during analysis) ── */}
 			{(isRunning || analyzingId) && (
-				<div className="px-3 py-1.5 flex items-center gap-1.5 text-xs text-muted-foreground border-b border-border/60">
-					<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+				<div className="shrink-0 px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/[0.03]">
+					<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
 					{analyzingBacklink ? (
 						<>
 							{isRunning
@@ -232,13 +211,13 @@ export function BacklinkAnalysis({
 								: t('backlink.analyzingSingle', { domain: getDomain(analyzingBacklink.sourceUrl) })
 							}
 							{isRunning && (
-								<span className="text-muted-foreground/80">
+								<span className="text-muted-foreground/70 truncate">
 									{' — '}
 									{getDomain(analyzingBacklink.sourceUrl)}
 								</span>
 							)}
 							{currentStep && (
-								<span className="text-muted-foreground/60">
+								<span className="text-muted-foreground/50 shrink-0">
 									{' — '}
 									{t(`backlink.step.${currentStep}` as any)}
 								</span>
@@ -247,28 +226,20 @@ export function BacklinkAnalysis({
 					) : isRunning ? (
 						t('backlink.analyzingIn')
 					) : null}
+					{isRunning && (
+						<div className="ml-auto">
+							<Button variant="destructive" size="sm" onClick={onStop}>
+								{t('backlink.stopAnalysis')}
+							</Button>
+						</div>
+					)}
 				</div>
 			)}
 
-			{/* Filter tabs */}
-			<div className="px-3 py-1.5 flex items-center gap-1 border-b border-border/60">
-				{(['all', 'pending', 'publishable', 'not_publishable', 'skipped', 'error'] as const).map(s => (
-					<button
-						key={s}
-						type="button"
-						className={`text-xs px-2 py-0.5 rounded transition-colors cursor-pointer ${
-							statusFilter === s ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'
-						}`}
-						onClick={() => setStatusFilter(s)}
-					>
-						{s === 'all' ? 'All' : t(`backlink.status.${s}` as any)}
-					</button>
-				))}
-			</div>
-
-				{/* Batch result cards */}
+			{/* ── Batch controls + Filter tabs ── */}
+			<div className="shrink-0 border-t border-border/60">
 				{batchHistory.length > 0 && (
-					<div className="px-3 py-1.5 space-y-1 border-b border-border/60">
+					<div className="px-4 pt-2.5 pb-1.5 space-y-1">
 						{batchHistory.map(batch => {
 							const isActive = activeBatchId === batch.id
 							const time = new Date(batch.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -276,27 +247,27 @@ export function BacklinkAnalysis({
 							return (
 								<div
 									key={batch.id}
-									className={`flex items-center gap-2 text-xs px-2 py-1 rounded transition-colors ${
+									className={`flex items-center gap-2 text-xs px-2.5 py-1 rounded-md transition-colors ${
 										isActive ? 'bg-accent/50' : 'bg-muted/30'
 									}`}
 								>
-									<span className="text-muted-foreground">{time}</span>
+									<span className="text-muted-foreground tabular-nums">{time}</span>
 									{batch.status === 'running' && (
-										<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+										<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
 									)}
 									{batch.status === 'completed' && (
-										<span className="text-green-400">&#10003;</span>
+										<span className="text-green-400 shrink-0">&#10003;</span>
 									)}
 									{batch.status === 'stopped' && (
-										<span className="text-yellow-400">&#9646;&#9646;</span>
+										<span className="text-yellow-400 shrink-0">&#9646;&#9646;</span>
 									)}
-									<span className="text-muted-foreground">
+									<span className="text-muted-foreground truncate">
 										{batch.status === 'running'
 											? t('backlink.batch.progress', { analyzed, total: batch.itemIds.length })
 											: t(`backlink.batch.${batch.status}` as any)
 										}
 									</span>
-									<div className="flex items-center gap-1.5">
+									<div className="flex items-center gap-1.5 shrink-0">
 										{batch.stats.publishable > 0 && (
 											<span className="text-green-400">{t('backlink.batch.publishable', { count: batch.stats.publishable })}</span>
 										)}
@@ -310,7 +281,7 @@ export function BacklinkAnalysis({
 											<span className="text-destructive">{t('backlink.batch.error', { count: batch.stats.error })}</span>
 										)}
 									</div>
-									<div className="ml-auto flex items-center gap-1">
+									<div className="ml-auto flex items-center gap-1 shrink-0">
 										<button
 											type="button"
 											className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
@@ -335,6 +306,44 @@ export function BacklinkAnalysis({
 						})}
 					</div>
 				)}
+
+				{/* Filter tabs + batch start */}
+				<div className="flex items-center px-4 py-2 gap-1">
+					{(['all', 'pending', 'publishable', 'not_publishable', 'skipped', 'error'] as const).map(s => (
+						<button
+							key={s}
+							type="button"
+							className={`text-xs px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+								statusFilter === s ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+							}`}
+							onClick={() => setStatusFilter(s)}
+						>
+							{s === 'all' ? 'All' : t(`backlink.status.${s}` as any)}
+						</button>
+					))}
+					{!isRunning && (
+						<div className="ml-auto flex items-center gap-1.5">
+							<select
+								className="text-xs bg-background border border-border rounded-md px-1.5 py-1"
+								value={batchCount}
+								onChange={e => setBatchCount(Number(e.target.value))}
+							>
+								<option value={10}>10</option>
+								<option value={20}>20</option>
+								<option value={50}>50</option>
+							</select>
+							<Button
+								variant="default"
+								size="sm"
+								onClick={() => onStartAnalysis(batchCount)}
+								disabled={stats.total === 0 || stats.analyzed === stats.total}
+							>
+								{t('backlink.startAnalysis')}
+							</Button>
+						</div>
+					)}
+				</div>
+			</div>
 
 			{/* Table */}
 			<div className="flex-1 overflow-y-auto">
