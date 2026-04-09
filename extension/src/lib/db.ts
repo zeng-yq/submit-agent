@@ -1,5 +1,6 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
 import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRecord, BacklinkStatus } from './types'
+import { extractDomain } from './backlinks'
 
 const DB_NAME = 'submit-agent'
 const DB_VERSION = 3
@@ -232,6 +233,7 @@ export async function saveBacklink(
 	const now = Date.now()
 	const record: BacklinkRecord = {
 		...data,
+		domain: data.domain ?? extractDomain(data.sourceUrl),
 		id: crypto.randomUUID(),
 		createdAt: now,
 		updatedAt: now,
@@ -255,6 +257,19 @@ export async function getBacklink(id: string): Promise<BacklinkRecord | undefine
 export async function getBacklinkByUrl(sourceUrl: string): Promise<BacklinkRecord | undefined> {
 	const db = await getDB()
 	return db.getFromIndex('backlinks', 'by-url', sourceUrl)
+}
+
+export async function getSiteByDomain(domain: string): Promise<SiteRecord | undefined> {
+	const db = await getDB()
+	const all = await db.getAll('sites')
+	return all.find(s => {
+		if (!s.submit_url) return false
+		try {
+			return extractDomain(s.submit_url) === domain
+		} catch {
+			return false
+		}
+	})
 }
 
 export async function listBacklinks(): Promise<BacklinkRecord[]> {

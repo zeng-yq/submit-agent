@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<BacklinkStatus, string> = {
 	pending: 'bg-muted text-muted-foreground',
 	publishable: 'bg-green-500/20 text-green-400',
 	not_publishable: 'bg-red-500/20 text-red-400',
+	skipped: 'bg-yellow-500/20 text-yellow-400',
 	error: 'bg-destructive/20 text-destructive',
 }
 
@@ -240,7 +241,7 @@ export function BacklinkAnalysis({
 
 			{/* Filter tabs */}
 			<div className="px-3 py-1.5 flex items-center gap-1 border-b border-border/60">
-				{(['all', 'pending', 'publishable', 'not_publishable', 'error'] as const).map(s => (
+				{(['all', 'pending', 'publishable', 'not_publishable', 'skipped', 'error'] as const).map(s => (
 					<button
 						key={s}
 						type="button"
@@ -331,7 +332,8 @@ export function BacklinkAnalysis({
 													<div className={`text-xs rounded px-3 py-1.5 border-l-2 ${
 														b.status === 'publishable' ? 'bg-green-500/5 border-green-400 text-green-300'
 															: b.status === 'error' ? 'bg-red-500/5 border-red-400 text-red-300'
-																: 'bg-red-500/5 border-red-400/70 text-red-300/80'
+																: b.status === 'skipped' ? 'bg-yellow-500/5 border-yellow-400/70 text-yellow-300/80'
+																	: 'bg-red-500/5 border-red-400/70 text-red-300/80'
 													}`}>
 														{b.analysisLog.map((log, i) => (
 															<div key={i}>{typeof log === 'string' ? log : JSON.stringify(log)}</div>

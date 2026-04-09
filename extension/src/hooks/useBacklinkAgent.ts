@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { BacklinkRecord, BacklinkStatus, SiteRecord } from '@/lib/types'
-import { updateBacklink, listBacklinksByStatus, addSite, listBacklinks, saveBacklink, getBacklinkByUrl } from '@/lib/db'
+import { updateBacklink, listBacklinksByStatus, addSite, listBacklinks, saveBacklink, getBacklinkByUrl, getSiteByDomain } from '@/lib/db'
 import { extractDomain } from '@/lib/backlinks'
 import { analyzeBacklink, type AnalysisStep } from '@/lib/backlink-analyzer'
 
@@ -25,6 +25,19 @@ export function useBacklinkAgent() {
 			setAnalyzingId(backlink.id)
 
 			try {
+				// Check if domain already exists in sites table (外链资源库)
+				const domain = extractDomain(backlink.sourceUrl)
+				const existingSite = await getSiteByDomain(domain)
+				if (existingSite) {
+					const updated = await updateBacklink({
+						...backlink,
+						status: 'skipped',
+						analysisLog: ['跳过: 该域名已在外链资源库中'],
+					})
+					setBacklinks(prev => prev.map(b => b.id === backlink.id ? updated : b))
+					return
+				}
+
 				const result = await analyzeBacklink(
 					backlink.sourceUrl,
 					ac.signal,

@@ -72,7 +72,7 @@ export async function importBacklinksFromCsv(csvText: string): Promise<ImportRes
 		const sourceUrl = row['Source url']?.trim()
 		if (!sourceUrl) continue
 
-		// Dedup check
+		// Dedup by exact URL
 		const existing = await getBacklinkByUrl(sourceUrl)
 		if (existing) {
 			skipped++

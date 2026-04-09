@@ -112,6 +112,7 @@ export type BacklinkStatus =
 	| 'pending'
 	| 'publishable'
 	| 'not_publishable'
+	| 'skipped'
 	| 'error'
 
 /** Backlink record imported from Semrush CSV, stored in IndexedDB */
@@ -123,6 +124,7 @@ export interface BacklinkRecord {
 	targetUrl: string
 	status: BacklinkStatus
 	analysisLog: string[]
+	domain?: string
 	createdAt: number
 	updatedAt: number
 }
