@@ -61,7 +61,6 @@ export function BacklinkAnalysis({
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const [statusFilter, setStatusFilter] = useState<'all' | 'done' | 'failed'>('all')
 	const [urlInput, setUrlInput] = useState('')
-	const [urlError, setUrlError] = useState<string | null>(null)
 	const [adding, setAdding] = useState(false)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 	const lastAnalyzedRef = useRef<string | null>(null)
@@ -118,21 +117,22 @@ export function BacklinkAnalysis({
 	}
 
 	const handleAddUrl = useCallback(async () => {
-		setUrlError(null)
-		const url = urlInput.trim()
-		if (!url) {
-			setUrlError(t('backlink.addUrlInvalid'))
-			return
-		}
+		const raw = urlInput.trim()
+		if (!raw) return
 		setAdding(true)
 		try {
-			const result = await onAddUrl(url)
-			if (!result.success) {
-				setUrlError(t(result.error === 'Duplicate URL' ? 'backlink.addUrlDuplicate' : 'backlink.addUrlInvalid'))
-				return
+			const urls = raw.split(',').map(u => u.trim()).filter(Boolean)
+			let added = 0
+			for (const url of urls) {
+				const result = await onAddUrl(url)
+				if (result.success) added++
 			}
 			setUrlInput('')
 			urlInputRef.current?.focus()
+			if (added > 0) {
+				setImportMsg(t('backlink.addedCount', { count: added }))
+				setTimeout(() => setImportMsg(null), 3000)
+			}
 		} finally {
 			setAdding(false)
 		}
@@ -186,7 +186,7 @@ export function BacklinkAnalysis({
 							className="flex-1 min-w-0 text-xs bg-background border border-border rounded-md px-2.5 h-7 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
 							placeholder={t('backlink.addUrlPlaceholder')}
 							value={urlInput}
-							onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
+							onChange={(e) => setUrlInput(e.target.value)}
 							onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl() }}
 							disabled={adding || isRunning}
 						/>
@@ -202,9 +202,6 @@ export function BacklinkAnalysis({
 				</div>
 
 				{/* Inline messages */}
-				{urlError && (
-					<p className="text-xs text-destructive pl-0.5">{urlError}</p>
-				)}
 				{importMsg && (
 					<p className="text-xs text-green-400 pl-0.5">{importMsg}</p>
 				)}
