@@ -1,8 +1,9 @@
-import { google } from 'googleapis'
 import { SHEET_DEFS } from './types'
 import type { SyncResult } from './types'
 import { serializeSheet, deserializeSheet } from './serializer'
-import { getAuthToken, removeCachedToken, createCredential } from './google-auth'
+import { getAuthToken, removeCachedToken } from './google-auth'
+
+const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets'
 
 /**
  * Extract spreadsheet ID from a Google Sheet URL.
@@ -23,8 +24,52 @@ export function isValidSheetUrl(url: string): boolean {
 }
 
 /**
+ * Helper to make authenticated requests to Google Sheets API.
+ */
+async function sheetsFetch(token: string, path: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(`${SHEETS_BASE}/${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  })
+  if (res.status === 401) {
+    await removeCachedToken(token)
+    throw new Error('401')
+  }
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`HTTP ${res.status}: ${body}`)
+  }
+  return res
+}
+
+/**
+ * Ensure a sheet tab exists. Creates it via batchUpdate if missing.
+ */
+async function ensureSheetTab(token: string, spreadsheetId: string, tabName: string): Promise<void> {
+  // Get existing sheet names
+  const meta = await sheetsFetch(token, `${spreadsheetId}?fields=sheets.properties.title`)
+  const body = await meta.json()
+  const existingTitles = new Set(
+    (body.sheets as Array<{ properties: { title: string } }>)?.map(s => s.properties.title) ?? [],
+  )
+  if (existingTitles.has(tabName)) return
+
+  // Create missing tab
+  await sheetsFetch(token, `${spreadsheetId}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({
+      requests: [{ addSheet: { properties: { title: tabName } } }],
+    }),
+  })
+}
+
+/**
  * Export all data to Google Sheets.
- * For each data type, clears the tab (or creates it) and writes header + data rows.
+ * For each data type, creates the tab (if missing), clears it, and writes header + data rows.
  */
 export async function exportToSheets(
   sheetUrl: string,
@@ -42,28 +87,41 @@ export async function exportToSheets(
     return { success: false, counts: {}, error: `Authentication failed: ${String(err)}` }
   }
 
-  const auth = createCredential(token)
-  const sheets = google.sheets({ version: 'v4', auth })
   const counts: Record<string, number> = {}
 
   try {
+    // Collect all needed tab names and create missing ones
+    const neededTabs: string[] = []
+    for (const [dataType] of Object.entries(data)) {
+      const sheetDef = SHEET_DEFS[dataType]
+      if (sheetDef) neededTabs.push(sheetDef.tabName)
+    }
+    for (const tabName of neededTabs) {
+      await ensureSheetTab(token, spreadsheetId, tabName)
+    }
+    // Get fresh token in case it was refreshed
+    token = await getAuthToken()
+
     for (const [dataType, records] of Object.entries(data)) {
       const sheetDef = SHEET_DEFS[dataType]
       if (!sheetDef) continue
 
       const rows = serializeSheet(records, sheetDef)
-      const range = `${sheetDef.tabName}!A1`
+      const range = encodeURIComponent(`${sheetDef.tabName}!A1`)
 
-      await sheets.spreadsheets.values.clear({
-        spreadsheetId,
-        range: sheetDef.tabName,
-      })
+      // Clear existing data in the tab
+      try {
+        await sheetsFetch(token, `${spreadsheetId}/values/${encodeURIComponent(sheetDef.tabName)}:clear`, {
+          method: 'POST',
+        })
+      } catch {
+        // Tab might not exist yet, ignore clear errors
+      }
 
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: rows },
+      // Write header + data rows
+      await sheetsFetch(token, `${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
+        method: 'PUT',
+        body: JSON.stringify({ values: rows }),
       })
 
       counts[dataType] = records.length
@@ -73,7 +131,6 @@ export async function exportToSheets(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('401')) {
-      await removeCachedToken(token)
       return { success: false, counts, error: 'Authentication expired. Please try again.' }
     }
     return { success: false, counts, error: msg }
@@ -99,21 +156,17 @@ export async function importFromSheets(
     return { success: false, counts: {}, error: `Authentication failed: ${String(err)}`, data: {}, skipped: 0 }
   }
 
-  const auth = createCredential(token)
-  const sheets = google.sheets({ version: 'v4', auth })
   const data: Record<string, Record<string, unknown>[]> = {}
   const counts: Record<string, number> = {}
   let totalSkipped = 0
 
   try {
     for (const [dataType, sheetDef] of Object.entries(SHEET_DEFS)) {
-      const range = `${sheetDef.tabName}!A1:Z`
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range,
-      })
+      const range = encodeURIComponent(`${sheetDef.tabName}!A1:Z`)
+      const res = await sheetsFetch(token, `${spreadsheetId}/values/${range}`)
+      const body = await res.json()
+      const values = body.values as string[][] | undefined
 
-      const values = response.data.values as string[][] | undefined
       if (!values || values.length === 0) {
         data[dataType] = []
         counts[dataType] = 0
@@ -130,9 +183,8 @@ export async function importFromSheets(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('401')) {
-      await removeCachedToken(token)
-      return { success: false, counts: {}, data: {}, skipped: 0, error: 'Authentication expired. Please try again.' }
+      return { success: false, counts, data: {}, skipped: 0, error: 'Authentication expired. Please try again.' }
     }
-    return { success: false, counts: {}, data: {}, skipped: 0, error: msg }
+    return { success: false, counts, data: {}, skipped: 0, error: msg }
   }
 }

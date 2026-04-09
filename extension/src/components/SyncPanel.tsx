@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { Textarea } from './ui/Textarea'
 import { useT } from '@/hooks/useLanguage'
 import { listProducts, listSubmissions, listSites, listBacklinks } from '@/lib/db'
 import { bulkPutProducts, bulkPutSubmissions, bulkPutSites, bulkPutBacklinks } from '@/lib/db'
@@ -9,6 +10,13 @@ import {
   importFromSheets,
   isValidSheetUrl,
 } from '@/lib/sync/sheets-client'
+import {
+  setServiceAccountKey,
+  getServiceAccountEmail,
+  isOAuthConfigured,
+  clearServiceAccountKey,
+  removeCachedToken,
+} from '@/lib/sync/google-auth'
 
 const SHEET_URL_KEY = 'submitAgent_sheetUrl'
 
@@ -34,8 +42,25 @@ export function SyncPanel() {
   const [status, setStatus] = useState<SyncStatus>({ type: 'idle' })
   const [loaded, setLoaded] = useState(false)
 
+  // Service account state
+  const [saEmail, setSaEmail] = useState('')
+  const [saConfigured, setSaConfigured] = useState(false)
+  const [showSaConfig, setShowSaConfig] = useState(false)
+  const [saJsonInput, setSaJsonInput] = useState('')
+  const [saInputError, setSaInputError] = useState('')
+
   useEffect(() => {
-    getSheetUrl().then(setSheetUrlState).then(() => setLoaded(true))
+    Promise.all([
+      getSheetUrl(),
+      isOAuthConfigured(),
+      getServiceAccountEmail(),
+    ]).then(([url, configured, email]) => {
+      setSheetUrlState(url)
+      setSaConfigured(configured)
+      setSaEmail(email)
+      if (!configured) setShowSaConfig(true)
+      setLoaded(true)
+    })
   }, [])
 
   const handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,9 +72,39 @@ export function SyncPanel() {
     setSheetUrl(sheetUrl)
   }, [sheetUrl])
 
+  const handleSaJsonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSaJsonInput(e.target.value)
+    setSaInputError('')
+  }, [])
+
+  const handleSaJsonBlur = useCallback(async () => {
+    if (!saJsonInput.trim()) return
+    try {
+      const email = await setServiceAccountKey(saJsonInput.trim())
+      setSaEmail(email)
+      setSaConfigured(true)
+      setSaJsonInput('')
+    } catch (err) {
+      setSaInputError(err instanceof Error ? err.message : String(err))
+    }
+  }, [saJsonInput])
+
+  const handleDisconnect = useCallback(async () => {
+    await clearServiceAccountKey()
+    await removeCachedToken()
+    setSaConfigured(false)
+    setSaEmail('')
+    setShowSaConfig(true)
+  }, [])
+
   const handleExport = useCallback(async () => {
     if (!isValidSheetUrl(sheetUrl)) {
       setStatus({ type: 'error', message: t('sync.invalidUrl') })
+      return
+    }
+    if (!saConfigured) {
+      setShowSaConfig(true)
+      setStatus({ type: 'error', message: t('sync.saNotConfiguredHint') })
       return
     }
     await setSheetUrl(sheetUrl)
@@ -84,11 +139,16 @@ export function SyncPanel() {
     } catch (err) {
       setStatus({ type: 'error', message: t('sync.error', { error: String(err) }) })
     }
-  }, [sheetUrl, t])
+  }, [sheetUrl, saConfigured, t])
 
   const handleImport = useCallback(async () => {
     if (!isValidSheetUrl(sheetUrl)) {
       setStatus({ type: 'error', message: t('sync.invalidUrl') })
+      return
+    }
+    if (!saConfigured) {
+      setShowSaConfig(true)
+      setStatus({ type: 'error', message: t('sync.saNotConfiguredHint') })
       return
     }
     await setSheetUrl(sheetUrl)
@@ -122,7 +182,7 @@ export function SyncPanel() {
     } catch (err) {
       setStatus({ type: 'error', message: t('sync.error', { error: String(err) }) })
     }
-  }, [sheetUrl, t])
+  }, [sheetUrl, saConfigured, t])
 
   const isWorking = status.type === 'exporting' || status.type === 'importing'
 
@@ -132,6 +192,62 @@ export function SyncPanel() {
     <div className="rounded-lg border border-border bg-card p-3 space-y-3">
       <div className="text-xs font-semibold text-foreground">{t('sync.title')}</div>
 
+      {/* Service Account Configuration */}
+      <button
+        type="button"
+        className="w-full flex items-center justify-between text-xs text-foreground/80 hover:text-foreground transition-colors"
+        onClick={() => setShowSaConfig(!showSaConfig)}
+      >
+        <span>{t('sync.saConfig')}</span>
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${saConfigured ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
+            {saConfigured ? t('sync.saConnected') : t('sync.saNotConfigured')}
+          </span>
+          <svg className={`w-3.5 h-3.5 transition-transform ${showSaConfig ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {showSaConfig && (
+        <div className="space-y-2 pl-0.5">
+          <Textarea
+            label={t('sync.saJsonKey')}
+            placeholder={t('sync.saJsonKeyPlaceholder')}
+            value={saJsonInput}
+            onChange={handleSaJsonChange}
+            onBlur={handleSaJsonBlur}
+            disabled={isWorking}
+            rows={4}
+          />
+          {saInputError && (
+            <div className="text-[11px] text-destructive">{saInputError}</div>
+          )}
+          {saConfigured && saEmail && (
+            <div className="space-y-1">
+              <div className="text-[11px] text-foreground/60">{t('sync.saEmail')}</div>
+              <div className="text-[11px] font-mono text-foreground/80 bg-foreground/5 rounded px-2 py-1 break-all select-all">
+                {saEmail}
+              </div>
+            </div>
+          )}
+          <div className="text-[10px] text-foreground/50 leading-relaxed">{t('sync.saSetupGuide')}</div>
+          {saConfigured && (
+            <button
+              type="button"
+              className="text-[11px] text-destructive hover:text-destructive/80 transition-colors"
+              onClick={handleDisconnect}
+              disabled={isWorking}
+            >
+              {t('sync.saDisconnect')}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="border-t border-border" />
+
+      {/* Sheet URL */}
       <Input
         label={t('sync.sheetUrl')}
         placeholder={t('sync.sheetUrlPlaceholder')}

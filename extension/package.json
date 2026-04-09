@@ -12,8 +12,7 @@
 	"dependencies": {
 		"@page-agent/core": "^1.6.2",
 		"@page-agent/llms": "^1.6.2",
-		"@page-agent/page-controller": "^1.6.2",
-		"googleapis": "^171.4.0"
+		"@page-agent/page-controller": "^1.6.2"
 	},
 	"devDependencies": {
 		"@tailwindcss/vite": "^4.1.0",

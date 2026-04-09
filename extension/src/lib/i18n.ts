@@ -258,6 +258,17 @@ const en = {
 	'sync.authFailed': 'Google authentication failed. Please try again.',
 	'sync.authExpired': 'Authentication expired. Please try again.',
 	'sync.error': 'Sync error: {error}',
+
+		// sync service account
+		'sync.saConfig': 'Service Account',
+		'sync.saJsonKey': 'Service Account JSON Key',
+		'sync.saJsonKeyPlaceholder': 'Paste your service account JSON key here...',
+		'sync.saEmail': 'Service Account Email (share your sheet with this address)',
+		'sync.saSetupGuide': 'Google Cloud Console → IAM & Admin → Service Accounts → Create Service Account → Keys → Add Key (JSON). Download and paste the JSON content above.',
+		'sync.saConnected': 'Connected',
+		'sync.saNotConfigured': 'Not configured',
+		'sync.saDisconnect': 'Disconnect',
+		'sync.saNotConfiguredHint': 'Please configure your service account first.',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -518,7 +529,18 @@ const zh: Record<keyof typeof en, string> = {
 	'sync.authFailed': 'Google 认证失败，请重试。',
 	'sync.authExpired': '认证已过期，请重试。',
 	'sync.error': '同步错误: {error}',
-}
+
+		// sync service account
+		'sync.saConfig': '服务账号',
+		'sync.saJsonKey': '服务账号 JSON 密钥',
+		'sync.saJsonKeyPlaceholder': '粘贴你的服务账号 JSON 密钥...',
+		'sync.saEmail': '服务账号邮箱（将 Sheet 分享给此地址）',
+		'sync.saSetupGuide': 'Google Cloud Console → IAM 与管理员 → 服务账号 → 创建服务账号 → 密钥 → 添加密钥 (JSON)。下载后将 JSON 内容粘贴到上方。',
+		'sync.saConnected': '已连接',
+		'sync.saNotConfigured': '未配置',
+		'sync.saDisconnect': '断开连接',
+		'sync.saNotConfiguredHint': '请先配置服务账号。',
+	}
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }
 
