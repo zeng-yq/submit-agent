@@ -240,6 +240,24 @@ const en = {
 	'backlink.done': 'Done',
 	'backlink.failed': 'Failed',
 	'backlink.batch.noBatches': 'No batch results yet',
+
+	// sync
+	'sync.title': 'Data Sync',
+	'sync.sheetUrl': 'Google Sheet URL',
+	'sync.sheetUrlPlaceholder': 'https://docs.google.com/spreadsheets/d/...',
+	'sync.invalidUrl': 'Please enter a valid Google Sheet URL',
+	'sync.export': 'Export to Google Sheets',
+	'sync.import': 'Import from Google Sheets',
+	'sync.exporting': 'Exporting...',
+	'sync.importing': 'Importing...',
+	'sync.exportSuccess': 'Export complete',
+	'sync.importSuccess': 'Import complete',
+	'sync.importSkipped': '{skipped} rows skipped due to invalid format',
+	'sync.exportCounts': 'Products: {products}, Submissions: {submissions}, Sites: {sites}, Backlinks: {backlinks}',
+	'sync.importCounts': 'Products: {products}, Submissions: {submissions}, Sites: {sites}, Backlinks: {backlinks}',
+	'sync.authFailed': 'Google authentication failed. Please try again.',
+	'sync.authExpired': 'Authentication expired. Please try again.',
+	'sync.error': 'Sync error: {error}',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -482,6 +500,24 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.done': '已完成',
 	'backlink.failed': '失败',
 	'backlink.batch.noBatches': '暂无批次结果',
+
+	// sync
+	'sync.title': '数据同步',
+	'sync.sheetUrl': 'Google Sheet 链接',
+	'sync.sheetUrlPlaceholder': 'https://docs.google.com/spreadsheets/d/...',
+	'sync.invalidUrl': '请输入有效的 Google Sheet 链接',
+	'sync.export': '导出到 Google Sheets',
+	'sync.import': '从 Google Sheets 导入',
+	'sync.exporting': '导出中...',
+	'sync.importing': '导入中...',
+	'sync.exportSuccess': '导出完成',
+	'sync.importSuccess': '导入完成',
+	'sync.importSkipped': '{skipped} 行因格式无效被跳过',
+	'sync.exportCounts': '产品: {products}, 提交记录: {submissions}, 站点: {sites}, 外链: {backlinks}',
+	'sync.importCounts': '产品: {products}, 提交记录: {submissions}, 站点: {sites}, 外链: {backlinks}',
+	'sync.authFailed': 'Google 认证失败，请重试。',
+	'sync.authExpired': '认证已过期，请重试。',
+	'sync.error': '同步错误: {error}',
 }
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }
