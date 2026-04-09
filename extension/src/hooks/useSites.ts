@@ -10,6 +10,7 @@ export interface UseSitesResult {
 	refresh: () => Promise<void>
 	markSubmitted: (siteName: string, productId: string) => Promise<void>
 	markSkipped: (siteName: string, productId: string) => Promise<void>
+	markFailed: (siteName: string, productId: string, error?: string) => Promise<void>
 	updateStatus: (record: SubmissionRecord) => Promise<void>
 }
 
@@ -75,6 +76,31 @@ export function useSites(productId: string | null): UseSitesResult {
 		[submissions, refresh]
 	)
 
+	const markFailed = useCallback(
+		async (siteName: string, productId: string, error?: string) => {
+			const existing = submissions.get(siteName)
+			const now = Date.now()
+			if (existing) {
+				await updateSubmission({
+					...existing,
+					status: 'failed',
+					error: error ?? '',
+					failedAt: now,
+				})
+			} else {
+				await saveSubmission({
+					siteName,
+					productId,
+					status: 'failed',
+					error: error ?? '',
+					failedAt: now,
+				})
+			}
+			await refresh()
+		},
+		[submissions, refresh]
+	)
+
 	const updateStatus = useCallback(
 		async (record: SubmissionRecord) => {
 			await updateSubmission(record)
@@ -90,6 +116,7 @@ export function useSites(productId: string | null): UseSitesResult {
 		refresh,
 		markSubmitted,
 		markSkipped,
+		markFailed,
 		updateStatus,
 	}
 }
