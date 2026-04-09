@@ -269,6 +269,17 @@ const en = {
 		'sync.saNotConfigured': 'Not configured',
 		'sync.saDisconnect': 'Disconnect',
 		'sync.saNotConfiguredHint': 'Please configure your service account first.',
+
+		'sync.cancel': 'Cancel',
+		'sync.phaseBackup': 'Backing up...',
+		'sync.phaseUpload': 'Uploading',
+		'sync.phaseRollback': 'Rolling back...',
+		'sync.tabWaiting': 'Waiting',
+		'sync.tabComplete': 'Complete',
+		'sync.tabFailed': 'Failed',
+		'sync.cancelled': 'Export cancelled',
+		'sync.rollbackNotice': 'Data has been restored to pre-upload state.',
+		'sync.rollbackFailed': 'Rollback partially failed. Please check your Google Sheet manually.',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -540,6 +551,17 @@ const zh: Record<keyof typeof en, string> = {
 		'sync.saNotConfigured': '未配置',
 		'sync.saDisconnect': '断开连接',
 		'sync.saNotConfiguredHint': '请先配置服务账号。',
+
+		'sync.cancel': '取消',
+		'sync.phaseBackup': '正在备份...',
+		'sync.phaseUpload': '正在上传',
+		'sync.phaseRollback': '正在回滚...',
+		'sync.tabWaiting': '等待中',
+		'sync.tabComplete': '完成',
+		'sync.tabFailed': '失败',
+		'sync.cancelled': '导出已取消',
+		'sync.rollbackNotice': '数据已恢复到上传前的状态。',
+		'sync.rollbackFailed': '部分数据回滚失败，请手动检查 Google Sheet。',
 	}
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }
