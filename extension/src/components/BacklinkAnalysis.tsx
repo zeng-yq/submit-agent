@@ -130,13 +130,13 @@ export function BacklinkAnalysis({
 		<div className="flex flex-col h-full">
 			{/* ── Header: title + stats ── */}
 			<header className="flex items-center justify-between px-4 py-3 shrink-0">
-				<div className="flex items-center gap-3">
-					<span className="text-base font-semibold">{t('backlink.title')}</span>
-					<span className="text-[11px] text-muted-foreground tabular-nums">
+				<div className="flex items-center gap-2.5">
+					<span className="text-sm font-semibold">{t('backlink.title')}</span>
+					<span className="text-xs text-muted-foreground tabular-nums">
 						{stats.analyzed}/{stats.total}
 					</span>
 					{stats.publishable > 0 && (
-						<span className="text-[11px] text-green-400 tabular-nums">
+						<span className="text-xs text-green-400 tabular-nums">
 							{t('backlink.statsPublishable', { count: stats.publishable })}
 						</span>
 					)}
@@ -158,7 +158,7 @@ export function BacklinkAnalysis({
 					/>
 					<Button
 						variant="outline"
-						size="sm"
+						size="xs"
 						onClick={() => fileInputRef.current?.click()}
 						disabled={isRunning}
 					>
@@ -171,7 +171,7 @@ export function BacklinkAnalysis({
 						<input
 							ref={urlInputRef}
 							type="url"
-							className="flex-1 min-w-0 text-xs bg-background border border-border rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
+							className="flex-1 min-w-0 text-xs bg-background border border-border rounded-md px-2.5 h-7 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
 							placeholder={t('backlink.addUrlPlaceholder')}
 							value={urlInput}
 							onChange={(e) => { setUrlInput(e.target.value); setUrlError(null) }}
@@ -180,7 +180,7 @@ export function BacklinkAnalysis({
 						/>
 						<Button
 							variant="default"
-							size="sm"
+							size="xs"
 							onClick={handleAddUrl}
 							disabled={adding || isRunning || !urlInput.trim()}
 						>
@@ -191,10 +191,10 @@ export function BacklinkAnalysis({
 
 				{/* Inline messages */}
 				{urlError && (
-					<p className="text-[10px] text-destructive pl-0.5">{urlError}</p>
+					<p className="text-xs text-destructive pl-0.5">{urlError}</p>
 				)}
 				{importMsg && (
-					<p className="text-[11px] text-green-400 pl-0.5">{importMsg}</p>
+					<p className="text-xs text-green-400 pl-0.5">{importMsg}</p>
 				)}
 			</div>
 
@@ -247,7 +247,7 @@ export function BacklinkAnalysis({
 							return (
 								<div
 									key={batch.id}
-									className={`flex items-center gap-2 text-xs px-2.5 py-1 rounded-md transition-colors ${
+									className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md transition-colors ${
 										isActive ? 'bg-accent/50' : 'bg-muted/30'
 									}`}
 								>
@@ -284,7 +284,7 @@ export function BacklinkAnalysis({
 									<div className="ml-auto flex items-center gap-1 shrink-0">
 										<button
 											type="button"
-											className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+											className={`text-xs px-2 py-0.5 rounded cursor-pointer transition-colors ${
 												isActive
 													? 'bg-primary text-primary-foreground'
 													: 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -295,7 +295,7 @@ export function BacklinkAnalysis({
 										</button>
 										<button
 											type="button"
-											className="text-muted-foreground hover:text-foreground cursor-pointer px-0.5"
+											className="text-muted-foreground hover:text-foreground cursor-pointer text-xs px-1"
 											onClick={() => onDismissBatch(batch.id)}
 										>
 											&times;
@@ -324,7 +324,7 @@ export function BacklinkAnalysis({
 					{!isRunning && (
 						<div className="ml-auto flex items-center gap-1.5">
 							<select
-								className="text-xs bg-background border border-border rounded-md px-1.5 py-1"
+								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
 								value={batchCount}
 								onChange={e => setBatchCount(Number(e.target.value))}
 							>
@@ -334,7 +334,7 @@ export function BacklinkAnalysis({
 							</select>
 							<Button
 								variant="default"
-								size="sm"
+								size="xs"
 								onClick={() => onStartAnalysis(batchCount)}
 								disabled={stats.total === 0 || stats.analyzed === stats.total}
 							>

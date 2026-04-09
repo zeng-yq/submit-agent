@@ -2,7 +2,7 @@ import { cn } from '@/lib/cn'
 import type { ButtonHTMLAttributes } from 'react'
 
 type Variant = 'default' | 'outline' | 'ghost' | 'destructive' | 'success'
-type Size = 'sm' | 'md' | 'lg' | 'icon'
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'icon'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: Variant
@@ -18,6 +18,7 @@ const variantStyles: Record<Variant, string> = {
 }
 
 const sizeStyles: Record<Size, string> = {
+	xs: 'h-7 px-2.5 text-xs',
 	sm: 'h-8 px-3 text-xs',
 	md: 'h-10 px-4 text-sm',
 	lg: 'h-12 px-6 text-base',
