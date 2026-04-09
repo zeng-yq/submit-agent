@@ -102,7 +102,6 @@ export const SHEET_DEFS: Record<string, SheetDef> = {
       { header: 'sourceUrl', key: 'sourceUrl' },
       { header: 'sourceTitle', key: 'sourceTitle' },
       { header: 'pageAscore', key: 'pageAscore' },
-      { header: 'targetUrl', key: 'targetUrl' },
       { header: 'status', key: 'status' },
       { header: 'analysisLog', key: 'analysisLog', encode: 'json' },
       { header: 'domain', key: 'domain' },

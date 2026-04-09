@@ -123,7 +123,6 @@ export interface BacklinkRecord {
 	sourceUrl: string
 	sourceTitle: string
 	pageAscore: number
-	targetUrl: string
 	status: BacklinkStatus
 	analysisLog: string[]
 	domain?: string

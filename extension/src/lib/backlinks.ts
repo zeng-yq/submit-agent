@@ -84,7 +84,6 @@ export async function importBacklinksFromCsv(csvText: string): Promise<ImportRes
 			sourceUrl,
 			sourceTitle: row['Source title']?.trim() ?? '',
 			pageAscore: isNaN(ascore) ? 0 : ascore,
-			targetUrl: row['Target url']?.trim() ?? '',
 			status: 'pending',
 			analysisLog: [],
 		})
