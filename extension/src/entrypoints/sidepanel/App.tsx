@@ -42,6 +42,10 @@ export default function App() {
 		reset: resetBacklinkAgent,
 		reload: reloadBacklinks,
 		addAndAnalyzeUrl,
+		batchHistory,
+		activeBatchId,
+		selectBatch,
+		dismissBatch,
 	} = useBacklinkAgent()
 	const [agentError, setAgentError] = useState<string | null>(null)
 
@@ -173,6 +177,10 @@ export default function App() {
 						if (!isBacklinkRunning) resetBacklinkAgent()
 						setView({ name: 'dashboard' })
 					}}
+					batchHistory={batchHistory}
+					activeBatchId={activeBatchId}
+					onSelectBatch={selectBatch}
+					onDismissBatch={dismissBatch}
 				/>
 			</div>
 		)
