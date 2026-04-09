@@ -84,7 +84,7 @@ export interface LLMSettings {
 	model: string
 }
 
-export type ProviderKey = 'builtin' | 'openai' | 'deepseek' | 'custom'
+export type ProviderKey = 'openrouter' | 'openai' | 'deepseek' | 'custom'
 
 /** Per-provider LLM configs + active provider selection */
 export interface ProviderConfigs {

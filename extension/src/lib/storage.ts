@@ -1,4 +1,3 @@
-import { BUILTIN_LLM_CONFIG } from '@/agent/constants'
 import type { ExtSettings, LLMSettings, ProviderConfigs, ProviderKey } from './types'
 
 const STORAGE_KEYS = {
@@ -14,9 +13,9 @@ const EMPTY_LLM: LLMSettings = { apiKey: '', baseUrl: '', model: '' }
 
 function defaultProviderConfigs(): ProviderConfigs {
 	return {
-		active: 'builtin',
+		active: 'openrouter',
 		configs: {
-			builtin: { ...EMPTY_LLM },
+			openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
 			openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
 			deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
 			custom: { ...EMPTY_LLM },
@@ -38,12 +37,9 @@ export async function setProviderConfigs(configs: ProviderConfigs): Promise<void
 /** Resolves the active provider config into a single LLMSettings for the agent to use */
 export async function getLLMConfig(): Promise<LLMSettings> {
 	const pc = await getProviderConfigs()
-	if (pc.active === 'builtin') {
-		return BUILTIN_LLM_CONFIG
-	}
 	const cfg = pc.configs[pc.active]
 	if (!cfg || (!cfg.baseUrl && !cfg.model)) {
-		return BUILTIN_LLM_CONFIG
+		return defaultProviderConfigs().configs.openrouter
 	}
 	return cfg
 }

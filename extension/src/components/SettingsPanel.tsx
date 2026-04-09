@@ -1,4 +1,3 @@
-import { BUILTIN_LLM_CONFIG } from '@/agent/constants'
 import type { LLMSettings, ProviderKey } from '@/lib/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getProviderConfigs, setProviderConfigs, getFloatButtonEnabled } from '@/lib/storage'
@@ -15,13 +14,13 @@ interface SettingsPanelProps {
 }
 
 const PROVIDER_LABELS: Record<ProviderKey, TranslationKey> = {
-	builtin: 'settings.providerBuiltin',
+	openrouter: 'settings.providerOpenRouter',
 	openai: 'settings.providerOpenAI',
 	deepseek: 'settings.providerDeepSeek',
 	custom: 'settings.providerCustom',
 }
 
-const PROVIDER_ORDER: ProviderKey[] = ['builtin', 'openai', 'deepseek', 'custom']
+const PROVIDER_ORDER: ProviderKey[] = ['openrouter', 'openai', 'deepseek', 'custom']
 
 const TEST_ERROR_KEYS: Record<string, TranslationKey> = {
 	unreachable: 'settings.errUnreachable',
@@ -74,9 +73,9 @@ function SpinnerIcon() {
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
 	const t = useT()
 	const { locale, setLocale } = useLocale()
-	const [activeProvider, setActiveProvider] = useState<ProviderKey>('builtin')
+	const [activeProvider, setActiveProvider] = useState<ProviderKey>('openrouter')
 	const [configs, setConfigs] = useState<Record<ProviderKey, LLMSettings>>({
-		builtin: { apiKey: '', baseUrl: '', model: '' },
+		openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
 		openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
 		deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
 		custom: { apiKey: '', baseUrl: '', model: '' },
@@ -119,9 +118,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 	}, [activeProvider])
 
 	const handleTest = useCallback(async () => {
-		const configToTest: LLMSettings = activeProvider === 'builtin'
-			? BUILTIN_LLM_CONFIG
-			: configs[activeProvider]
+		const configToTest: LLMSettings = configs[activeProvider]
 
 		if (!configToTest.baseUrl || !configToTest.model) return
 
@@ -151,11 +148,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 		}
 	}, [activeProvider, configs, lang, floatEnabled, onClose, setLocale])
 
-	const isBuiltinSelected = activeProvider === 'builtin'
 	const currentConfig = configs[activeProvider]
 	const hasValidConfig = !!(currentConfig.baseUrl && currentConfig.model)
-	const canSave = isBuiltinSelected || hasValidConfig || (!currentConfig.baseUrl && !currentConfig.model)
-	const canTest = isBuiltinSelected || hasValidConfig
+	const canSave = hasValidConfig || (!currentConfig.baseUrl && !currentConfig.model)
+	const canTest = hasValidConfig
 
 	if (!loaded) {
 		return <div className="p-4 text-xs text-muted-foreground">{t('common.loading')}</div>
@@ -196,24 +192,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 						))}
 					</div>
 
-					{/* Built-in active banner */}
-					{isBuiltinSelected && (
-						<div className="text-xs text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950 rounded-lg p-2.5 flex items-start gap-2">
-							<svg className="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-								<path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-							</svg>
-							<span>{t('settings.builtinActive')}</span>
-						</div>
-					)}
-
 					{/* LLM fields — each provider has its own independent values */}
-					<div className={`space-y-3 transition-opacity duration-150 ${isBuiltinSelected ? 'opacity-40 pointer-events-none' : ''}`}>
+					<div className="space-y-3 transition-opacity duration-150">
 						<Input
 							label={t('settings.baseUrl')}
 							placeholder="https://api.openai.com/v1"
 							value={currentConfig.baseUrl}
 							onChange={(e) => handleFieldChange('baseUrl', e.target.value)}
-							disabled={isBuiltinSelected}
 						/>
 
 						<Input
@@ -222,7 +207,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 							type={showApiKey ? 'text' : 'password'}
 							value={currentConfig.apiKey}
 							onChange={(e) => handleFieldChange('apiKey', e.target.value)}
-							disabled={isBuiltinSelected}
 							suffix={
 								<button
 									type="button"
@@ -240,7 +224,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 							placeholder="gpt-4o-mini"
 							value={currentConfig.model}
 							onChange={(e) => handleFieldChange('model', e.target.value)}
-							disabled={isBuiltinSelected}
 						/>
 					</div>
 
@@ -283,7 +266,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 					</div>
 
 					{/* Model required hint */}
-					{!isBuiltinSelected && currentConfig.baseUrl && !currentConfig.model && (
+					{currentConfig.baseUrl && !currentConfig.model && (
 						<div className="text-xs text-amber-600 dark:text-amber-400">
 							{t('settings.modelRequired')}
 						</div>
