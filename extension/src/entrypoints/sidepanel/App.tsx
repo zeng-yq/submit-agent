@@ -317,7 +317,7 @@ export default function App() {
 					<div className="relative" ref={dropdownRef}>
 						<button
 							type="button"
-							className="text-base font-semibold flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
+							className="text-xs font-semibold flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
 							onClick={() => setDropdownOpen((o) => !o)}
 						>
 							{activeProduct?.name ?? t('common.submitAgent')}
@@ -331,7 +331,7 @@ export default function App() {
 									<button
 										key={p.id}
 										type="button"
-										className={`w-full text-left px-3.5 py-2 text-sm hover:bg-accent transition-colors cursor-pointer ${
+										className={`w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors cursor-pointer ${
 											p.id === activeProduct?.id ? 'font-semibold text-primary' : ''
 										}`}
 										onClick={() => { setActive(p.id); setDropdownOpen(false) }}
@@ -342,7 +342,7 @@ export default function App() {
 								<div className="border-t border-border/60 my-1" />
 								<button
 									type="button"
-									className="w-full text-left px-3.5 py-2 text-sm hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
+									className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
 									onClick={() => { setView({ name: 'quick-create' }); setDropdownOpen(false) }}
 								>
 									{t('common.addProduct')}
