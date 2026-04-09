@@ -4,6 +4,21 @@ import { updateBacklink, listBacklinksByStatus, addSite, listBacklinks, saveBack
 import { extractDomain } from '@/lib/backlinks'
 import { analyzeBacklink, type AnalysisStep } from '@/lib/backlink-analyzer'
 
+export interface BatchRecord {
+	id: string
+	startTime: number
+	endTime?: number
+	status: 'running' | 'completed' | 'stopped'
+	itemIds: string[]
+	stats: {
+		publishable: number
+		not_publishable: number
+		skipped: number
+		error: number
+		total: number
+	}
+}
+
 export function useBacklinkAgent() {
 	const stopRequestedRef = useRef(false)
 	const abortRef = useRef<AbortController | null>(null)
@@ -15,6 +30,28 @@ export function useBacklinkAgent() {
 	const [backlinks, setBacklinks] = useState<BacklinkRecord[]>([])
 	const [isRunning, setIsRunning] = useState(false)
 	const [analyzingId, setAnalyzingId] = useState<string | null>(null)
+	const [batchHistory, setBatchHistory] = useState<BatchRecord[]>([])
+	const [activeBatchId, setActiveBatchId] = useState<string | null>(null)
+	const currentBatchIdRef = useRef<string | null>(null)
+
+	/** Update current batch stats after an item is analyzed */
+	const updateBatchStats = useCallback((backlinkId: string, newStatus: BacklinkStatus) => {
+		const bid = currentBatchIdRef.current
+		if (!bid) return
+		setBatchHistory(prev => prev.map(b => {
+			if (b.id !== bid) return b
+			const key = newStatus === 'publishable' ? 'publishable'
+				: newStatus === 'not_publishable' ? 'not_publishable'
+				: newStatus === 'skipped' ? 'skipped'
+				: newStatus === 'error' ? 'error'
+				: null
+			return {
+				...b,
+				itemIds: [...b.itemIds, backlinkId],
+				stats: key ? { ...b.stats, [key]: b.stats[key] + 1, total: b.stats.total + 1 } : b.stats,
+			}
+		}))
+	}, [])
 
 	/** Analyze a single backlink */
 	const analyzeOne = useCallback(
@@ -35,6 +72,7 @@ export function useBacklinkAgent() {
 						analysisLog: ['跳过: 该域名已在外链资源库中'],
 					})
 					setBacklinks(prev => prev.map(b => b.id === backlink.id ? updated : b))
+					updateBatchStats(backlink.id, 'skipped')
 					return
 				}
 
@@ -73,6 +111,7 @@ export function useBacklinkAgent() {
 				}
 
 				setBacklinks(prev => prev.map(b => b.id === backlink.id ? updated : b))
+				updateBatchStats(backlink.id, newStatus)
 			} catch (error) {
 				if (ac.signal.aborted) return
 				const errorMsg = error instanceof Error ? error.message : String(error)
@@ -83,6 +122,7 @@ export function useBacklinkAgent() {
 						analysisLog: [...backlink.analysisLog, `错误: ${errorMsg}`],
 					})
 					setBacklinks(prev => prev.map(b => b.id === backlink.id ? updated : b))
+					updateBatchStats(backlink.id, 'error')
 				} catch {
 					console.error('Failed to update backlink error status:', errorMsg)
 				}
@@ -90,16 +130,28 @@ export function useBacklinkAgent() {
 				setAnalyzingId(null)
 			}
 		},
-		[]
+		[updateBatchStats]
 	)
 
-	/** Start batch analysis of pending backlinks */
 	const startAnalysis = useCallback(
 		async (count: number = 20) => {
 			if (isRunning) return
 			stopRequestedRef.current = false
 			setIsRunning(true)
 			setStatus('running')
+
+			// Create new batch record
+			const batchId = crypto.randomUUID()
+			const newBatch: BatchRecord = {
+				id: batchId,
+				startTime: Date.now(),
+				status: 'running',
+				itemIds: [],
+				stats: { publishable: 0, not_publishable: 0, skipped: 0, error: 0, total: 0 },
+			}
+			setBatchHistory(prev => [newBatch, ...prev])
+			setActiveBatchId(batchId)
+			currentBatchIdRef.current = batchId
 
 			try {
 				// Load all backlinks for display
@@ -117,9 +169,18 @@ export function useBacklinkAgent() {
 				// Refresh full list after batch
 				setBacklinks(await listBacklinks())
 			} finally {
+				const stopped = stopRequestedRef.current
+				const bid = currentBatchIdRef.current
+				// Finalize batch record
+				setBatchHistory(prev => prev.map(b =>
+					b.id === bid
+						? { ...b, status: stopped ? 'stopped' : 'completed', endTime: Date.now() }
+						: b
+				))
 				setIsRunning(false)
 				setStatus('idle')
 				setCurrentStep(null)
+				currentBatchIdRef.current = null
 			}
 		},
 		[analyzeOne, isRunning]
@@ -185,6 +246,17 @@ export function useBacklinkAgent() {
 		[analyzeOne]
 	)
 
+	/** Select a batch to filter the table view */
+	const selectBatch = useCallback((id: string | null) => {
+		setActiveBatchId(id)
+	}, [])
+
+	/** Dismiss a batch card from history */
+	const dismissBatch = useCallback((id: string) => {
+		setBatchHistory(prev => prev.filter(b => b.id !== id))
+		setActiveBatchId(prev => prev === id ? null : prev)
+	}, [])
+
 	return {
 		analyzingId,
 		status,
@@ -199,5 +271,9 @@ export function useBacklinkAgent() {
 		reload,
 		analyzeOne,
 		addAndAnalyzeUrl,
+		batchHistory,
+		activeBatchId,
+		selectBatch,
+		dismissBatch,
 	}
 }
