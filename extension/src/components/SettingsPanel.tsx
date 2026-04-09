@@ -171,6 +171,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 			</header>
 
 			<div className="flex-1 overflow-y-auto p-3 space-y-4">
+				{/* Data Sync */}
+				<SyncPanel />
+
 				{/* AI Model Configuration */}
 				<div className="rounded-lg border border-border bg-card p-3 space-y-3">
 					<div className="text-xs font-semibold text-foreground">{t('settings.aiModelConfig')}</div>
@@ -320,9 +323,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 						</button>
 					</div>
 				</div>
-
-				{/* Data Sync */}
-				<SyncPanel />
 			</div>
 
 			<footer className="border-t p-3">
