@@ -45,7 +45,7 @@ export function useSites(productId: string | null): UseSitesResult {
 		async (siteName: string, productId: string) => {
 			const existing = submissions.get(siteName)
 			if (existing) {
-				await updateSubmission({ ...existing, status: 'submitted', submittedAt: Date.now() })
+				await updateSubmission({ ...existing, status: 'submitted', submittedAt: Date.now(), error: undefined, failedAt: undefined })
 			} else {
 				await saveSubmission({
 					siteName,
