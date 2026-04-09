@@ -319,8 +319,8 @@ export function BacklinkAnalysis({
 					</div>
 				)}
 
-				{/* Filter tabs */}
-				<div className="flex gap-0 border-b">
+				{/* Filter tabs + batch controls on same row */}
+				<div className="flex items-center gap-0 border-b px-4">
 					{tabs.map((tabItem) => (
 						<button
 							key={tabItem.id}
@@ -336,30 +336,28 @@ export function BacklinkAnalysis({
 							<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 						</button>
 					))}
+					{!isRunning && (
+						<div className="ml-auto flex items-center gap-1.5 py-1">
+							<select
+								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
+								value={batchCount}
+								onChange={e => setBatchCount(Number(e.target.value))}
+							>
+								<option value={10}>10</option>
+								<option value={20}>20</option>
+								<option value={50}>50</option>
+							</select>
+							<Button
+								variant="default"
+								size="xs"
+								onClick={() => onStartAnalysis(batchCount)}
+								disabled={stats.total === 0 || stats.analyzed === stats.total}
+							>
+								{t('backlink.startAnalysis')}
+							</Button>
+						</div>
+					)}
 				</div>
-
-				{/* Batch start controls */}
-				{!isRunning && (
-					<div className="flex items-center justify-end px-4 py-2 gap-1.5">
-						<select
-							className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
-							value={batchCount}
-							onChange={e => setBatchCount(Number(e.target.value))}
-						>
-							<option value={10}>10</option>
-							<option value={20}>20</option>
-							<option value={50}>50</option>
-						</select>
-						<Button
-							variant="default"
-							size="xs"
-							onClick={() => onStartAnalysis(batchCount)}
-							disabled={stats.total === 0 || stats.analyzed === stats.total}
-						>
-							{t('backlink.startAnalysis')}
-						</Button>
-					</div>
-				)}
 			</div>
 
 			{/* Table */}
