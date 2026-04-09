@@ -236,6 +236,9 @@ const en = {
 	'backlink.batch.skipped': '{count} skipped',
 	'backlink.batch.error': '{count} error',
 	'backlink.batch.progress': '{analyzed}/{total}',
+	'backlink.all': 'All',
+	'backlink.done': 'Done',
+	'backlink.failed': 'Failed',
 	'backlink.batch.noBatches': 'No batch results yet',
 } as const
 
@@ -475,6 +478,9 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.batch.skipped': '{count} 已跳过',
 	'backlink.batch.error': '{count} 错误',
 	'backlink.batch.progress': '{analyzed}/{total}',
+	'backlink.all': '全部',
+	'backlink.done': '已完成',
+	'backlink.failed': '失败',
 	'backlink.batch.noBatches': '暂无批次结果',
 }
 
