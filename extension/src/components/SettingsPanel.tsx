@@ -8,6 +8,7 @@ import type { TranslationKey } from '@/lib/i18n'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Select } from './ui/Select'
+import { SyncPanel } from './SyncPanel'
 
 interface SettingsPanelProps {
 	onClose: () => void
@@ -319,6 +320,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 						</button>
 					</div>
 				</div>
+
+				{/* Data Sync */}
+				<SyncPanel />
 			</div>
 
 			<footer className="border-t p-3">
