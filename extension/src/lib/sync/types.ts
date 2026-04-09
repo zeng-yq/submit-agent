@@ -21,6 +21,28 @@ export interface SyncResult {
   error?: string
 }
 
+/** Progress information reported during export */
+export interface ExportProgress {
+  phase: 'backup' | 'upload' | 'rollback'
+  currentTab: string
+  totalTabs: number
+  completedTabs: number
+  currentChunk: number
+  totalChunks: number
+  retriesLeft?: number
+  error?: string
+}
+
+/** Callback to receive export progress updates */
+export type ProgressCallback = (progress: ExportProgress) => void
+
+/** Extended result with per-tab success/failure info */
+export interface ExportResult extends SyncResult {
+  failedTabs?: string[]
+  rolledBack?: string[]
+  rollbackFailed?: string[]
+}
+
 /** All four sheet definitions */
 export const SHEET_DEFS: Record<string, SheetDef> = {
   products: {
