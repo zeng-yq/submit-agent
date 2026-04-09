@@ -39,7 +39,7 @@ export default defineConfig({
 	manifest: {
 		name: 'Submit Agent',
 		description: 'AI-powered auto-submission for product directories and backlink sites',
-		permissions: ['tabs', 'tabGroups', 'sidePanel', 'storage', 'activeTab'],
+		permissions: ['tabs', 'tabGroups', 'sidePanel', 'storage', 'activeTab', 'identity'],
 		host_permissions: ['<all_urls>'],
 		icons: {
 			16: 'assets/icon-16.png',
