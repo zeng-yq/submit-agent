@@ -59,7 +59,7 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 	const pct = stats.total > 0 ? Math.round((stats.submitted / stats.total) * 100) : 0
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
-		{ id: 'recommended', label: t('dashboard.recommended'), count: recommendedSites.length },
+		{ id: 'recommended', label: t('dashboard.all'), count: recommendedSites.length },
 		{ id: 'all', label: t('dashboard.all'), count: allSites.length },
 		{ id: 'done', label: t('dashboard.done'), count: doneSites.length },
 	]
@@ -127,7 +127,7 @@ export function Dashboard({ sites, submissions, onSelectSite }: DashboardProps) 
 				))}
 				{displaySites.length === 0 && (
 					<div className="text-center text-xs text-muted-foreground py-8">
-						{tab === 'recommended' && t('dashboard.emptyRecommended')}
+						{tab === 'recommended' && t('dashboard.emptyAll')}
 						{tab === 'all' && t('dashboard.emptyAll')}
 						{tab === 'done' && t('dashboard.emptyDone')}
 					</div>

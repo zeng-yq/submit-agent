@@ -18,13 +18,17 @@ const en = {
 
 	// dashboard
 	'dashboard.submitted': '{submitted} / {total} submitted',
-	'dashboard.recommended': 'Recommended',
 	'dashboard.all': 'All',
 	'dashboard.done': 'Done',
 	'dashboard.searchPlaceholder': 'Search sites...',
-	'dashboard.emptyRecommended': 'All recommended sites are done!',
 	'dashboard.emptyAll': 'No sites match your search',
 	'dashboard.emptyDone': 'No submitted or skipped sites yet',
+	'dashboard.failed': 'Failed',
+	'dashboard.emptyFailed': 'No failed submissions',
+	'dashboard.batchCount': 'Batch size',
+	'dashboard.startBatch': 'Start Batch Submit',
+	'dashboard.batchProgress': 'Submitting {current}/{total}  {site}',
+	'dashboard.stopBatch': 'Stop',
 
 	// siteCard
 	'siteCard.manual': 'manual',
@@ -253,13 +257,17 @@ const zh: Record<keyof typeof en, string> = {
 
 	// dashboard
 	'dashboard.submitted': '已提交 {submitted} / {total}',
-	'dashboard.recommended': '推荐',
 	'dashboard.all': '全部',
 	'dashboard.done': '已完成',
 	'dashboard.searchPlaceholder': '搜索站点...',
-	'dashboard.emptyRecommended': '所有推荐站点已完成！',
 	'dashboard.emptyAll': '没有匹配的站点',
 	'dashboard.emptyDone': '暂无已提交或跳过的站点',
+	'dashboard.failed': '失败',
+	'dashboard.emptyFailed': '暂无失败记录',
+	'dashboard.batchCount': '提交数量',
+	'dashboard.startBatch': '开始批量提交',
+	'dashboard.batchProgress': '正在提交 {current}/{total}  {site}',
+	'dashboard.stopBatch': '停止',
 
 	// siteCard
 	'siteCard.manual': '手动',
