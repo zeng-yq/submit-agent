@@ -103,50 +103,8 @@ export function Dashboard({
 				</div>
 			</div>
 
-			{/* Batch submit bar */}
-			<div className="px-1">
-				{batchRunning ? (
-					<div className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
-						<span className="text-xs text-blue-600 dark:text-blue-400 shrink-0">
-							{t('dashboard.batchProgress', {
-								current: batchCurrentIndex,
-								total: batchTotal,
-								site: batchCurrentSite,
-							})}
-						</span>
-						<button
-							type="button"
-							className="ml-auto text-xs text-red-600 dark:text-red-400 hover:underline shrink-0"
-							onClick={onStopBatch}
-						>
-							{t('dashboard.stopBatch')}
-						</button>
-					</div>
-				) : (
-					<div className="flex items-center gap-2">
-						<span className="text-xs text-muted-foreground">{t('dashboard.batchCount')}</span>
-						<select
-							className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
-							value={batchCount}
-							onChange={(e) => onBatchCountChange(Number(e.target.value))}
-						>
-							<option value={10}>10</option>
-							<option value={20}>20</option>
-							<option value={50}>50</option>
-						</select>
-						<button
-							type="button"
-							className="ml-auto text-xs font-medium text-primary hover:underline"
-							onClick={onStartBatch}
-						>
-							{t('dashboard.startBatch')}
-						</button>
-					</div>
-				)}
-			</div>
-
-			{/* Tabs */}
-			<div className="flex gap-0 border-b">
+			{/* Tabs + batch controls */}
+			<div className="flex items-center gap-0 border-b">
 				{tabs.map((tabItem) => (
 					<button
 						key={tabItem.id}
@@ -162,6 +120,41 @@ export function Dashboard({
 						<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 					</button>
 				))}
+				{batchRunning ? (
+					<span className="ml-auto text-xs text-blue-600 dark:text-blue-400 shrink-0 py-1">
+						{t('dashboard.batchProgress', {
+							current: batchCurrentIndex,
+							total: batchTotal,
+							site: batchCurrentSite,
+						})}
+						<button
+							type="button"
+							className="ml-2 text-xs text-red-600 dark:text-red-400 hover:underline"
+							onClick={onStopBatch}
+						>
+							{t('dashboard.stopBatch')}
+						</button>
+					</span>
+				) : (
+					<div className="ml-auto flex items-center gap-1.5 py-1">
+						<select
+							className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
+							value={batchCount}
+							onChange={(e) => onBatchCountChange(Number(e.target.value))}
+						>
+							<option value={10}>10</option>
+							<option value={20}>20</option>
+							<option value={50}>50</option>
+						</select>
+						<button
+							type="button"
+							className="text-xs font-medium bg-primary text-primary-foreground rounded-md px-2.5 h-7 hover:bg-primary/90 transition-colors"
+							onClick={onStartBatch}
+						>
+							{t('dashboard.startBatch')}
+						</button>
+					</div>
+				)}
 			</div>
 
 			{/* Search (All tab only) */}

@@ -268,7 +268,7 @@ const zh: Record<keyof typeof en, string> = {
 	'dashboard.failed': '失败',
 	'dashboard.emptyFailed': '暂无失败记录',
 	'dashboard.batchCount': '提交数量',
-	'dashboard.startBatch': '开始批量提交',
+	'dashboard.startBatch': '开始提交',
 	'dashboard.batchProgress': '正在提交 {current}/{total}  {site}',
 	'dashboard.stopBatch': '停止',
 
