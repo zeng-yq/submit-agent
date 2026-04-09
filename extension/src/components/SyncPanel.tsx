@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
@@ -17,6 +17,8 @@ import {
   clearServiceAccountKey,
   removeCachedToken,
 } from '@/lib/sync/google-auth'
+import type { ExportProgress } from '@/lib/sync/types'
+import { SHEET_DEFS } from '@/lib/sync/types'
 
 const SHEET_URL_KEY = 'submitAgent_sheetUrl'
 
@@ -29,9 +31,18 @@ async function setSheetUrl(url: string): Promise<void> {
   await chrome.storage.local.set({ [SHEET_URL_KEY]: url })
 }
 
+const TAB_NAMES = (Object.values(SHEET_DEFS) as Array<{ tabName: string }>).map(d => d.tabName)
+
+type TabUploadStatus = 'waiting' | 'uploading' | 'complete' | 'failed'
+
+type TabProgress = {
+  status: TabUploadStatus
+  percent: number
+}
+
 type SyncStatus =
   | { type: 'idle' }
-  | { type: 'exporting' }
+  | { type: 'exporting'; phase: ExportProgress['phase']; tabs: Record<string, TabProgress> }
   | { type: 'importing' }
   | { type: 'success'; message: string; detail?: string }
   | { type: 'error'; message: string }
@@ -48,6 +59,7 @@ export function SyncPanel() {
   const [showSaConfig, setShowSaConfig] = useState(false)
   const [saJsonInput, setSaJsonInput] = useState('')
   const [saInputError, setSaInputError] = useState('')
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -97,6 +109,43 @@ export function SyncPanel() {
     setShowSaConfig(true)
   }, [])
 
+  const handleExportProgress = useCallback(
+    (progress: ExportProgress) => {
+      setStatus((prev) => {
+        if (prev.type !== 'exporting') return prev
+        const tabs = { ...prev.tabs }
+        if (progress.phase === 'upload') {
+          if (!tabs[progress.currentTab]) {
+            tabs[progress.currentTab] = { status: 'waiting', percent: 0 }
+          }
+          const percent =
+            progress.totalChunks > 0
+              ? Math.round((progress.currentChunk / progress.totalChunks) * 100)
+              : 0
+          tabs[progress.currentTab] = {
+            status: progress.error ? 'failed' : 'uploading',
+            percent,
+          }
+        }
+        if (progress.phase === 'upload' && progress.completedTabs > 0) {
+          const completed = TAB_NAMES.slice(0, progress.completedTabs)
+          for (const name of completed) {
+            if (tabs[name]?.status !== 'failed') {
+              tabs[name] = { status: 'complete', percent: 100 }
+            }
+          }
+        }
+        return { ...prev, phase: progress.phase, tabs }
+      })
+    },
+    [],
+  )
+
+  const handleCancelExport = useCallback(() => {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+  }, [])
+
   const handleExport = useCallback(async () => {
     if (!isValidSheetUrl(sheetUrl)) {
       setStatus({ type: 'error', message: t('sync.invalidUrl') })
@@ -108,7 +157,15 @@ export function SyncPanel() {
       return
     }
     await setSheetUrl(sheetUrl)
-    setStatus({ type: 'exporting' })
+
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+
+    const initialTabs: Record<string, TabProgress> = {}
+    for (const name of TAB_NAMES) {
+      initialTabs[name] = { status: 'waiting', percent: 0 }
+    }
+    setStatus({ type: 'exporting', phase: 'backup', tabs: initialTabs })
 
     try {
       const [products, submissions, sites, backlinks] = await Promise.all([
@@ -118,12 +175,17 @@ export function SyncPanel() {
         listBacklinks(),
       ])
 
-      const result = await exportToSheets(sheetUrl, {
-        products: products as unknown as Record<string, unknown>[],
-        submissions: submissions as unknown as Record<string, unknown>[],
-        sites: sites as unknown as Record<string, unknown>[],
-        backlinks: backlinks as unknown as Record<string, unknown>[],
-      })
+      const result = await exportToSheets(
+        sheetUrl,
+        {
+          products: products as unknown as Record<string, unknown>[],
+          submissions: submissions as unknown as Record<string, unknown>[],
+          sites: sites as unknown as Record<string, unknown>[],
+          backlinks: backlinks as unknown as Record<string, unknown>[],
+        },
+        handleExportProgress,
+        abortController.signal,
+      )
 
       if (result.success) {
         const detail = t('sync.exportCounts', {
@@ -134,12 +196,21 @@ export function SyncPanel() {
         })
         setStatus({ type: 'success', message: t('sync.exportSuccess'), detail })
       } else {
-        setStatus({ type: 'error', message: result.error ?? t('sync.error', { error: 'Unknown' }) })
+        setStatus({
+          type: 'error',
+          message: result.error ?? t('sync.error', { error: 'Unknown' }),
+        })
       }
     } catch (err) {
-      setStatus({ type: 'error', message: t('sync.error', { error: String(err) }) })
+      if (abortController.signal.aborted) {
+        setStatus({ type: 'error', message: t('sync.cancelled') })
+      } else {
+        setStatus({ type: 'error', message: t('sync.error', { error: String(err) }) })
+      }
+    } finally {
+      abortControllerRef.current = null
     }
-  }, [sheetUrl, saConfigured, t])
+  }, [sheetUrl, saConfigured, t, handleExportProgress])
 
   const handleImport = useCallback(async () => {
     if (!isValidSheetUrl(sheetUrl)) {
@@ -185,6 +256,7 @@ export function SyncPanel() {
   }, [sheetUrl, saConfigured, t])
 
   const isWorking = status.type === 'exporting' || status.type === 'importing'
+  const isExporting = status.type === 'exporting'
 
   if (!loaded) return null
 
@@ -259,13 +331,13 @@ export function SyncPanel() {
 
       <div className="flex gap-2">
         <Button
-          variant="outline"
+          variant={isExporting ? 'destructive' : 'outline'}
           size="sm"
           className="flex-1"
-          disabled={!sheetUrl || isWorking}
-          onClick={handleExport}
+          disabled={!sheetUrl || (isWorking && !isExporting)}
+          onClick={isExporting ? handleCancelExport : handleExport}
         >
-          {status.type === 'exporting' ? t('sync.exporting') : t('sync.export')}
+          {isExporting ? t('sync.cancel') : t('sync.export')}
         </Button>
         <Button
           variant="outline"
@@ -277,6 +349,41 @@ export function SyncPanel() {
           {status.type === 'importing' ? t('sync.importing') : t('sync.import')}
         </Button>
       </div>
+
+      {status.type === 'exporting' && (
+        <div className="space-y-1.5 animate-in fade-in duration-200">
+          <div className="text-[11px] text-foreground/60">
+            {status.phase === 'backup' && t('sync.phaseBackup')}
+            {status.phase === 'upload' && t('sync.phaseUpload')}
+            {status.phase === 'rollback' && t('sync.phaseRollback')}
+          </div>
+          {Object.entries(status.tabs).map(([tabName, tab]) => (
+            <div key={tabName} className="flex items-center gap-2 text-[11px]">
+              <span className="w-20 text-foreground/70">{tabName}</span>
+              {tab.status === 'waiting' && (
+                <span className="text-foreground/40">{t('sync.tabWaiting')}</span>
+              )}
+              {tab.status === 'uploading' && (
+                <div className="flex-1 flex items-center gap-1.5">
+                  <div className="flex-1 h-1 bg-foreground/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${tab.percent}%` }}
+                    />
+                  </div>
+                  <span className="text-foreground/60 w-8 text-right">{tab.percent}%</span>
+                </div>
+              )}
+              {tab.status === 'complete' && (
+                <span className="text-success">{t('sync.tabComplete')}</span>
+              )}
+              {tab.status === 'failed' && (
+                <span className="text-destructive">{t('sync.tabFailed')}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {status.type === 'success' && (
         <div className="text-xs text-success bg-success/8 rounded-lg px-3 py-2 animate-in fade-in duration-200 space-y-0.5">
