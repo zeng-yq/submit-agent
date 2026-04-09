@@ -1,5 +1,6 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
+import type { BatchRecord } from '@/hooks/useBacklinkAgent'
 import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
 import { useT } from '@/hooks/useLanguage'
 import { Button } from './ui/Button'
@@ -18,6 +19,10 @@ interface BacklinkAnalysisProps {
 	onAddUrl: (url: string) => Promise<{ success: boolean; error?: string }>
 	onStop: () => void
 	onBack: () => void
+	batchHistory: BatchRecord[]
+	activeBatchId: string | null
+	onSelectBatch: (id: string | null) => void
+	onDismissBatch: (id: string) => void
 }
 
 const STATUS_COLORS: Record<BacklinkStatus, string> = {
@@ -42,6 +47,10 @@ export function BacklinkAnalysis({
 	onAddUrl,
 	onStop,
 	onBack,
+	batchHistory,
+	activeBatchId,
+	onSelectBatch,
+	onDismissBatch,
 }: BacklinkAnalysisProps) {
 	const t = useT()
 	const fileInputRef = useRef<HTMLInputElement>(null)
@@ -67,9 +76,11 @@ export function BacklinkAnalysis({
 		}
 	}, [analyzingId, isRunning])
 
-	const filteredBacklinks = [...(statusFilter === 'all'
-		? backlinks
-		: backlinks.filter(b => b.status === statusFilter))].sort((a, b) => b.pageAscore - a.pageAscore)
+	const activeBatch = activeBatchId ? batchHistory.find(b => b.id === activeBatchId) : null
+	const filteredBacklinks = [...backlinks
+		.filter(b => activeBatch ? activeBatch.itemIds.includes(b.id) : true)
+		.filter(b => statusFilter === 'all' || b.status === statusFilter)
+	].sort((a, b) => b.pageAscore - a.pageAscore)
 
 	const stats = {
 		total: backlinks.length,
@@ -254,6 +265,76 @@ export function BacklinkAnalysis({
 					</button>
 				))}
 			</div>
+
+				{/* Batch result cards */}
+				{batchHistory.length > 0 && (
+					<div className="px-3 py-1.5 space-y-1 border-b border-border/60">
+						{batchHistory.map(batch => {
+							const isActive = activeBatchId === batch.id
+							const time = new Date(batch.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+							const analyzed = batch.stats.total
+							return (
+								<div
+									key={batch.id}
+									className={`flex items-center gap-2 text-xs px-2 py-1 rounded transition-colors ${
+										isActive ? 'bg-accent/50' : 'bg-muted/30'
+									}`}
+								>
+									<span className="text-muted-foreground">{time}</span>
+									{batch.status === 'running' && (
+										<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+									)}
+									{batch.status === 'completed' && (
+										<span className="text-green-400">&#10003;</span>
+									)}
+									{batch.status === 'stopped' && (
+										<span className="text-yellow-400">&#9646;&#9646;</span>
+									)}
+									<span className="text-muted-foreground">
+										{batch.status === 'running'
+											? t('backlink.batch.progress', { analyzed, total: batch.itemIds.length })
+											: t(`backlink.batch.${batch.status}` as any)
+										}
+									</span>
+									<div className="flex items-center gap-1.5">
+										{batch.stats.publishable > 0 && (
+											<span className="text-green-400">{t('backlink.batch.publishable', { count: batch.stats.publishable })}</span>
+										)}
+										{batch.stats.not_publishable > 0 && (
+											<span className="text-red-400">{t('backlink.batch.notPublishable', { count: batch.stats.not_publishable })}</span>
+										)}
+										{batch.stats.skipped > 0 && (
+											<span className="text-yellow-400">{t('backlink.batch.skipped', { count: batch.stats.skipped })}</span>
+										)}
+										{batch.stats.error > 0 && (
+											<span className="text-destructive">{t('backlink.batch.error', { count: batch.stats.error })}</span>
+										)}
+									</div>
+									<div className="ml-auto flex items-center gap-1">
+										<button
+											type="button"
+											className={`text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+												isActive
+													? 'bg-primary text-primary-foreground'
+													: 'text-muted-foreground hover:text-foreground hover:bg-accent'
+											}`}
+											onClick={() => onSelectBatch(isActive ? null : batch.id)}
+										>
+											{isActive ? t('backlink.batch.showAll') : t('backlink.batch.view')}
+										</button>
+										<button
+											type="button"
+											className="text-muted-foreground hover:text-foreground cursor-pointer px-0.5"
+											onClick={() => onDismissBatch(batch.id)}
+										>
+											&times;
+										</button>
+									</div>
+								</div>
+							)
+						})}
+					</div>
+				)}
 
 			{/* Table */}
 			<div className="flex-1 overflow-y-auto">
