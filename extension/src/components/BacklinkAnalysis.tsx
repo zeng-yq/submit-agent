@@ -25,6 +25,8 @@ interface BacklinkAnalysisProps {
 	onDismissBatch: (id: string) => void
 }
 
+const DONE_STATUSES: BacklinkStatus[] = ['publishable', 'not_publishable', 'skipped']
+
 const STATUS_COLORS: Record<BacklinkStatus, string> = {
 	pending: 'bg-muted text-muted-foreground',
 	publishable: 'bg-green-500/20 text-green-400',
@@ -57,8 +59,7 @@ export function BacklinkAnalysis({
 	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
-	type AnalysisTab = 'all' | 'done' | 'failed'
-	const [statusFilter, setStatusFilter] = useState<AnalysisTab>('all')
+	const [statusFilter, setStatusFilter] = useState<'all' | 'done' | 'failed'>('all')
 	const [urlInput, setUrlInput] = useState('')
 	const [urlError, setUrlError] = useState<string | null>(null)
 	const [adding, setAdding] = useState(false)
@@ -78,9 +79,8 @@ export function BacklinkAnalysis({
 	}, [analyzingId, isRunning])
 
 	const activeBatch = activeBatchId ? batchHistory.find(b => b.id === activeBatchId) : null
-	const DONE_STATUSES: BacklinkStatus[] = ['publishable', 'not_publishable', 'skipped']
-	const filteredBacklinks = [...backlinks
-		.filter(b => activeBatch ? activeBatch.itemIds.includes(b.id) : true)
+	const batchFiltered = backlinks.filter(b => activeBatch ? activeBatch.itemIds.includes(b.id) : true)
+	const filteredBacklinks = [...batchFiltered
 		.filter(b => {
 			if (statusFilter === 'all') return true
 			if (statusFilter === 'done') return DONE_STATUSES.includes(b.status)
@@ -94,12 +94,10 @@ export function BacklinkAnalysis({
 		publishable: backlinks.filter(b => b.status === 'publishable').length,
 	}
 
-	const doneCount = backlinks.filter(b => DONE_STATUSES.includes(b.status)).length
-	const failedCount = backlinks.filter(b => b.status === 'error').length
-	const tabs: { id: AnalysisTab; label: string; count: number }[] = [
-		{ id: 'all', label: t('backlink.all'), count: stats.total },
-		{ id: 'done', label: t('backlink.done'), count: doneCount },
-		{ id: 'failed', label: t('backlink.failed'), count: failedCount },
+	const tabs: { id: 'all' | 'done' | 'failed'; label: string; count: number }[] = [
+		{ id: 'all', label: t('backlink.all'), count: batchFiltered.length },
+		{ id: 'done', label: t('backlink.done'), count: batchFiltered.filter(b => DONE_STATUSES.includes(b.status)).length },
+		{ id: 'failed', label: t('backlink.failed'), count: batchFiltered.filter(b => b.status === 'error').length },
 	]
 
 	const getDomain = (url: string) => {
