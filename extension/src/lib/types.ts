@@ -35,6 +35,8 @@ export interface SubmissionRecord {
 	rewrittenDesc?: string
 	submittedAt?: number
 	notes?: string
+	error?: string        // 失败时的错误信息
+	failedAt?: number     // 失败时间戳 (Date.now())
 	createdAt: number
 	updatedAt: number
 }

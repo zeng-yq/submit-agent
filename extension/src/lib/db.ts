@@ -3,7 +3,7 @@ import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRe
 import { extractDomain } from './backlinks'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
@@ -68,6 +68,9 @@ function getDB() {
 					backlinks.createIndex('by-status', 'status')
 					backlinks.createIndex('by-url', 'sourceUrl')
 					backlinks.createIndex('by-updated', 'updatedAt')
+				}
+				if (oldVersion < 4) {
+					// Schema-less: new optional fields (error, failedAt) need no index changes
 				}
 			},
 		})
