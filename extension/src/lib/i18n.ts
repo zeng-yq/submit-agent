@@ -220,6 +220,19 @@ const en = {
 	'backlink.analyzingSingle': 'Analyzing — {domain}',
 	'backlink.analyzingDone': 'Done — {domain}',
 	'backlink.analyzingIn': 'Analyzing in progress...',
+	// batch results
+	'backlink.batch.view': 'View',
+	'backlink.batch.showAll': 'Show All',
+	'backlink.batch.dismiss': 'Dismiss',
+	'backlink.batch.completed': 'Completed',
+	'backlink.batch.stopped': 'Stopped',
+	'backlink.batch.running': 'Running',
+	'backlink.batch.publishable': '{count} publishable',
+	'backlink.batch.notPublishable': '{count} not publishable',
+	'backlink.batch.skipped': '{count} skipped',
+	'backlink.batch.error': '{count} error',
+	'backlink.batch.progress': '{analyzed}/{total}',
+	'backlink.batch.noBatches': 'No batch results yet',
 } as const
 
 const zh: Record<keyof typeof en, string> = {
@@ -442,6 +455,19 @@ const zh: Record<keyof typeof en, string> = {
 	'backlink.analyzingSingle': '正在分析 — {domain}',
 	'backlink.analyzingDone': '分析完成 — {domain}',
 	'backlink.analyzingIn': '分析进行中...',
+	// batch results
+	'backlink.batch.view': '查看',
+	'backlink.batch.showAll': '查看全部',
+	'backlink.batch.dismiss': '关闭',
+	'backlink.batch.completed': '已完成',
+	'backlink.batch.stopped': '已停止',
+	'backlink.batch.running': '进行中',
+	'backlink.batch.publishable': '{count} 可发布',
+	'backlink.batch.notPublishable': '{count} 不可发布',
+	'backlink.batch.skipped': '{count} 已跳过',
+	'backlink.batch.error': '{count} 错误',
+	'backlink.batch.progress': '{analyzed}/{total}',
+	'backlink.batch.noBatches': '暂无批次结果',
 }
 
 const dictionaries: Record<Locale, Record<string, string>> = { en, zh }
