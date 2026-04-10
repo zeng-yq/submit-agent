@@ -83,8 +83,23 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 				</div>
 			</div>
 
-			{/* Right: submit + delete + status badge */}
+			{/* Right: status badge + submit + delete */}
 			<div className="shrink-0 flex items-center gap-1">
+				<div className="flex flex-col items-end gap-1">
+					{labelKey && (
+						<button
+							type="button"
+							className="text-[9px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation()
+								onResetStatus?.(site.name)
+							}}
+							title="点击重置状态"
+						>
+							{labelKey}
+						</button>
+					)}
+				</div>
 				{onSelect && hasSubmitUrl && (
 					<button
 						type="button"
@@ -118,21 +133,6 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 						<Trash2 className="w-3.5 h-3.5" />
 					</button>
 				)}
-				<div className="flex flex-col items-end gap-1">
-					{labelKey && (
-						<button
-							type="button"
-							className="text-[9px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
-							onClick={(e) => {
-								e.stopPropagation()
-								onResetStatus?.(site.name)
-							}}
-							title="点击重置状态"
-						>
-							{labelKey}
-						</button>
-					)}
-				</div>
 			</div>
 		</div>
 	)
