@@ -1,5 +1,6 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
 import { useMemo, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
 
 interface DashboardProps {
@@ -7,6 +8,7 @@ interface DashboardProps {
 	submissions: Map<string, SubmissionRecord>
 	onSelectSite: (site: SiteData) => void
 	onRetrySite?: (site: SiteData) => void
+	onDeleteSite?: (siteName: string) => void
 	batchCount: number
 	onBatchCountChange: (count: number) => void
 	batchRunning: boolean
@@ -26,6 +28,7 @@ export function Dashboard({
 	submissions,
 	onSelectSite,
 	onRetrySite,
+	onDeleteSite,
 	batchCount,
 	onBatchCountChange,
 	batchRunning,
@@ -191,7 +194,22 @@ export function Dashboard({
 										</div>
 									)}
 								</div>
-								<span className="text-[10px] text-primary shrink-0 mt-0.5">{'重试自动提交'}</span>
+								<div className="shrink-0 flex items-center gap-1.5 mt-0.5">
+								<button
+									type="button"
+									className="p-1 rounded text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+									onClick={(e) => {
+										e.stopPropagation()
+										if (confirm('确定要删除「' + site.name + '」吗？该站点的提交记录也将被删除。')) {
+											onDeleteSite?.(site.name)
+										}
+									}}
+									title="删除站点"
+								>
+									<Trash2 className="w-3.5 h-3.5" />
+								</button>
+								<span className="text-[10px] text-primary">{'重试自动提交'}</span>
+							</div>
 							</div>
 						)
 					})
@@ -202,6 +220,7 @@ export function Dashboard({
 							site={site}
 							status={submissions.get(site.name)?.status ?? 'not_started'}
 							onSelect={onSelectSite}
+						onDelete={onDeleteSite}
 						/>
 					))
 				)}
