@@ -1,9 +1,11 @@
+import { Trash2 } from 'lucide-react'
 import type { SiteData, SubmissionStatus } from '@/lib/types'
 
 interface SiteCardProps {
 	site: SiteData
 	status?: SubmissionStatus
 	onSelect?: (site: SiteData) => void
+	onDelete?: (siteName: string) => void
 }
 
 const statusBar: Record<SubmissionStatus, string> = {
@@ -26,7 +28,7 @@ const statusLabelKey: Record<SubmissionStatus, string> = {
 	skipped: '已跳过',
 }
 
-export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardProps) {
+export function SiteCard({ site, status = 'not_started', onSelect, onDelete }: SiteCardProps) {
 	const hasSubmitUrl = !!site.submit_url
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
@@ -66,11 +68,28 @@ export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardPro
 				</div>
 			</div>
 
-			{/* Right badges */}
-			<div className="shrink-0 flex flex-col items-end gap-1">
-				{labelKey && (
-					<span className="text-[9px] text-muted-foreground">{labelKey}</span>
+			{/* Right: delete + status badge */}
+			<div className="shrink-0 flex items-center gap-1">
+				{onDelete && (
+					<button
+						type="button"
+						className="p-1 rounded text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+						onClick={(e) => {
+							e.stopPropagation()
+							if (confirm(`确定要删除「${site.name}」吗？该站点的提交记录也将被删除。`)) {
+								onDelete(site.name)
+							}
+						}}
+						title="删除站点"
+					>
+						<Trash2 className="w-3.5 h-3.5" />
+					</button>
 				)}
+				<div className="flex flex-col items-end gap-1">
+					{labelKey && (
+						<span className="text-[9px] text-muted-foreground">{labelKey}</span>
+					)}
+				</div>
 			</div>
 		</div>
 	)
