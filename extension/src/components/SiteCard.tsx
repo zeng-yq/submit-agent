@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react'
+import { Play, Trash2 } from 'lucide-react'
 import type { SiteData, SubmissionStatus } from '@/lib/types'
 
 interface SiteCardProps {
@@ -6,6 +6,7 @@ interface SiteCardProps {
 	status?: SubmissionStatus
 	onSelect?: (site: SiteData) => void
 	onDelete?: (siteName: string) => void
+	disabled?: boolean
 }
 
 const statusBar: Record<SubmissionStatus, string> = {
@@ -28,7 +29,7 @@ const statusLabelKey: Record<SubmissionStatus, string> = {
 	skipped: '已跳过',
 }
 
-export function SiteCard({ site, status = 'not_started', onSelect, onDelete }: SiteCardProps) {
+export function SiteCard({ site, status = 'not_started', onSelect, onDelete, disabled }: SiteCardProps) {
 	const hasSubmitUrl = !!site.submit_url
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
@@ -37,10 +38,9 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete }: S
 		<div
 			className={`relative flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
 				hasSubmitUrl
-					? 'cursor-pointer hover:border-primary/60 hover:bg-accent/30'
-					: 'opacity-50 cursor-default'
+					? 'hover:border-primary/60 hover:bg-accent/30'
+					: 'opacity-50'
 			}`}
-			onClick={() => onSelect?.(site)}
 		>
 			{/* Left status bar */}
 			{bar && (
@@ -56,7 +56,21 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete }: S
 			{/* Main info */}
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-1.5">
-					<span className="text-xs font-medium truncate">{site.name}</span>
+					{hasSubmitUrl ? (
+						<button
+							type="button"
+							className="text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors"
+							onClick={(e) => {
+								e.stopPropagation()
+								window.open(site.submit_url!, '_blank')
+							}}
+							title={site.submit_url!}
+						>
+							{site.name}
+						</button>
+					) : (
+						<span className="text-xs font-medium truncate">{site.name}</span>
+					)}
 					{!hasSubmitUrl && (
 						<span className="text-[9px] text-muted-foreground shrink-0">手动</span>
 					)}
@@ -68,8 +82,26 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete }: S
 				</div>
 			</div>
 
-			{/* Right: delete + status badge */}
+			{/* Right: submit + delete + status badge */}
 			<div className="shrink-0 flex items-center gap-1">
+				{onSelect && hasSubmitUrl && (
+					<button
+						type="button"
+						className={`p-1 rounded transition-colors ${
+							disabled
+								? 'text-muted-foreground/20 cursor-not-allowed'
+								: 'text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
+						}`}
+						onClick={(e) => {
+							e.stopPropagation()
+							if (!disabled) onSelect(site)
+						}}
+						disabled={disabled}
+						title="自动提交"
+					>
+						<Play className="w-3.5 h-3.5" />
+					</button>
+				)}
 				{onDelete && (
 					<button
 						type="button"

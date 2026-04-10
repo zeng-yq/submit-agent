@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import type { SiteData } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
 import { QuickCreate } from '@/components/QuickCreate'
-import { SubmitFlow } from '@/components/SubmitFlow'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { Button } from '@/components/ui/Button'
 import { useProduct } from '@/hooks/useProduct'
@@ -15,7 +14,6 @@ import { importBacklinksFromCsv } from '@/lib/backlinks'
 type View =
 	| { name: 'dashboard' }
 	| { name: 'quick-create' }
-	| { name: 'site-detail'; site: SiteData }
 	| { name: 'settings' }
 	| { name: 'float-fill' }
 	| { name: 'backlink-analysis' }
@@ -31,11 +29,8 @@ export default function App() {
 	const handleDeleteSite = useCallback(
 		async (siteName: string) => {
 			await deleteSite(siteName)
-			if (view.name === 'site-detail' && view.site.name === siteName) {
-				setView({ name: 'dashboard' })
-			}
 		},
-		[deleteSite, view]
+		[deleteSite]
 	)
 	const {
 		analyzingId,
@@ -56,6 +51,7 @@ export default function App() {
 		dismissBatch,
 	} = useBacklinkAgent()
 	const [agentError, setAgentError] = useState<string | null>(null)
+	const [currentAgentSite, setCurrentAgentSite] = useState<SiteData | null>(null)
 
 	// Batch submit state
 	const [batchCount, setBatchCount] = useState(20)
@@ -110,6 +106,36 @@ export default function App() {
 		return () => document.removeEventListener('mousedown', handler)
 	}, [dropdownOpen])
 
+	// Start a single site submission directly from dashboard
+	const handleStartSite = useCallback(async (site: SiteData) => {
+		if (!activeProduct) return
+		reset()
+		setAgentError(null)
+		setCurrentAgentSite(site)
+
+		try {
+			await startSubmission(site, activeProduct)
+			// Auto mark as submitted on success
+			await markSubmitted(site.name, activeProduct.id)
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err)
+			setAgentError(msg)
+			await markFailed(site.name, activeProduct.id, msg)
+		}
+
+		// If in batch mode, advance to next
+		if (batchModeRef.current) {
+			advanceBatch()
+		} else {
+			// Clear agent state after a short delay so user sees the completion
+			setTimeout(() => {
+				setCurrentAgentSite(null)
+				setAgentError(null)
+				reset()
+			}, 3000)
+		}
+	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
+
 	const startBatch = useCallback(() => {
 		const notStarted = sites
 			.filter((s) => !!s.submit_url && (submissions.get(s.name)?.status ?? 'not_started') === 'not_started')
@@ -125,20 +151,22 @@ export default function App() {
 		batchModeRef.current = true
 		reset()
 		setAgentError(null)
-		setView({ name: 'site-detail', site: notStarted[0] })
-	}, [sites, submissions, batchCount, reset])
+		// Start first site directly
+		handleStartSite(notStarted[0])
+	}, [sites, submissions, batchCount, reset, handleStartSite])
 
 	const stopBatch = useCallback(() => {
 		batchStopRef.current = true
 		setBatchRunning(false)
 		batchModeRef.current = false
-	}, [])
+		stop()
+	}, [stop])
 
 	const advanceBatch = useCallback(() => {
 		if (batchStopRef.current || !batchModeRef.current) {
 			setBatchRunning(false)
 			batchModeRef.current = false
-			setView({ name: 'dashboard' })
+			setCurrentAgentSite(null)
 			return
 		}
 
@@ -146,15 +174,15 @@ export default function App() {
 		if (nextIndex >= batchSites.length) {
 			setBatchRunning(false)
 			batchModeRef.current = false
-			setView({ name: 'dashboard' })
+			setCurrentAgentSite(null)
 			return
 		}
 
 		setBatchCurrentIndex(nextIndex)
 		reset()
 		setAgentError(null)
-		setView({ name: 'site-detail', site: batchSites[nextIndex] })
-	}, [batchCurrentIndex, batchSites, reset])
+		handleStartSite(batchSites[nextIndex])
+	}, [batchCurrentIndex, batchSites, reset, handleStartSite])
 
 	// Reload backlinks from DB when entering the backlink analysis view
 	useEffect(() => {
@@ -162,28 +190,6 @@ export default function App() {
 			reloadBacklinks()
 		}
 	}, [view.name, reloadBacklinks])
-
-	// Auto-start agent in batch mode
-	useEffect(() => {
-		if (!batchModeRef.current || view.name !== 'site-detail' || agentStatus !== 'idle') return
-		const site = (view as { name: 'site-detail'; site: SiteData }).site
-		if (!site || !activeProduct) return
-
-		const doStart = async () => {
-			setAgentError(null)
-			try {
-				await startSubmission(site, activeProduct)
-			} catch (err) {
-				const msg = err instanceof Error ? err.message : String(err)
-				setAgentError(msg)
-				if (batchModeRef.current && activeProduct) {
-					await markFailed(site.name, activeProduct.id, msg)
-					advanceBatch()
-				}
-			}
-		}
-		doStart()
-	}, [view.name])
 
 	if (view.name === 'settings') {
 		return (
@@ -209,55 +215,6 @@ export default function App() {
 					}}
 					onSkip={() => chrome.runtime.openOptionsPage()}
 					onOpenSettings={() => setView({ name: 'settings' })}
-				/>
-			</div>
-		)
-	}
-
-	if (view.name === 'site-detail') {
-		return (
-			<div className="flex flex-col h-screen bg-background">
-				<SubmitFlow
-					site={view.site}
-					product={activeProduct!}
-					submission={submissions.get(view.site.name)}
-					agentStatus={agentStatus}
-					agentHistory={history}
-					agentActivity={activity}
-					agentError={agentError}
-					onStartSubmit={async () => {
-						setAgentError(null)
-						try {
-							await startSubmission(view.site, activeProduct!)
-						} catch (err) {
-							setAgentError(err instanceof Error ? err.message : String(err))
-						}
-					}}
-					onStop={stop}
-					onBack={() => {
-						if (batchModeRef.current) {
-							stopBatch()
-						}
-						reset()
-						setAgentError(null)
-						setView({ name: 'dashboard' })
-					}}
-					onMarkSubmitted={async () => {
-						await markSubmitted(view.site.name, activeProduct!.id)
-						if (batchModeRef.current) {
-							advanceBatch()
-						} else {
-							setView({ name: 'dashboard' })
-						}
-					}}
-					onSkip={async () => {
-						await markSkipped(view.site.name, activeProduct!.id)
-						if (batchModeRef.current) {
-							advanceBatch()
-						} else {
-							setView({ name: 'dashboard' })
-						}
-					}}
 				/>
 			</div>
 		)
@@ -317,6 +274,7 @@ export default function App() {
 	}
 
 	const isLoading = productLoading || sitesLoading
+	const isAgentActive = agentStatus === 'running' || agentStatus === 'completed' || agentStatus === 'error' || !!agentError
 
 	return (
 		<div className="flex flex-col h-screen bg-background">
@@ -402,8 +360,8 @@ export default function App() {
 					<Dashboard
 						sites={sites}
 						submissions={submissions}
-						onSelectSite={(site) => { reset(); setAgentError(null); setView({ name: 'site-detail', site }) }}
-						onRetrySite={(site) => { reset(); setAgentError(null); setView({ name: 'site-detail', site }) }}
+						onSelectSite={handleStartSite}
+						onRetrySite={handleStartSite}
 						onDeleteSite={handleDeleteSite}
 						batchCount={batchCount}
 						onBatchCountChange={setBatchCount}
@@ -413,6 +371,12 @@ export default function App() {
 						batchCurrentSite={batchSites[batchCurrentIndex]?.name ?? ''}
 						onStartBatch={startBatch}
 						onStopBatch={stopBatch}
+						agentStatus={agentStatus}
+						agentActivity={activity}
+						agentHistory={history}
+						agentError={agentError}
+						agentSiteName={currentAgentSite?.name ?? null}
+						onStopAgent={stop}
 					/>
 				)}
 			</main>
