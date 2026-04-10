@@ -2,6 +2,7 @@
 /page-agent-main
 /memory
 extension/.env
+extension/dist
 .cursor
 .claude
 .superpowers
