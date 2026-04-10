@@ -13,11 +13,6 @@ export interface SubmitAgentConfig extends AgentConfig {
 	includeInitialTab?: boolean
 }
 
-function detectLanguage(): 'en-US' | 'zh-CN' {
-	const lang = navigator.language || navigator.languages?.[0] || 'en-US'
-	return lang.startsWith('zh') ? 'zh-CN' : 'en-US'
-}
-
 /**
  * SubmitAgent extends PageAgentCore for automated form submission.
  *
@@ -36,8 +31,8 @@ export class SubmitAgent extends PageAgentCore {
 		const pageController = new RemotePageController(tabsController)
 		const tabTools = createTabTools(tabsController)
 
-		const language = config.language ?? detectLanguage()
-		const targetLanguage = language === 'zh-CN' ? '中文' : 'English'
+		const language = 'zh-CN'
+		const targetLanguage = '中文'
 		const systemPrompt = SUBMIT_PROMPT.replace(
 			/Default working language: \*\*.*?\*\*/,
 			`Default working language: **${targetLanguage}**`

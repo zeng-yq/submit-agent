@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
-import { LanguageProvider } from '@/hooks/useLanguage'
 import '@/assets/index.css'
 
 const syncDarkMode = () => {
@@ -15,8 +14,6 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncDarkMo
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
 	<React.StrictMode>
-		<LanguageProvider>
-			<App />
-		</LanguageProvider>
+		<App />
 	</React.StrictMode>
 )

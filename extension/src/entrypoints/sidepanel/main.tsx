@@ -1,7 +1,6 @@
 import React, { Component } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
-import { LanguageProvider } from '@/hooks/useLanguage'
 import '@/assets/index.css'
 
 const syncDarkMode = () => {
@@ -34,9 +33,7 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 ReactDOM.createRoot(document.getElementById('root')!).render(
 	<React.StrictMode>
 		<ErrorBoundary>
-			<LanguageProvider>
-				<App />
-			</LanguageProvider>
+			<App />
 		</ErrorBoundary>
 	</React.StrictMode>
 )

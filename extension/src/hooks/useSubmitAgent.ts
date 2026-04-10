@@ -7,7 +7,7 @@ import type {
 import { useCallback, useRef, useState } from 'react'
 
 import { SubmitAgent, buildProductContext } from '@/agent/SubmitAgent'
-import { getLanguage, getLLMConfig } from '@/lib/storage'
+import { getLLMConfig } from '@/lib/storage'
 import type { ProductProfile, SiteData } from '@/lib/types'
 
 export interface UseSubmitAgentResult {
@@ -21,11 +21,10 @@ export interface UseSubmitAgentResult {
 }
 
 async function buildAgent(product: ProductProfile, siteName: string, includeInitialTab = false): Promise<SubmitAgent> {
-	const [llmConfig, lang] = await Promise.all([getLLMConfig(), getLanguage()])
+	const llmConfig = await getLLMConfig()
 	if (!llmConfig.baseUrl) throw new Error('LLM not configured. Please set the Base URL in Settings.')
 	if (!llmConfig.model) throw new Error('Model not configured. Please set the model name in Settings.')
 	const baseURL = llmConfig.baseUrl.replace(/\/+$/, '')
-	const language = lang === 'zh' ? 'zh-CN' : 'en-US'
 	return new SubmitAgent({
 		baseURL,
 		model: llmConfig.model,
@@ -33,7 +32,7 @@ async function buildAgent(product: ProductProfile, siteName: string, includeInit
 		product,
 		siteName,
 		includeInitialTab,
-		language,
+		language: 'zh-CN',
 	})
 }
 

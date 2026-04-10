@@ -95,7 +95,6 @@ export interface ProviderConfigs {
 /** Extension-wide settings persisted in chrome.storage.local */
 export interface ExtSettings {
 	llm: LLMSettings
-	language: 'en' | 'zh'
 	autoRewriteDesc: boolean
 }
 

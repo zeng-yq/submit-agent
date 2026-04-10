@@ -3,7 +3,6 @@ import type { ExtSettings, LLMSettings, ProviderConfigs, ProviderKey } from './t
 const STORAGE_KEYS = {
 	llmConfig: 'submitAgent_llmConfig',
 	providerConfigs: 'submitAgent_providerConfigs',
-	language: 'submitAgent_language',
 	autoRewrite: 'submitAgent_autoRewrite',
 	activeProductId: 'submitAgent_activeProductId',
 	floatButtonEnabled: 'submitAgent_floatButtonEnabled',
@@ -48,15 +47,6 @@ export async function setLLMConfig(config: LLMSettings): Promise<void> {
 	await chrome.storage.local.set({ [STORAGE_KEYS.llmConfig]: config })
 }
 
-export async function getLanguage(): Promise<'en' | 'zh'> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.language)
-	return (result[STORAGE_KEYS.language] as 'en' | 'zh') ?? 'en'
-}
-
-export async function setLanguage(lang: 'en' | 'zh'): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.language]: lang })
-}
-
 export async function getAutoRewrite(): Promise<boolean> {
 	const result = await chrome.storage.local.get(STORAGE_KEYS.autoRewrite)
 	return (result[STORAGE_KEYS.autoRewrite] as boolean) ?? true
@@ -89,10 +79,9 @@ export async function setActiveProductId(id: string | null): Promise<void> {
 }
 
 export async function getExtSettings(): Promise<ExtSettings> {
-	const [llm, language, autoRewriteDesc] = await Promise.all([
+	const [llm, autoRewriteDesc] = await Promise.all([
 		getLLMConfig(),
-		getLanguage(),
 		getAutoRewrite(),
 	])
-	return { llm, language, autoRewriteDesc }
+	return { llm, autoRewriteDesc }
 }
