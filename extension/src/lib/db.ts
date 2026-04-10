@@ -121,7 +121,7 @@ export async function deleteProduct(id: string): Promise<void> {
 export async function bulkPutProducts(records: ProductProfile[]): Promise<void> {
 	const db = await getDB()
 	const tx = db.transaction('products', 'readwrite')
-	await db.clear('products')
+	await tx.store.clear()
 	for (const record of records) {
 		await tx.store.put(record)
 	}
@@ -186,7 +186,7 @@ export async function clearSubmissions(): Promise<void> {
 export async function bulkPutSubmissions(records: SubmissionRecord[]): Promise<void> {
 	const db = await getDB()
 	const tx = db.transaction('submissions', 'readwrite')
-	await db.clear('submissions')
+	await tx.store.clear()
 	for (const record of records) {
 		await tx.store.put(record)
 	}
@@ -250,7 +250,7 @@ export async function clearSites(): Promise<void> {
 export async function bulkPutSites(records: SiteRecord[]): Promise<void> {
 	const db = await getDB()
 	const tx = db.transaction('sites', 'readwrite')
-	await db.clear('sites')
+	await tx.store.clear()
 	for (const record of records) {
 		await tx.store.put(record)
 	}
@@ -329,7 +329,7 @@ export async function clearBacklinks(): Promise<void> {
 export async function bulkPutBacklinks(records: BacklinkRecord[]): Promise<void> {
 	const db = await getDB()
 	const tx = db.transaction('backlinks', 'readwrite')
-	await db.clear('backlinks')
+	await tx.store.clear()
 	for (const record of records) {
 		await tx.store.put(record)
 	}

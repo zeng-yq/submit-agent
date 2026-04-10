@@ -48,6 +48,7 @@ export const SHEET_DEFS: Record<string, SheetDef> = {
   products: {
     tabName: 'products',
     columns: [
+      { header: 'id', key: 'id' },
       { header: 'name', key: 'name' },
       { header: 'url', key: 'url' },
       { header: 'tagline', key: 'tagline' },
@@ -67,6 +68,7 @@ export const SHEET_DEFS: Record<string, SheetDef> = {
   submissions: {
     tabName: 'submissions',
     columns: [
+      { header: 'id', key: 'id' },
       { header: 'siteName', key: 'siteName' },
       { header: 'productId', key: 'productId' },
       { header: 'status', key: 'status' },
@@ -99,6 +101,7 @@ export const SHEET_DEFS: Record<string, SheetDef> = {
   backlinks: {
     tabName: 'backlinks',
     columns: [
+      { header: 'id', key: 'id' },
       { header: 'sourceUrl', key: 'sourceUrl' },
       { header: 'sourceTitle', key: 'sourceTitle' },
       { header: 'pageAscore', key: 'pageAscore' },

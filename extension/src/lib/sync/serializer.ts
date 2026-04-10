@@ -20,16 +20,25 @@ export function serializeRow(obj: Record<string, unknown>, columns: ColumnDef[])
 }
 
 /**
- * Convert a flat row array back to a typed object.
+ * Convert a flat row array back to a typed object using header-based mapping.
  * - 'json' fields → JSON.parse (returns original value on parse failure)
  * - 'date' fields (ISO strings) → timestamp number (returns undefined if empty/invalid)
  * - other fields → restored as-is (empty string → undefined)
+ *
+ * @param colIndexMap Maps each ColumnDef index to its actual position in the row array.
+ *                    If a column's header wasn't found in the sheet, it won't be in the map.
  */
-export function deserializeRow(row: string[], columns: ColumnDef[]): Record<string, unknown> {
+export function deserializeRow(
+  row: string[],
+  columns: ColumnDef[],
+  colIndexMap: Map<number, number>,
+): Record<string, unknown> {
   const obj: Record<string, unknown> = {}
-  for (let i = 0; i < columns.length; i++) {
-    const col = columns[i]
-    const val = row[i] ?? ''
+  for (let ci = 0; ci < columns.length; ci++) {
+    const col = columns[ci]
+    const ri = colIndexMap.get(ci)
+    if (ri === undefined) continue // header not found in sheet
+    const val = row[ri] ?? ''
     if (val === '') {
       continue // leave field undefined
     }
@@ -64,7 +73,11 @@ export function serializeSheet(
 
 /**
  * Convert Sheets API response (array of arrays, first row is headers)
- * back to an array of typed objects. Skips rows shorter than header count.
+ * back to an array of typed objects.
+ *
+ * Uses header-based mapping: reads the actual header row from the sheet
+ * and maps each column by its header name, so column order in the sheet
+ * doesn't need to match the SheetDef column order.
  */
 export function deserializeSheet(
   values: string[][],
@@ -72,17 +85,30 @@ export function deserializeSheet(
 ): { records: Record<string, unknown>[]; skipped: number } {
   if (values.length <= 1) return { records: [], skipped: 0 }
 
+  const headerRow = values[0]
   const columns = sheetDef.columns
+
+  // Build header text → row-index map from the actual sheet headers
+  const headerIndex = new Map<string, number>()
+  headerRow.forEach((h, i) => headerIndex.set(h.trim(), i))
+
+  // Derive colDef-index → row-index map
+  const colIndexMap = new Map<number, number>()
+  columns.forEach((col, ci) => {
+    const ri = headerIndex.get(col.header)
+    if (ri !== undefined) colIndexMap.set(ci, ri)
+  })
+
   const records: Record<string, unknown>[] = []
   let skipped = 0
 
   for (let i = 1; i < values.length; i++) {
     const row = values[i]
-    if (!row || row.length < columns.length) {
+    if (!row || row.length === 0) {
       skipped++
       continue
     }
-    records.push(deserializeRow(row, columns))
+    records.push(deserializeRow(row, columns, colIndexMap))
   }
 
   return { records, skipped }

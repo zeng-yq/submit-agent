@@ -222,11 +222,26 @@ export function SyncPanel() {
       const result = await importFromSheets(sheetUrl)
 
       if (result.success) {
+        // Ensure records have required IDB keyPath fields
+        const products = (result.data.products as Record<string, unknown>[]).map(r => r.id ? r : { ...r, id: crypto.randomUUID() })
+        const submissions = (result.data.submissions as Record<string, unknown>[]).map(r => r.id ? r : { ...r, id: crypto.randomUUID() })
+        const now = Date.now()
+        const VALID_STATUS = new Set(['pending', 'publishable', 'not_publishable', 'skipped', 'error'])
+        const backlinks = (result.data.backlinks as Record<string, unknown>[]).map(r => ({
+          ...r,
+          id: r.id || crypto.randomUUID(),
+          pageAscore: Number(r.pageAscore) || 0,
+          status: VALID_STATUS.has(r.status as string) ? r.status : 'pending',
+          analysisLog: Array.isArray(r.analysisLog) ? r.analysisLog : [],
+          createdAt: typeof r.createdAt === 'number' ? r.createdAt : now,
+          updatedAt: typeof r.updatedAt === 'number' ? r.updatedAt : now,
+        }))
+
         await Promise.all([
-          bulkPutProducts(result.data.products as any),
-          bulkPutSubmissions(result.data.submissions as any),
+          bulkPutProducts(products as any),
+          bulkPutSubmissions(submissions as any),
           bulkPutSites(result.data.sites as any),
-          bulkPutBacklinks(result.data.backlinks as any),
+          bulkPutBacklinks(backlinks as any),
         ])
 
         let detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}, 外链: ${result.counts['backlinks'] ?? 0}`
