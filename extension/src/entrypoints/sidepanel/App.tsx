@@ -318,7 +318,7 @@ export default function App() {
 							className="text-xs font-semibold flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
 							onClick={() => setDropdownOpen((o) => !o)}
 						>
-							{activeProduct?.name ?? t('common.submitAgent')}
+							{activeProduct?.name ?? 'Submit Agent'}
 							<svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-150 ${dropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
 								<path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
 							</svg>
