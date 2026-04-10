@@ -23,7 +23,7 @@ export default function App() {
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
-	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, deleteSite } = useSites(activeProduct?.id ?? null)
+	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite } = useSites(activeProduct?.id ?? null)
 	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop, reset } = useSubmitAgent()
 
 	const handleDeleteSite = useCallback(
@@ -114,9 +114,14 @@ export default function App() {
 		setCurrentAgentSite(site)
 
 		try {
-			await startSubmission(site, activeProduct)
-			// Auto mark as submitted on success
-			await markSubmitted(site.name, activeProduct.id)
+			const result = await startSubmission(site, activeProduct)
+			if (result.success) {
+				await markSubmitted(site.name, activeProduct.id)
+			} else {
+				const msg = result.data || '提交失败'
+				setAgentError(msg)
+				await markFailed(site.name, activeProduct.id, msg)
+			}
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err)
 			setAgentError(msg)
@@ -362,6 +367,7 @@ export default function App() {
 						submissions={submissions}
 						onSelectSite={handleStartSite}
 						onRetrySite={handleStartSite}
+						onResetStatus={resetSubmission}
 						onDeleteSite={handleDeleteSite}
 						batchCount={batchCount}
 						onBatchCountChange={setBatchCount}

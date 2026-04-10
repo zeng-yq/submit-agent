@@ -9,6 +9,7 @@ interface DashboardProps {
 	submissions: Map<string, SubmissionRecord>
 	onSelectSite: (site: SiteData) => void
 	onRetrySite?: (site: SiteData) => void
+	onResetStatus?: (siteName: string) => void
 	onDeleteSite?: (siteName: string) => void
 	batchCount: number
 	onBatchCountChange: (count: number) => void
@@ -65,6 +66,7 @@ export function Dashboard({
 	submissions,
 	onSelectSite,
 	onRetrySite,
+	onResetStatus,
 	onDeleteSite,
 	batchCount,
 	onBatchCountChange,
@@ -312,6 +314,16 @@ export function Dashboard({
 											<Play className="w-3.5 h-3.5" />
 										</button>
 									)}
+									{onResetStatus && (
+										<button
+											type="button"
+											className="p-1 rounded text-muted-foreground/50 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+											onClick={(e) => { e.stopPropagation(); onResetStatus(site.name) }}
+											title="重置状态"
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+										</button>
+									)}
 									<button
 										type="button"
 										className="p-1 rounded text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
@@ -337,6 +349,7 @@ export function Dashboard({
 							status={submissions.get(site.name)?.status ?? 'not_started'}
 							onSelect={onSelectSite}
 							onDelete={onDeleteSite}
+							onResetStatus={onResetStatus}
 							disabled={isAgentActive}
 						/>
 					))

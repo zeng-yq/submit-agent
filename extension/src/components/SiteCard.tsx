@@ -6,6 +6,7 @@ interface SiteCardProps {
 	status?: SubmissionStatus
 	onSelect?: (site: SiteData) => void
 	onDelete?: (siteName: string) => void
+	onResetStatus?: (siteName: string) => void
 	disabled?: boolean
 }
 
@@ -29,7 +30,7 @@ const statusLabelKey: Record<SubmissionStatus, string> = {
 	skipped: '已跳过',
 }
 
-export function SiteCard({ site, status = 'not_started', onSelect, onDelete, disabled }: SiteCardProps) {
+export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onResetStatus, disabled }: SiteCardProps) {
 	const hasSubmitUrl = !!site.submit_url
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
@@ -119,7 +120,17 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, dis
 				)}
 				<div className="flex flex-col items-end gap-1">
 					{labelKey && (
-						<span className="text-[9px] text-muted-foreground">{labelKey}</span>
+						<button
+							type="button"
+							className="text-[9px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation()
+								onResetStatus?.(site.name)
+							}}
+							title="点击重置状态"
+						>
+							{labelKey}
+						</button>
 					)}
 				</div>
 			</div>
