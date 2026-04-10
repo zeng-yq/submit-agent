@@ -25,8 +25,18 @@ export default function App() {
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
-	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed } = useSites(activeProduct?.id ?? null)
+	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, deleteSite } = useSites(activeProduct?.id ?? null)
 	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop, reset } = useSubmitAgent()
+
+	const handleDeleteSite = useCallback(
+		async (siteName: string) => {
+			await deleteSite(siteName)
+			if (view.name === 'site-detail' && view.site.name === siteName) {
+				setView({ name: 'dashboard' })
+			}
+		},
+		[deleteSite, view]
+	)
 	const {
 		analyzingId,
 		currentStep: backlinkStep,
@@ -394,6 +404,7 @@ export default function App() {
 						submissions={submissions}
 						onSelectSite={(site) => { reset(); setAgentError(null); setView({ name: 'site-detail', site }) }}
 						onRetrySite={(site) => { reset(); setAgentError(null); setView({ name: 'site-detail', site }) }}
+						onDeleteSite={handleDeleteSite}
 						batchCount={batchCount}
 						onBatchCountChange={setBatchCount}
 						batchRunning={batchRunning}
