@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SiteData, SubmissionRecord } from '@/lib/types'
 import { loadSites } from '@/lib/sites'
-import { listSubmissionsByProduct, saveSubmission, updateSubmission } from '@/lib/db'
+import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSite, deleteSubmissionsBySite } from '@/lib/db'
 
 export interface UseSitesResult {
 	sites: SiteData[]
@@ -12,6 +12,7 @@ export interface UseSitesResult {
 	markSkipped: (siteName: string, productId: string) => Promise<void>
 	markFailed: (siteName: string, productId: string, error?: string) => Promise<void>
 	updateStatus: (record: SubmissionRecord) => Promise<void>
+	deleteSite: (siteName: string) => Promise<void>
 }
 
 export function useSites(productId: string | null): UseSitesResult {
@@ -109,6 +110,15 @@ export function useSites(productId: string | null): UseSitesResult {
 		[refresh]
 	)
 
+	const handleDeleteSite = useCallback(
+		async (siteName: string) => {
+			await deleteSite(siteName)
+			await deleteSubmissionsBySite(siteName)
+			await refresh()
+		},
+		[refresh]
+	)
+
 	return {
 		sites,
 		submissions,
@@ -118,5 +128,6 @@ export function useSites(productId: string | null): UseSitesResult {
 		markSkipped,
 		markFailed,
 		updateStatus,
+		deleteSite: handleDeleteSite,
 	}
 }
