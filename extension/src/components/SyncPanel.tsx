@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
-import { useT } from '@/hooks/useLanguage'
 import { listProducts, listSubmissions, listSites, listBacklinks } from '@/lib/db'
 import { bulkPutProducts, bulkPutSubmissions, bulkPutSites, bulkPutBacklinks } from '@/lib/db'
 import {
@@ -48,7 +47,6 @@ type SyncStatus =
   | { type: 'error'; message: string }
 
 export function SyncPanel() {
-  const t = useT()
   const [sheetUrl, setSheetUrlState] = useState('')
   const [status, setStatus] = useState<SyncStatus>({ type: 'idle' })
   const [loaded, setLoaded] = useState(false)
@@ -148,12 +146,12 @@ export function SyncPanel() {
 
   const handleExport = useCallback(async () => {
     if (!isValidSheetUrl(sheetUrl)) {
-      setStatus({ type: 'error', message: t('sync.invalidUrl') })
+      setStatus({ type: 'error', message: '请输入有效的 Google Sheet 链接' })
       return
     }
     if (!saConfigured) {
       setShowSaConfig(true)
-      setStatus({ type: 'error', message: t('sync.saNotConfiguredHint') })
+      setStatus({ type: 'error', message: '请先配置服务账号。' })
       return
     }
     await setSheetUrl(sheetUrl)
@@ -188,38 +186,33 @@ export function SyncPanel() {
       )
 
       if (result.success) {
-        const detail = t('sync.exportCounts', {
-          products: result.counts['products'] ?? 0,
-          submissions: result.counts['submissions'] ?? 0,
-          sites: result.counts['sites'] ?? 0,
-          backlinks: result.counts['backlinks'] ?? 0,
-        })
-        setStatus({ type: 'success', message: t('sync.exportSuccess'), detail })
+        const detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}, 外链: ${result.counts['backlinks'] ?? 0}`
+        setStatus({ type: 'success', message: '导出完成', detail })
       } else {
         setStatus({
           type: 'error',
-          message: result.error ?? t('sync.error', { error: 'Unknown' }),
+          message: result.error ?? `同步错误: Unknown`,
         })
       }
     } catch (err) {
       if (abortController.signal.aborted) {
-        setStatus({ type: 'error', message: t('sync.cancelled') })
+        setStatus({ type: 'error', message: '导出已取消' })
       } else {
-        setStatus({ type: 'error', message: t('sync.error', { error: String(err) }) })
+        setStatus({ type: 'error', message: `同步错误: ${String(err)}` })
       }
     } finally {
       abortControllerRef.current = null
     }
-  }, [sheetUrl, saConfigured, t, handleExportProgress])
+  }, [sheetUrl, saConfigured, handleExportProgress])
 
   const handleImport = useCallback(async () => {
     if (!isValidSheetUrl(sheetUrl)) {
-      setStatus({ type: 'error', message: t('sync.invalidUrl') })
+      setStatus({ type: 'error', message: '请输入有效的 Google Sheet 链接' })
       return
     }
     if (!saConfigured) {
       setShowSaConfig(true)
-      setStatus({ type: 'error', message: t('sync.saNotConfiguredHint') })
+      setStatus({ type: 'error', message: '请先配置服务账号。' })
       return
     }
     await setSheetUrl(sheetUrl)
@@ -236,24 +229,19 @@ export function SyncPanel() {
           bulkPutBacklinks(result.data.backlinks as any),
         ])
 
-        let detail = t('sync.importCounts', {
-          products: result.counts['products'] ?? 0,
-          submissions: result.counts['submissions'] ?? 0,
-          sites: result.counts['sites'] ?? 0,
-          backlinks: result.counts['backlinks'] ?? 0,
-        })
+        let detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}, 外链: ${result.counts['backlinks'] ?? 0}`
         if (result.skipped > 0) {
-          detail += `\n${t('sync.importSkipped', { skipped: result.skipped })}`
+          detail += `\n${result.skipped} 行因格式无效被跳过`
         }
 
-        setStatus({ type: 'success', message: t('sync.importSuccess'), detail })
+        setStatus({ type: 'success', message: '导入完成', detail })
       } else {
-        setStatus({ type: 'error', message: result.error ?? t('sync.error', { error: 'Unknown' }) })
+        setStatus({ type: 'error', message: result.error ?? `同步错误: Unknown` })
       }
     } catch (err) {
-      setStatus({ type: 'error', message: t('sync.error', { error: String(err) }) })
+      setStatus({ type: 'error', message: `同步错误: ${String(err)}` })
     }
-  }, [sheetUrl, saConfigured, t])
+  }, [sheetUrl, saConfigured])
 
   const isWorking = status.type === 'exporting' || status.type === 'importing'
   const isExporting = status.type === 'exporting'
@@ -262,7 +250,7 @@ export function SyncPanel() {
 
   return (
     <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-      <div className="text-xs font-semibold text-foreground">{t('sync.title')}</div>
+      <div className="text-xs font-semibold text-foreground">{'数据同步'}</div>
 
       {/* Service Account Configuration */}
       <button
@@ -270,10 +258,10 @@ export function SyncPanel() {
         className="w-full flex items-center justify-between text-xs text-foreground/80 hover:text-foreground transition-colors"
         onClick={() => setShowSaConfig(!showSaConfig)}
       >
-        <span>{t('sync.saConfig')}</span>
+        <span>{'服务账号'}</span>
         <div className="flex items-center gap-2">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${saConfigured ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
-            {saConfigured ? t('sync.saConnected') : t('sync.saNotConfigured')}
+            {saConfigured ? '已连接' : '未配置'}
           </span>
           <svg className={`w-3.5 h-3.5 transition-transform ${showSaConfig ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -284,8 +272,8 @@ export function SyncPanel() {
       {showSaConfig && (
         <div className="space-y-2 pl-0.5">
           <Textarea
-            label={t('sync.saJsonKey')}
-            placeholder={t('sync.saJsonKeyPlaceholder')}
+            label={'服务账号 JSON 密钥'}
+            placeholder={'粘贴你的服务账号 JSON 密钥...'}
             value={saJsonInput}
             onChange={handleSaJsonChange}
             onBlur={handleSaJsonBlur}
@@ -297,13 +285,13 @@ export function SyncPanel() {
           )}
           {saConfigured && saEmail && (
             <div className="space-y-1">
-              <div className="text-[11px] text-foreground/60">{t('sync.saEmail')}</div>
+              <div className="text-[11px] text-foreground/60">{'服务账号邮箱（将 Sheet 分享给此地址）'}</div>
               <div className="text-[11px] font-mono text-foreground/80 bg-foreground/5 rounded px-2 py-1 break-all select-all">
                 {saEmail}
               </div>
             </div>
           )}
-          <div className="text-[10px] text-foreground/50 leading-relaxed">{t('sync.saSetupGuide')}</div>
+          <div className="text-[10px] text-foreground/50 leading-relaxed">{'Google Cloud Console → IAM 与管理员 → 服务账号 → 创建服务账号 → 密钥 → 添加密钥 (JSON)。下载后将 JSON 内容粘贴到上方。'}</div>
           {saConfigured && (
             <button
               type="button"
@@ -311,7 +299,7 @@ export function SyncPanel() {
               onClick={handleDisconnect}
               disabled={isWorking}
             >
-              {t('sync.saDisconnect')}
+              {'断开连接'}
             </button>
           )}
         </div>
@@ -321,8 +309,8 @@ export function SyncPanel() {
 
       {/* Sheet URL */}
       <Input
-        label={t('sync.sheetUrl')}
-        placeholder={t('sync.sheetUrlPlaceholder')}
+        label={'Google Sheet 链接'}
+        placeholder={'https://docs.google.com/spreadsheets/d/...'}
         value={sheetUrl}
         onChange={handleUrlChange}
         onBlur={handleUrlBlur}
@@ -337,7 +325,7 @@ export function SyncPanel() {
           disabled={!sheetUrl || (isWorking && !isExporting)}
           onClick={isExporting ? handleCancelExport : handleExport}
         >
-          {isExporting ? t('sync.cancel') : t('sync.export')}
+          {isExporting ? '取消' : '上传到 Google Sheets'}
         </Button>
         <Button
           variant="outline"
@@ -346,22 +334,22 @@ export function SyncPanel() {
           disabled={!sheetUrl || isWorking}
           onClick={handleImport}
         >
-          {status.type === 'importing' ? t('sync.importing') : t('sync.import')}
+          {status.type === 'importing' ? '下载中...' : '从 Google Sheets 下载'}
         </Button>
       </div>
 
       {status.type === 'exporting' && (
         <div className="space-y-1.5 animate-in fade-in duration-200">
           <div className="text-[11px] text-foreground/60">
-            {status.phase === 'backup' && t('sync.phaseBackup')}
-            {status.phase === 'upload' && t('sync.phaseUpload')}
-            {status.phase === 'rollback' && t('sync.phaseRollback')}
+            {status.phase === 'backup' && '正在备份...'}
+            {status.phase === 'upload' && '正在上传'}
+            {status.phase === 'rollback' && '正在回滚...'}
           </div>
           {Object.entries(status.tabs).map(([tabName, tab]) => (
             <div key={tabName} className="flex items-center gap-2 text-[11px]">
               <span className="w-20 text-foreground/70">{tabName}</span>
               {tab.status === 'waiting' && (
-                <span className="text-foreground/40">{t('sync.tabWaiting')}</span>
+                <span className="text-foreground/40">{'等待中'}</span>
               )}
               {tab.status === 'uploading' && (
                 <div className="flex-1 flex items-center gap-1.5">
@@ -375,10 +363,10 @@ export function SyncPanel() {
                 </div>
               )}
               {tab.status === 'complete' && (
-                <span className="text-success">{t('sync.tabComplete')}</span>
+                <span className="text-success">{'完成'}</span>
               )}
               {tab.status === 'failed' && (
-                <span className="text-destructive">{t('sync.tabFailed')}</span>
+                <span className="text-destructive">{'失败'}</span>
               )}
             </div>
           ))}

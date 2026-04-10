@@ -2,7 +2,6 @@ import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
 import type { BatchRecord } from '@/hooks/useBacklinkAgent'
 import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
-import { useT } from '@/hooks/useLanguage'
 import { Button } from './ui/Button'
 
 interface BacklinkAnalysisProps {
@@ -23,6 +22,26 @@ interface BacklinkAnalysisProps {
 	activeBatchId: string | null
 	onSelectBatch: (id: string | null) => void
 	onDismissBatch: (id: string) => void
+}
+
+const STEP_LABELS: Record<string, string> = {
+	loading: '正在获取页面...',
+	analyzing: '正在分析内容...',
+	done: '完成',
+}
+
+const BATCH_STATUS_LABELS: Record<string, string> = {
+	running: '进行中',
+	completed: '已完成',
+	stopped: '已停止',
+}
+
+const BACKLINK_STATUS_LABELS: Record<string, string> = {
+	pending: '待分析',
+	publishable: '可发布',
+	not_publishable: '不可发布',
+	error: '错误',
+	skipped: '已跳过',
 }
 
 const DONE_STATUSES: BacklinkStatus[] = ['publishable', 'not_publishable', 'skipped']
@@ -54,7 +73,6 @@ export function BacklinkAnalysis({
 	onSelectBatch,
 	onDismissBatch,
 }: BacklinkAnalysisProps) {
-	const t = useT()
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
@@ -94,9 +112,9 @@ export function BacklinkAnalysis({
 	}
 
 	const tabs: { id: 'all' | 'done' | 'failed'; label: string; count: number }[] = [
-		{ id: 'all', label: t('backlink.all'), count: batchFiltered.length },
-		{ id: 'done', label: t('backlink.done'), count: batchFiltered.filter(b => DONE_STATUSES.includes(b.status)).length },
-		{ id: 'failed', label: t('backlink.failed'), count: batchFiltered.filter(b => b.status === 'error').length },
+		{ id: 'all', label: '全部', count: batchFiltered.length },
+		{ id: 'done', label: '已完成', count: batchFiltered.filter(b => DONE_STATUSES.includes(b.status)).length },
+		{ id: 'failed', label: '失败', count: batchFiltered.filter(b => b.status === 'error').length },
 	]
 
 	const getDomain = (url: string) => {
@@ -111,7 +129,7 @@ export function BacklinkAnalysis({
 		const text = await file.text()
 		const result = await onImportCsv(text)
 		await onReload()
-		setImportMsg(t('backlink.importResult', { imported: result.imported, skipped: result.skipped }))
+		setImportMsg(`成功导入 ${result.imported} 条新外链，${result.skipped} 条重复被跳过`)
 		if (fileInputRef.current) fileInputRef.current.value = ''
 		setTimeout(() => setImportMsg(null), 5000)
 	}
@@ -130,31 +148,31 @@ export function BacklinkAnalysis({
 			setUrlInput('')
 			urlInputRef.current?.focus()
 			if (added > 0) {
-				setImportMsg(t('backlink.addedCount', { count: added }))
+				setImportMsg(`已添加 ${added} 条`)
 				setTimeout(() => setImportMsg(null), 3000)
 			}
 		} finally {
 			setAdding(false)
 		}
-	}, [urlInput, onAddUrl, t])
+	}, [urlInput, onAddUrl])
 
 	return (
 		<div className="flex flex-col h-full">
 			{/* ── Header: title + stats ── */}
 			<header className="flex items-center justify-between px-4 py-3 shrink-0">
 				<div className="flex items-center gap-2.5">
-					<span className="text-sm font-semibold">{t('backlink.title')}</span>
+					<span className="text-sm font-semibold">{'外链分析'}</span>
 					<span className="text-xs text-muted-foreground tabular-nums">
 						{stats.analyzed}/{stats.total}
 					</span>
 					{stats.publishable > 0 && (
 						<span className="text-xs text-green-400 tabular-nums">
-							{t('backlink.statsPublishable', { count: stats.publishable })}
+							{`${stats.publishable} 条可发布`}
 						</span>
 					)}
 				</div>
 				<Button variant="ghost" size="sm" onClick={onBack}>
-					{t('common.back')}
+					{'返回'}
 				</Button>
 			</header>
 
@@ -174,7 +192,7 @@ export function BacklinkAnalysis({
 						onClick={() => fileInputRef.current?.click()}
 						disabled={isRunning}
 					>
-						{t('backlink.importCsv')}
+						{'导入 CSV'}
 					</Button>
 
 					<div className="w-px h-5 bg-border/60" />
@@ -184,7 +202,7 @@ export function BacklinkAnalysis({
 							ref={urlInputRef}
 							type="url"
 							className="flex-1 min-w-0 text-xs bg-background border border-border rounded-md px-2.5 h-7 focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
-							placeholder={t('backlink.addUrlPlaceholder')}
+							placeholder={'输入 URL，多条用逗号分隔'}
 							value={urlInput}
 							onChange={(e) => setUrlInput(e.target.value)}
 							onKeyDown={(e) => { if (e.key === 'Enter') handleAddUrl() }}
@@ -196,7 +214,7 @@ export function BacklinkAnalysis({
 							onClick={handleAddUrl}
 							disabled={adding || isRunning || !urlInput.trim()}
 						>
-							{adding ? t('backlink.adding') : t('backlink.addUrl')}
+							{adding ? '添加中...' : '添加 URL'}
 						</Button>
 					</div>
 				</div>
@@ -216,8 +234,8 @@ export function BacklinkAnalysis({
 					{analyzingBacklink ? (
 						<>
 							{isRunning
-								? t('backlink.analyzing', { current: currentIndex + 1, total: batchSize })
-								: t('backlink.analyzingSingle', { domain: getDomain(analyzingBacklink.sourceUrl) })
+								? `分析中 (${currentIndex + 1}/${batchSize})...`
+								: `正在分析 — ${getDomain(analyzingBacklink.sourceUrl)}`
 							}
 							{isRunning && (
 								<span className="text-muted-foreground/70 truncate">
@@ -228,17 +246,17 @@ export function BacklinkAnalysis({
 							{currentStep && (
 								<span className="text-muted-foreground/50 shrink-0">
 									{' — '}
-									{t(`backlink.step.${currentStep}` as any)}
+									{STEP_LABELS[currentStep] ?? currentStep}
 								</span>
 							)}
 						</>
 					) : isRunning ? (
-						t('backlink.analyzingIn')
+						'分析进行中...'
 					) : null}
 					{isRunning && (
 						<div className="ml-auto">
 							<Button variant="destructive" size="sm" onClick={onStop}>
-								{t('backlink.stopAnalysis')}
+								{'停止'}
 							</Button>
 						</div>
 					)}
@@ -272,22 +290,22 @@ export function BacklinkAnalysis({
 									)}
 									<span className="text-muted-foreground truncate">
 										{batch.status === 'running'
-											? t('backlink.batch.progress', { analyzed, total: batch.itemIds.length })
-											: t(`backlink.batch.${batch.status}` as any)
+											? `${analyzed}/${batch.itemIds.length}`
+											: BATCH_STATUS_LABELS[batch.status] ?? batch.status
 										}
 									</span>
 									<div className="flex items-center gap-1.5 shrink-0">
 										{batch.stats.publishable > 0 && (
-											<span className="text-green-400">{t('backlink.batch.publishable', { count: batch.stats.publishable })}</span>
+											<span className="text-green-400">{`${batch.stats.publishable} 可发布`}</span>
 										)}
 										{batch.stats.not_publishable > 0 && (
-											<span className="text-red-400">{t('backlink.batch.notPublishable', { count: batch.stats.not_publishable })}</span>
+											<span className="text-red-400">{`${batch.stats.not_publishable} 不可发布`}</span>
 										)}
 										{batch.stats.skipped > 0 && (
-											<span className="text-yellow-400">{t('backlink.batch.skipped', { count: batch.stats.skipped })}</span>
+											<span className="text-yellow-400">{`${batch.stats.skipped} 已跳过`}</span>
 										)}
 										{batch.stats.error > 0 && (
-											<span className="text-destructive">{t('backlink.batch.error', { count: batch.stats.error })}</span>
+											<span className="text-destructive">{`${batch.stats.error} 错误`}</span>
 										)}
 									</div>
 									<div className="ml-auto flex items-center gap-1 shrink-0">
@@ -300,7 +318,7 @@ export function BacklinkAnalysis({
 											}`}
 											onClick={() => onSelectBatch(isActive ? null : batch.id)}
 										>
-											{isActive ? t('backlink.batch.showAll') : t('backlink.batch.view')}
+											{isActive ? '查看全部' : '查看'}
 										</button>
 										<button
 											type="button"
@@ -350,7 +368,7 @@ export function BacklinkAnalysis({
 								onClick={() => onStartAnalysis(batchCount)}
 								disabled={stats.total === 0 || stats.analyzed === stats.total}
 							>
-								{t('backlink.startAnalysis')}
+								{'开始分析'}
 							</Button>
 						</div>
 					)}
@@ -361,16 +379,16 @@ export function BacklinkAnalysis({
 			<div className="flex-1 overflow-y-auto">
 				{filteredBacklinks.length === 0 ? (
 					<div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-						{t('backlink.noData')}
+						{'暂无外链数据。请导入 Semrush 导出的 CSV 文件。'}
 					</div>
 				) : (
 					<table className="w-full text-xs table-fixed">
 						<thead className="sticky top-0 bg-background">
 							<tr className="border-b border-border/60 text-muted-foreground">
-								<th className="text-left px-3 py-1.5 font-normal w-10">{t('backlink.ascore')}</th>
-								<th className="text-left px-3 py-1.5 font-normal">{t('backlink.source')}</th>
+								<th className="text-left px-3 py-1.5 font-normal w-10">{'AS'}</th>
+								<th className="text-left px-3 py-1.5 font-normal">{'来源'}</th>
 								<th className="text-left px-3 py-1.5 font-normal w-20">Status</th>
-								<th className="text-right px-3 py-1.5 font-normal w-16">{t('backlink.action')}</th>
+								<th className="text-right px-3 py-1.5 font-normal w-16">{'操作'}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -406,7 +424,7 @@ export function BacklinkAnalysis({
 														}
 													}}
 												>
-													{t(`backlink.status.${b.status}` as any)}
+													{BACKLINK_STATUS_LABELS[b.status] ?? b.status}
 												</span>
 											</td>
 											<td className="px-3 py-1.5 text-right">
@@ -423,7 +441,7 @@ export function BacklinkAnalysis({
 															<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
 														</svg>
 													) : (
-														t('backlink.analyze')
+														'分析'
 													)}
 												</Button>
 											</td>
