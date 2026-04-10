@@ -254,6 +254,17 @@ export async function bulkPutSites(records: SiteRecord[]): Promise<void> {
 	await tx.done
 }
 
+export async function deleteSubmissionsBySite(siteName: string): Promise<void> {
+	const db = await getDB()
+	const tx = db.transaction('submissions', 'readwrite')
+	let cursor = await tx.store.index('by-site').openCursor(siteName)
+	while (cursor) {
+		await cursor.delete()
+		cursor = await cursor.continue()
+	}
+	await tx.done
+}
+
 // ---- Backlink CRUD ----
 
 export async function saveBacklink(
