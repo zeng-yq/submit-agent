@@ -1,6 +1,5 @@
 import type { ProductProfile } from '@/lib/types'
 import { useCallback, useState } from 'react'
-import { useT } from '@/hooks/useLanguage'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
@@ -29,7 +28,6 @@ const EMPTY_FORM: FormData = {
 }
 
 export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }: ProductFormProps) {
-	const t = useT()
 	const [form, setForm] = useState<FormData>({ ...EMPTY_FORM, ...initial })
 	const [saving, setSaving] = useState(false)
 	const [showMore, setShowMore] = useState(false)
@@ -57,20 +55,20 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 		<form onSubmit={handleSubmit} className="space-y-3">
 			{!compact && (
 				<div className="text-sm font-semibold">
-					{initial ? t('productForm.editProduct') : t('productForm.newProduct')}
+					{initial ? '编辑产品' : '新建产品资料'}
 				</div>
 			)}
 
 			<Input
-				label={t('productForm.productName')}
-				placeholder={t('productForm.productNamePlaceholder')}
+				label={'产品名称'}
+				placeholder={'我的 AI 工具'}
 				value={form.name}
 				onChange={(e) => update('name', e.target.value)}
 				required
 			/>
 
 			<Input
-				label={t('productForm.websiteUrl')}
+				label={'网站 URL'}
 				placeholder="https://example.com"
 				type="url"
 				value={form.url}
@@ -79,16 +77,16 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 			/>
 
 			<Input
-				label={t('productForm.tagline')}
-				placeholder={t('productForm.taglinePlaceholder')}
+				label={'一句话介绍'}
+				placeholder={'一句话描述你的产品'}
 				value={form.tagline}
 				onChange={(e) => update('tagline', e.target.value)}
 				required
 			/>
 
 			<Textarea
-				label={t('productForm.shortDesc')}
-				placeholder={t('productForm.shortDescPlaceholder')}
+				label={'简短描述（约 50 词）'}
+				placeholder={'用于目录的简要产品描述...'}
 				value={form.shortDesc}
 				onChange={(e) => update('shortDesc', e.target.value)}
 				rows={textareaRows ?? 3}
@@ -96,8 +94,8 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 			/>
 
 			<Textarea
-				label={t('productForm.longDesc')}
-				placeholder={t('productForm.longDescPlaceholder')}
+				label={'详细描述（约 150 词）'}
+				placeholder={'详细的产品描述...'}
 				value={form.longDesc}
 				onChange={(e) => update('longDesc', e.target.value)}
 				rows={textareaRows ?? 5}
@@ -105,8 +103,8 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 			/>
 
 			<Input
-				label={t('productForm.categories')}
-				placeholder={t('productForm.categoriesPlaceholder')}
+				label={'分类（逗号分隔）'}
+				placeholder={'AI, 效率工具, SaaS'}
 				value={form.categories.join(', ')}
 				onChange={(e) =>
 					update(
@@ -123,7 +121,7 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 						className="text-xs text-primary hover:underline"
 						onClick={() => setShowMore((v) => !v)}
 					>
-						{showMore ? t('productForm.hideExtra') : t('productForm.moreDetails')}
+						{showMore ? '隐藏额外信息' : '更多信息（创始人、社交链接）'}
 					</button>
 					{showMore && <ExtraFields form={form} update={update} />}
 				</>
@@ -133,11 +131,11 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 
 			<div className="flex gap-2 pt-2">
 				<Button type="submit" disabled={saving || !form.name || !form.url} className={compact ? 'w-full' : ''}>
-					{saving ? t('common.saving') : submitLabel ?? (initial ? t('productForm.update') : t('productForm.createProfile'))}
+					{saving ? '保存中...' : submitLabel ?? (initial ? '更新' : '创建资料')}
 				</Button>
 				{onCancel && (
 					<Button type="button" variant="outline" onClick={onCancel}>
-						{t('common.cancel')}
+						{'取消'}
 					</Button>
 				)}
 			</div>
@@ -152,20 +150,19 @@ function ExtraFields({
 	form: FormData
 	update: <K extends keyof FormData>(key: K, value: FormData[K]) => void
 }) {
-	const t = useT()
 	return (
 		<>
 			<div className="border-t border-border pt-4 mt-4">
-				<div className="text-xs font-semibold mb-3">{t('productForm.founderInfo')}</div>
+				<div className="text-xs font-semibold mb-3">{'创始人信息'}</div>
 				<div className="space-y-3">
 					<Input
-						label={t('productForm.fullName')}
+						label={'姓名'}
 						placeholder="Jane Doe"
 						value={form.founderName}
 						onChange={(e) => update('founderName', e.target.value)}
 					/>
 					<Input
-						label={t('productForm.email')}
+						label={'邮箱'}
 						placeholder="jane@example.com"
 						type="email"
 						value={form.founderEmail}
@@ -175,7 +172,7 @@ function ExtraFields({
 			</div>
 
 			<div className="border-t border-border pt-4 mt-4">
-				<div className="text-xs font-semibold mb-3">{t('productForm.socialLinks')}</div>
+				<div className="text-xs font-semibold mb-3">{'社交链接'}</div>
 				<div className="space-y-3">
 					{['twitter', 'github', 'linkedin', 'producthunt'].map((platform) => (
 						<Input

@@ -4,9 +4,7 @@ import type {
 	HistoricalEvent,
 } from '@page-agent/core'
 import type { ProductProfile, SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
-import type { TranslationKey } from '@/lib/i18n'
 import { useState } from 'react'
-import { useT } from '@/hooks/useLanguage'
 import { Button } from './ui/Button'
 
 interface SubmitFlowProps {
@@ -24,34 +22,34 @@ interface SubmitFlowProps {
 	onBack: () => void
 }
 
-function humanizeActivity(activity: AgentActivity, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string {
+function humanizeActivity(activity: AgentActivity): string {
 	switch (activity.type) {
 		case 'thinking':
-			return t('submitFlow.activity.thinking')
+			return '思考中...'
 		case 'executing': {
 			const tool = activity.tool
-			if (tool === 'click') return t('submitFlow.activity.clicking')
-			if (tool === 'type' || tool === 'input_text') return t('submitFlow.activity.typing')
-			if (tool === 'scroll') return t('submitFlow.activity.scrolling')
-			if (tool === 'navigate' || tool === 'goto') return t('submitFlow.activity.navigating')
-			if (tool === 'select') return t('submitFlow.activity.selecting')
-			if (tool === 'screenshot' || tool === 'snapshot') return t('submitFlow.activity.reading')
-			return t('submitFlow.activity.running', { tool })
+			if (tool === 'click') return '正在点击元素...'
+			if (tool === 'type' || tool === 'input_text') return '正在输入内容...'
+			if (tool === 'scroll') return '正在滚动页面...'
+			if (tool === 'navigate' || tool === 'goto') return '正在跳转页面...'
+			if (tool === 'select') return '正在选择选项...'
+			if (tool === 'screenshot' || tool === 'snapshot') return '正在读取页面...'
+			return `正在执行：${tool}...`
 		}
 		case 'executed': {
 			const tool = activity.tool
-			if (tool === 'click') return t('submitFlow.activity.clicked')
-			if (tool === 'type' || tool === 'input_text') return t('submitFlow.activity.typed')
-			if (tool === 'scroll') return t('submitFlow.activity.scrolled')
-			if (tool === 'navigate' || tool === 'goto') return t('submitFlow.activity.navigated')
-			if (tool === 'select') return t('submitFlow.activity.selected')
-			if (tool === 'screenshot' || tool === 'snapshot') return t('submitFlow.activity.read')
-			return t('submitFlow.activity.done', { tool })
+			if (tool === 'click') return '已点击元素'
+			if (tool === 'type' || tool === 'input_text') return '已填入字段'
+			if (tool === 'scroll') return '已滚动页面'
+			if (tool === 'navigate' || tool === 'goto') return '已跳转页面'
+			if (tool === 'select') return '已选择选项'
+			if (tool === 'screenshot' || tool === 'snapshot') return '已读取页面'
+			return `已完成：${tool}`
 		}
 		case 'retrying':
-			return t('submitFlow.activity.retrying', { attempt: activity.attempt, maxAttempts: activity.maxAttempts })
+			return `重试中... (${activity.attempt}/${activity.maxAttempts})`
 		case 'error':
-			return t('submitFlow.activity.error', { message: activity.message })
+			return `错误：${activity.message}`
 		default:
 			return ''
 	}
@@ -69,7 +67,6 @@ function activityColor(activity: AgentActivity): string {
 }
 
 function DebugLog({ history }: { history: HistoricalEvent[] }) {
-	const t = useT()
 	const [expanded, setExpanded] = useState(false)
 	if (history.length === 0) return null
 	return (
@@ -78,7 +75,7 @@ function DebugLog({ history }: { history: HistoricalEvent[] }) {
 				className="text-[10px] text-muted-foreground underline underline-offset-2"
 				onClick={() => setExpanded(!expanded)}
 			>
-				{expanded ? t('submitFlow.hideDetails') : t('submitFlow.viewDetails')}
+				{expanded ? '隐藏详情' : '查看详情'}
 			</button>
 			{expanded && (
 				<div className="mt-2 max-h-48 overflow-y-auto space-y-1 rounded border border-border bg-muted/40 p-2">
@@ -86,7 +83,7 @@ function DebugLog({ history }: { history: HistoricalEvent[] }) {
 						if (event.type === 'step') {
 							return (
 								<div key={i} className="text-[10px] text-muted-foreground border-b border-border pb-1">
-									<span className="font-medium text-foreground">{t('submitFlow.stepLabel', { n: event.stepIndex + 1 })}</span>{' '}
+									<span className="font-medium text-foreground">{`步骤 ${event.stepIndex + 1}：`}</span>{' '}
 									{event.action.name}
 									{event.reflection.next_goal && (
 										<div className="truncate">→ {event.reflection.next_goal}</div>
@@ -97,7 +94,7 @@ function DebugLog({ history }: { history: HistoricalEvent[] }) {
 						if (event.type === 'error') {
 							return (
 								<div key={i} className="text-[10px] text-red-500">
-									{t('common.error')}: {event.message}
+									{'错误'}: {event.message}
 								</div>
 							)
 						}
@@ -123,7 +120,6 @@ export function SubmitFlow({
 	onSkip,
 	onBack,
 }: SubmitFlowProps) {
-	const t = useT()
 	const submissionStatus: SubmissionStatus = submission?.status ?? 'not_started'
 	const isAgentRunning = agentStatus === 'running'
 	const isCompleted = agentStatus === 'completed'
@@ -166,11 +162,11 @@ export function SubmitFlow({
 							</div>
 							<div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
 								<div className="flex items-center gap-1.5">
-									<span className="text-muted-foreground">{t('submitFlow.traffic')}</span>
+									<span className="text-muted-foreground">{'流量'}</span>
 									<span className="font-medium">{site.monthly_traffic || '—'}</span>
 								</div>
 								<div className="flex items-center gap-1.5">
-									<span className="text-muted-foreground">{t('submitFlow.pricing')}</span>
+									<span className="text-muted-foreground">{'定价'}</span>
 									<span className="font-medium capitalize">{site.pricing}</span>
 								</div>
 							</div>
@@ -182,14 +178,14 @@ export function SubmitFlow({
 						{/* Already submitted notice */}
 						{alreadySubmitted && (
 							<div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 p-3 text-xs text-green-700 dark:text-green-300">
-								{t('submitFlow.alreadySubmitted')}
+								{'你已经提交过此站点。'}
 							</div>
 						)}
 
 						{/* Submitting as */}
 						{product ? (
 							<div className="rounded-lg border border-border p-3 space-y-1">
-								<div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{t('submitFlow.submittingAs')}</div>
+								<div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{'提交产品'}</div>
 								<div className="text-xs font-medium text-foreground">{product.name}</div>
 								{(product.tagline || product.shortDesc) && (
 									<div className="text-xs text-muted-foreground line-clamp-2">{product.tagline || product.shortDesc}</div>
@@ -197,7 +193,7 @@ export function SubmitFlow({
 							</div>
 						) : (
 							<div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-3 text-xs text-amber-700 dark:text-amber-300">
-								{t('submitFlow.noProduct')}
+								{'尚无产品资料，请先在选项页创建。'}
 							</div>
 						)}
 					</>
@@ -211,17 +207,17 @@ export function SubmitFlow({
 								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
 								<span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
 							</span>
-							<span className="text-xs font-medium text-blue-700 dark:text-blue-300">{t('submitFlow.agentWorking')}</span>
+							<span className="text-xs font-medium text-blue-700 dark:text-blue-300">{'AI 正在工作...'}</span>
 							{stepCount > 0 && (
-								<span className="ml-auto text-[10px] text-blue-500 dark:text-blue-400">{t('submitFlow.steps', { count: stepCount })}</span>
+								<span className="ml-auto text-[10px] text-blue-500 dark:text-blue-400">{`${stepCount} 步`}</span>
 							)}
 						</div>
 						{agentActivity ? (
 							<div className={`text-xs ${activityColor(agentActivity)}`}>
-								{humanizeActivity(agentActivity, t)}
+								{humanizeActivity(agentActivity)}
 							</div>
 						) : (
-							<div className="text-xs text-blue-500 dark:text-blue-400">{t('submitFlow.initializing')}</div>
+							<div className="text-xs text-blue-500 dark:text-blue-400">{'初始化中...'}</div>
 						)}
 						<DebugLog history={agentHistory} />
 					</div>
@@ -233,11 +229,11 @@ export function SubmitFlow({
 						<div className="flex items-center gap-2">
 							<span className="text-green-600 dark:text-green-400 text-base">✓</span>
 							<span className="text-xs font-medium text-green-700 dark:text-green-300">
-								{t('submitFlow.formFilled')}
+								{'表单已填写 — 请检查后提交'}
 							</span>
 						</div>
 						<p className="text-xs text-green-600 dark:text-green-400">
-							{t('submitFlow.formFilledDesc')}
+							{'AI 已填写完表单。请打开页面检查各字段，然后点击最终提交按钮。'}
 						</p>
 						<DebugLog history={agentHistory} />
 					</div>
@@ -248,7 +244,7 @@ export function SubmitFlow({
 					<div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-4 space-y-2">
 						<div className="flex items-center gap-2">
 							<span className="text-red-500 text-base">✕</span>
-							<span className="text-xs font-medium text-red-700 dark:text-red-300">{t('submitFlow.somethingWrong')}</span>
+							<span className="text-xs font-medium text-red-700 dark:text-red-300">{'出了点问题'}</span>
 						</div>
 						{agentError && (
 							<p className="text-xs text-red-600 dark:text-red-400">
@@ -266,7 +262,7 @@ export function SubmitFlow({
 				{/* Running: only show Stop */}
 				{isAgentRunning && (
 					<Button variant="outline" size="sm" className="w-full" onClick={onStop}>
-						{t('submitFlow.stop')}
+						{'停止'}
 					</Button>
 				)}
 
@@ -278,11 +274,11 @@ export function SubmitFlow({
 								className="w-full"
 								onClick={() => window.open(site.submit_url!, '_blank')}
 							>
-								{t('submitFlow.openPageSubmit')}
+								{'打开页面并提交'}
 							</Button>
 						)}
 						<Button variant="outline" size="sm" className="w-full" onClick={onMarkSubmitted}>
-							{t('submitFlow.markSubmitted')}
+							{'标记为已提交'}
 						</Button>
 					</>
 				)}
@@ -296,11 +292,11 @@ export function SubmitFlow({
 								disabled={!product}
 								onClick={onStartSubmit}
 							>
-								{isError ? t('submitFlow.retryAutoSubmit') : alreadySubmitted ? t('submitFlow.reSubmit') : t('submitFlow.startAutoSubmit')}
+								{isError ? '重试自动提交' : alreadySubmitted ? '重新提交' : '开始自动提交'}
 							</Button>
 						) : (
 							<div className="text-xs text-muted-foreground text-center py-1">
-								{t('submitFlow.noSubmitUrl')}
+								{'没有直接提交链接 — 请手动提交'}
 							</div>
 						)}
 						<div className="flex gap-2">
@@ -311,7 +307,7 @@ export function SubmitFlow({
 									className="flex-1"
 									onClick={() => window.open(site.submit_url!, '_blank')}
 								>
-									{t('submitFlow.openManually')}
+									{'手动打开'}
 								</Button>
 							)}
 							<Button
@@ -320,7 +316,7 @@ export function SubmitFlow({
 								className="flex-1"
 								onClick={onSkip}
 							>
-								{t('common.skip')}
+								{'跳过'}
 							</Button>
 						</div>
 					</>

@@ -1,6 +1,4 @@
 import type { SiteData, SubmissionStatus } from '@/lib/types'
-import type { TranslationKey } from '@/lib/i18n'
-import { useT } from '@/hooks/useLanguage'
 
 interface SiteCardProps {
 	site: SiteData
@@ -18,18 +16,17 @@ const statusBar: Record<SubmissionStatus, string> = {
 	skipped: 'bg-muted-foreground/30',
 }
 
-const statusLabelKey: Record<SubmissionStatus, TranslationKey | ''> = {
+const statusLabelKey: Record<SubmissionStatus, string> = {
 	not_started: '',
-	in_progress: 'siteCard.inProgress',
-	submitted: 'siteCard.submitted',
-	approved: 'siteCard.approved',
-	rejected: 'siteCard.rejected',
-	failed: 'siteCard.failed',
-	skipped: 'siteCard.skipped',
+	in_progress: '进行中',
+	submitted: '已提交',
+	approved: '已通过',
+	rejected: '已拒绝',
+	failed: '失败',
+	skipped: '已跳过',
 }
 
 export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardProps) {
-	const t = useT()
 	const hasSubmitUrl = !!site.submit_url
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
@@ -59,7 +56,7 @@ export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardPro
 				<div className="flex items-center gap-1.5">
 					<span className="text-xs font-medium truncate">{site.name}</span>
 					{!hasSubmitUrl && (
-						<span className="text-[9px] text-muted-foreground shrink-0">{t('siteCard.manual')}</span>
+						<span className="text-[9px] text-muted-foreground shrink-0">手动</span>
 					)}
 				</div>
 				<div className="flex items-center gap-1.5 mt-0.5">
@@ -77,7 +74,7 @@ export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardPro
 					</span>
 				)}
 				{labelKey && (
-					<span className="text-[9px] text-muted-foreground">{t(labelKey)}</span>
+					<span className="text-[9px] text-muted-foreground">{labelKey}</span>
 				)}
 			</div>
 		</div>

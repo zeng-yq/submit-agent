@@ -1,8 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { getLLMConfig } from '@/lib/storage'
 import { generateProfile, type GeneratedProfile, type GenerateProgressStep } from '@/lib/profile-generator'
-import { useT } from '@/hooks/useLanguage'
-import type { TranslationKey } from '@/lib/i18n'
 import { ProductForm, type FormData } from './ProductForm'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -15,16 +13,17 @@ interface QuickCreateProps {
 
 type Step = 'input' | 'generating' | 'review' | 'error'
 
-const PROGRESS_STEP_KEYS: { key: GenerateProgressStep; labelKey: TranslationKey }[] = [
-	{ key: 'fetching', labelKey: 'quickCreate.fetching' },
-	{ key: 'parsing', labelKey: 'quickCreate.parsing' },
-	{ key: 'analyzing', labelKey: 'quickCreate.aiAnalyzing' },
-	{ key: 'generating', labelKey: 'quickCreate.building' },
-	{ key: 'done', labelKey: 'quickCreate.profileReady' },
-]
+const PROGRESS_STEP_LABELS: Record<GenerateProgressStep, string> = {
+	fetching: '正在获取网页内容...',
+	parsing: '正在解析页面结构...',
+	analyzing: '正在用 AI 分析产品...',
+	generating: '正在生成目录资料...',
+	done: '资料已就绪！',
+}
+
+const PROGRESS_STEP_ORDER: GenerateProgressStep[] = ['fetching', 'parsing', 'analyzing', 'generating', 'done']
 
 function StepIndicator({ current }: { current: 1 | 2 }) {
-	const t = useT()
 	return (
 		<div className="flex items-center gap-3">
 			<div className="flex items-center gap-2">
@@ -32,7 +31,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 					current >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
 				}`}>1</div>
 				<span className={`text-sm ${ current === 1 ? 'font-medium text-foreground' : 'text-muted-foreground' }`}>
-					{t('quickCreate.step1')}
+					{'你的产品'}
 				</span>
 			</div>
 			<div className="flex-1 h-px bg-border" />
@@ -41,7 +40,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 					current >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
 				}`}>2</div>
 				<span className={`text-sm ${ current === 2 ? 'font-medium text-foreground' : 'text-muted-foreground' }`}>
-					{t('quickCreate.step2')}
+					{'确认资料'}
 				</span>
 			</div>
 		</div>
@@ -49,20 +48,19 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 }
 
 function GeneratingView({ currentStep, onCancel }: { currentStep: GenerateProgressStep | null; onCancel: () => void }) {
-	const t = useT()
-	const currentIndex = PROGRESS_STEP_KEYS.findIndex((s) => s.key === currentStep)
+	const currentIndex = PROGRESS_STEP_ORDER.findIndex((s) => s === currentStep)
 
 	return (
 		<div className="flex flex-col pt-16 px-6">
 			<div className="text-lg font-semibold tracking-tight text-foreground mb-6">
-				{t('quickCreate.analyzing')}
+				{'正在分析你的产品...'}
 			</div>
 			<div className="flex flex-col gap-3.5">
-				{PROGRESS_STEP_KEYS.filter((s) => s.key !== 'done').map((s, i) => {
+				{PROGRESS_STEP_ORDER.filter((s) => s !== 'done').map((key, i) => {
 					const isDone = currentIndex > i
 					const isActive = currentIndex === i
 					return (
-						<div key={s.key} className={`flex items-center gap-3 text-sm transition-colors duration-200 ${
+						<div key={key} className={`flex items-center gap-3 text-sm transition-colors duration-200 ${
 							isDone ? 'text-success'
 							: isActive ? 'text-foreground font-medium'
 							: 'text-muted-foreground/50'
@@ -82,14 +80,14 @@ function GeneratingView({ currentStep, onCancel }: { currentStep: GenerateProgre
 									</svg>
 								</span>
 							)}
-							<span>{t(s.labelKey)}</span>
+							<span>{PROGRESS_STEP_LABELS[key]}</span>
 						</div>
 					)
 				})}
 			</div>
 			<div className="mt-10">
 				<Button variant="ghost" size="sm" onClick={onCancel} className="w-full text-muted-foreground">
-					{t('common.cancel')}
+					{'取消'}
 				</Button>
 			</div>
 		</div>
@@ -106,7 +104,6 @@ function SpinnerIcon() {
 }
 
 export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps) {
-	const t = useT()
 	const [url, setUrl] = useState('')
 	const [step, setStep] = useState<Step>('input')
 	const [profile, setProfile] = useState<GeneratedProfile | null>(null)
@@ -138,10 +135,10 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 			setStep('review')
 		} catch (err) {
 			if ((err as Error)?.name === 'AbortError') return
-			setError((err as Error)?.message ?? t('common.error'))
+			setError((err as Error)?.message ?? '错误')
 			setStep('error')
 		}
-	}, [url, t])
+	}, [url])
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
@@ -179,7 +176,7 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 						initial={initial}
 						compact
 						onSave={onSave}
-						submitLabel={t('quickCreate.saveAndStart')}
+						submitLabel={'保存并开始提交'}
 					/>
 				</div>
 			</div>
@@ -199,19 +196,19 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 			<div className="flex-1 overflow-y-auto">
 				<div className="flex flex-col pt-16 px-6">
 					<h1 className="text-xl font-semibold tracking-tight text-foreground">
-						{t('quickCreate.addProduct')}
+						{'添加你的产品'}
 					</h1>
 					<p className="text-sm text-muted-foreground mt-2 mb-10">
-						{t('quickCreate.addProductDesc')}
+						{'输入产品 URL，AI 将自动分析页面并创建提交资料。'}
 					</p>
 
 					{llmReady === false && (
 						<div className="text-sm text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/50 rounded-lg p-4 mb-6 space-y-2">
-							<div className="font-medium">{t('quickCreate.llmNotConfigured')}</div>
-							<div className="text-amber-600 dark:text-amber-400 text-xs">{t('quickCreate.llmNotConfiguredDesc')}</div>
+							<div className="font-medium">{'LLM 未配置'}</div>
+							<div className="text-amber-600 dark:text-amber-400 text-xs">{'请先在设置中配置 LLM 才能使用 AI 功能。'}</div>
 							{onOpenSettings && (
 								<Button size="sm" className="w-full mt-1" onClick={onOpenSettings}>
-									{t('quickCreate.openSettings')}
+									{'打开设置'}
 								</Button>
 							)}
 						</div>
@@ -238,7 +235,7 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 						onClick={handleGenerate}
 						disabled={!url.trim() || llmReady === false}
 					>
-						{t('quickCreate.generateProfile')}
+						{'生成资料'}
 					</Button>
 
 					<button
@@ -246,7 +243,7 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 						className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors mt-6 cursor-pointer"
 						onClick={onSkip}
 					>
-						{t('quickCreate.orManually')}
+						{'或手动创建资料'}
 					</button>
 				</div>
 			</div>
