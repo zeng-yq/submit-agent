@@ -9,7 +9,6 @@ import { useProduct } from '@/hooks/useProduct'
 import { useSites } from '@/hooks/useSites'
 import { useSubmitAgent } from '@/hooks/useSubmitAgent'
 import { useBacklinkAgent } from '@/hooks/useBacklinkAgent'
-import { useT } from '@/hooks/useLanguage'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 
@@ -22,7 +21,6 @@ type View =
 	| { name: 'backlink-analysis' }
 
 export default function App() {
-	const t = useT()
 	const [view, setView] = useState<View>({ name: 'dashboard' })
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
@@ -189,9 +187,9 @@ export default function App() {
 		return (
 			<div className="flex flex-col h-screen bg-background">
 				<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-					<span className="text-base font-semibold">{t('common.submitAgent')}</span>
+					<span className="text-base font-semibold">{'Submit Agent'}</span>
 					<Button variant="ghost" size="sm" onClick={() => setView({ name: 'dashboard' })}>
-						{t('common.back')}
+						{'返回'}
 					</Button>
 				</header>
 				<QuickCreate
@@ -288,9 +286,9 @@ export default function App() {
 		return (
 			<div className="flex flex-col h-screen bg-background">
 				<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-					<span className="text-base font-semibold">{t('sidepanel.autoFilling')}</span>
+					<span className="text-base font-semibold">{'正在自动填写表单...'}</span>
 					<Button variant="ghost" size="sm" onClick={() => { stop(); setView({ name: 'dashboard' }) }}>
-						{t('common.cancel')}
+						{'取消'}
 					</Button>
 				</header>
 				<div className="flex-1 p-3 space-y-2">
@@ -298,8 +296,8 @@ export default function App() {
 						<div className="text-xs text-destructive bg-destructive/10 rounded p-2">{agentError}</div>
 					) : (
 						<div className="text-xs text-muted-foreground">
-							<div className="font-medium text-foreground mb-1">{t('sidepanel.product')} {activeProduct?.name}</div>
-							<div>{t('sidepanel.status')} {agentStatus}</div>
+							<div className="font-medium text-foreground mb-1">{'产品：'} {activeProduct?.name}</div>
+							<div>{'状态：'} {agentStatus}</div>
 							{activity && <div className="mt-1 text-xs">{activity.type}: {JSON.stringify(activity).slice(0, 80)}</div>}
 						</div>
 					)}
@@ -345,7 +343,7 @@ export default function App() {
 									className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
 									onClick={() => { setView({ name: 'quick-create' }); setDropdownOpen(false) }}
 								>
-									{t('common.addProduct')}
+									{'+ 添加产品'}
 								</button>
 							</div>
 						)}
@@ -356,21 +354,21 @@ export default function App() {
 							size="sm"
 							onClick={() => setView({ name: 'backlink-analysis' })}
 						>
-							{t('backlink.title')}
+							{'外链分析'}
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={() => chrome.runtime.openOptionsPage()}
 						>
-							{t('common.products')}
+							{'产品管理'}
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={() => setView({ name: 'settings' })}
 						>
-							{t('common.settings')}
+							{'设置'}
 						</Button>
 					</div>
 				</div>
@@ -379,7 +377,7 @@ export default function App() {
 			<main className={`flex-1 overflow-hidden ${activeProduct ? 'p-3' : ''}`}>
 				{isLoading ? (
 					<div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-						{t('common.loading')}
+						{'加载中...'}
 					</div>
 				) : !activeProduct ? (
 					<QuickCreate

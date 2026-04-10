@@ -1,6 +1,5 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
 import { useMemo, useState } from 'react'
-import { useT } from '@/hooks/useLanguage'
 import { SiteCard } from './SiteCard'
 
 interface DashboardProps {
@@ -36,7 +35,6 @@ export function Dashboard({
 	onStartBatch,
 	onStopBatch,
 }: DashboardProps) {
-	const t = useT()
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
 
@@ -77,9 +75,9 @@ export function Dashboard({
 	const pct = stats.total > 0 ? Math.round((stats.submitted / stats.total) * 100) : 0
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
-		{ id: 'all', label: t('dashboard.all'), count: allSites.length },
-		{ id: 'done', label: t('dashboard.done'), count: doneSites.length },
-		{ id: 'failed', label: t('dashboard.failed'), count: failedSites.length },
+		{ id: 'all', label: '全部', count: allSites.length },
+		{ id: 'done', label: '已完成', count: doneSites.length },
+		{ id: 'failed', label: '失败', count: failedSites.length },
 	]
 
 	const displaySites =
@@ -91,7 +89,7 @@ export function Dashboard({
 			<div className="px-1 space-y-1">
 				<div className="flex items-center justify-between">
 					<span className="text-xs font-medium">
-						{t('dashboard.submitted', { submitted: stats.submitted, total: stats.total })}
+						{`已提交 ${stats.submitted} / ${stats.total}`}
 					</span>
 					<span className="text-xs text-muted-foreground">{pct}%</span>
 				</div>
@@ -122,17 +120,13 @@ export function Dashboard({
 				))}
 				{batchRunning ? (
 					<span className="ml-auto text-xs text-blue-600 dark:text-blue-400 shrink-0 py-1">
-						{t('dashboard.batchProgress', {
-							current: batchCurrentIndex,
-							total: batchTotal,
-							site: batchCurrentSite,
-						})}
+						{`正在提交 ${batchCurrentIndex}/${batchTotal}  ${batchCurrentSite}`}
 						<button
 							type="button"
 							className="ml-2 text-xs text-red-600 dark:text-red-400 hover:underline"
 							onClick={onStopBatch}
 						>
-							{t('dashboard.stopBatch')}
+							{'停止'}
 						</button>
 					</span>
 				) : (
@@ -151,7 +145,7 @@ export function Dashboard({
 							className="text-xs font-medium bg-primary text-primary-foreground rounded-md px-2.5 h-7 hover:bg-primary/90 transition-colors"
 							onClick={onStartBatch}
 						>
-							{t('dashboard.startBatch')}
+							{'开始提交'}
 						</button>
 					</div>
 				)}
@@ -161,7 +155,7 @@ export function Dashboard({
 			{tab === 'all' && (
 				<input
 					type="text"
-					placeholder={t('dashboard.searchPlaceholder')}
+					placeholder={'搜索站点...'}
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
 					className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -197,7 +191,7 @@ export function Dashboard({
 										</div>
 									)}
 								</div>
-								<span className="text-[10px] text-primary shrink-0 mt-0.5">{t('submitFlow.retryAutoSubmit')}</span>
+								<span className="text-[10px] text-primary shrink-0 mt-0.5">{'重试自动提交'}</span>
 							</div>
 						)
 					})
@@ -213,9 +207,9 @@ export function Dashboard({
 				)}
 				{displaySites.length === 0 && (
 					<div className="text-center text-xs text-muted-foreground py-8">
-						{tab === 'all' && t('dashboard.emptyAll')}
-						{tab === 'done' && t('dashboard.emptyDone')}
-						{tab === 'failed' && t('dashboard.emptyFailed')}
+						{tab === 'all' && '没有匹配的站点'}
+						{tab === 'done' && '暂无已提交或跳过的站点'}
+						{tab === 'failed' && '暂无失败记录'}
 					</div>
 				)}
 			</div>

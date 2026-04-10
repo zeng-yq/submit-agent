@@ -1,34 +1,31 @@
 import type { LLMSettings, ProviderKey } from '@/lib/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getProviderConfigs, setProviderConfigs, getFloatButtonEnabled } from '@/lib/storage'
-import { useLocale, useT } from '@/hooks/useLanguage'
 import { testLLMConnection, type TestResult } from '@/lib/llm-test'
-import type { TranslationKey } from '@/lib/i18n'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
-import { Select } from './ui/Select'
 import { SyncPanel } from './SyncPanel'
 
 interface SettingsPanelProps {
 	onClose: () => void
 }
 
-const PROVIDER_LABELS: Record<ProviderKey, TranslationKey> = {
-	openrouter: 'settings.providerOpenRouter',
-	openai: 'settings.providerOpenAI',
-	deepseek: 'settings.providerDeepSeek',
-	custom: 'settings.providerCustom',
+const PROVIDER_LABELS: Record<ProviderKey, string> = {
+	openrouter: 'OpenRouter',
+	openai: 'OpenAI',
+	deepseek: 'DeepSeek',
+	custom: '自定义',
 }
 
 const PROVIDER_ORDER: ProviderKey[] = ['openrouter', 'openai', 'deepseek', 'custom']
 
-const TEST_ERROR_KEYS: Record<string, TranslationKey> = {
-	unreachable: 'settings.errUnreachable',
-	unauthorized: 'settings.errUnauthorized',
-	not_found: 'settings.errNotFound',
-	model_not_found: 'settings.errModelNotFound',
-	rate_limit: 'settings.errRateLimit',
-	unknown: 'settings.errUnknown',
+const TEST_ERROR_KEYS: Record<string, string> = {
+	unreachable: '无法连接 API 端点，请检查 Base URL。',
+	unauthorized: 'API Key 无效，请检查后重试。',
+	not_found: '找不到 API 端点，请检查 Base URL 格式。',
+	model_not_found: '找不到该模型，请检查模型名称。',
+	rate_limit: '请求频率过高，API Key 有效但被限流。',
+	unknown: '未知错误',
 }
 
 type TestState =
@@ -71,8 +68,6 @@ function SpinnerIcon() {
 }
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
-	const t = useT()
-	const { locale, setLocale } = useLocale()
 	const [activeProvider, setActiveProvider] = useState<ProviderKey>('openrouter')
 	const [configs, setConfigs] = useState<Record<ProviderKey, LLMSettings>>({
 		openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
@@ -80,7 +75,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 		deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
 		custom: { apiKey: '', baseUrl: '', model: '' },
 	})
-	const [lang, setLang] = useState(locale)
 	const [floatEnabled, setFloatEnabled] = useState(true)
 	const [saving, setSaving] = useState(false)
 	const [loaded, setLoaded] = useState(false)
@@ -140,13 +134,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 		setSaving(true)
 		try {
 			await setProviderConfigs({ active: activeProvider, configs })
-			setLocale(lang)
 			chrome.runtime.sendMessage({ type: 'FLOAT_BUTTON_TOGGLE', enabled: floatEnabled }).catch(() => {})
 			onClose()
 		} finally {
 			setSaving(false)
 		}
-	}, [activeProvider, configs, lang, floatEnabled, onClose, setLocale])
+	}, [activeProvider, configs, floatEnabled, onClose])
 
 	const currentConfig = configs[activeProvider]
 	const hasValidConfig = !!(currentConfig.baseUrl && currentConfig.model)
@@ -154,15 +147,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 	const canTest = hasValidConfig
 
 	if (!loaded) {
-		return <div className="p-4 text-xs text-muted-foreground">{t('common.loading')}</div>
+		return <div className="p-4 text-xs text-muted-foreground">{'加载中...'}</div>
 	}
 
 	return (
 		<div className="flex flex-col h-full">
 			<header className="flex items-center justify-between border-b px-3 py-2">
-				<span className="text-sm font-semibold">{t('settings.title')}</span>
+				<span className="text-sm font-semibold">{'设置'}</span>
 				<Button variant="ghost" size="sm" onClick={onClose}>
-					{t('common.back')}
+					{'返回'}
 				</Button>
 			</header>
 
@@ -172,7 +165,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
 				{/* AI Model Configuration */}
 				<div className="rounded-lg border border-border bg-card p-3 space-y-3">
-					<div className="text-xs font-semibold text-foreground">{t('settings.aiModelConfig')}</div>
+					<div className="text-xs font-semibold text-foreground">{'AI 模型'}</div>
 
 					{/* Provider preset pills */}
 					<div className="flex flex-wrap gap-1.5">
@@ -187,7 +180,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 										: 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
 								}`}
 							>
-								{t(PROVIDER_LABELS[key])}
+								{PROVIDER_LABELS[key]}
 							</button>
 						))}
 					</div>
@@ -195,15 +188,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 					{/* LLM fields — each provider has its own independent values */}
 					<div className="space-y-3 transition-opacity duration-150">
 						<Input
-							label={t('settings.baseUrl')}
+							label={'Base URL'}
 							placeholder="https://api.openai.com/v1"
 							value={currentConfig.baseUrl}
 							onChange={(e) => handleFieldChange('baseUrl', e.target.value)}
 						/>
 
 						<Input
-							label={t('settings.apiKey')}
-							placeholder={t('settings.apiKeyPlaceholder')}
+							label={'API Key'}
+							placeholder={'sk-...'}
 							type={showApiKey ? 'text' : 'password'}
 							value={currentConfig.apiKey}
 							onChange={(e) => handleFieldChange('apiKey', e.target.value)}
@@ -220,7 +213,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 						/>
 
 						<Input
-							label={t('settings.model')}
+							label={'模型'}
 							placeholder="gpt-4o-mini"
 							value={currentConfig.model}
 							onChange={(e) => handleFieldChange('model', e.target.value)}
@@ -239,27 +232,27 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 							{testState.status === 'testing' ? (
 								<>
 									<SpinnerIcon />
-									{t('settings.testing')}
+									{'测试中...'}
 								</>
 							) : (
-								t('settings.testConnection')
+								'测试连接'
 							)}
 						</Button>
 
 						{testState.status === 'success' && (
 							<div className="flex items-center gap-1.5 text-xs text-success animate-in fade-in duration-200">
 								<CheckIcon />
-								{t('settings.testSuccess')}
+								{'连接成功！'}
 							</div>
 						)}
 
 						{testState.status === 'error' && (
 							<div className="text-xs text-destructive bg-destructive/8 rounded-lg px-3 py-2 animate-in fade-in duration-200">
-								<div className="font-medium mb-0.5">{t('settings.testFailed')}</div>
+								<div className="font-medium mb-0.5">{'连接失败'}</div>
 								<div className="text-destructive/80">
 									{testState.result.code === 'unknown'
-										? t(TEST_ERROR_KEYS[testState.result.code], { detail: testState.result.detail ?? '' })
-										: t(TEST_ERROR_KEYS[testState.result.code])}
+										? `${TEST_ERROR_KEYS[testState.result.code]}：${testState.result.detail ?? ""}`
+										: TEST_ERROR_KEYS[testState.result.code]}
 								</div>
 							</div>
 						)}
@@ -268,27 +261,17 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 					{/* Model required hint */}
 					{currentConfig.baseUrl && !currentConfig.model && (
 						<div className="text-xs text-amber-600 dark:text-amber-400">
-							{t('settings.modelRequired')}
+							{'设置了 Base URL 后需要填写模型名称'}
 						</div>
 					)}
 				</div>
 
 				{/* Preferences */}
 				<div className="rounded-lg border border-border bg-card p-3 space-y-3">
-					<div className="text-xs font-semibold text-foreground">{t('settings.preferences')}</div>
-
-					<Select
-						label={t('settings.language')}
-						value={lang}
-						onChange={(e) => setLang(e.target.value as 'en' | 'zh')}
-						options={[
-							{ value: 'en', label: 'English' },
-							{ value: 'zh', label: '中文' },
-						]}
-					/>
+					<div className="text-xs font-semibold text-foreground">{'偏好设置'}</div>
 
 					<div className="flex items-center justify-between pt-1">
-						<span className="text-xs font-medium text-foreground">{t('settings.showFloatButton')}</span>
+						<span className="text-xs font-medium text-foreground">{'显示悬浮按钮'}</span>
 						<button
 							type="button"
 							role="switch"
@@ -314,7 +297,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 					disabled={saving || !canSave}
 					className="w-full"
 				>
-					{saving ? t('common.saving') : t('settings.saveSettings')}
+					{saving ? '保存中...' : '保存设置'}
 				</Button>
 			</footer>
 		</div>

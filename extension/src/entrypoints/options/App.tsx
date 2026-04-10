@@ -10,13 +10,11 @@ import { useProduct } from '@/hooks/useProduct'
 import { generateProfile, type GeneratedProfile } from '@/lib/profile-generator'
 import { isLLMConfigured } from '@/agent/constants'
 import { getLLMConfig } from '@/lib/storage'
-import { useT } from '@/hooks/useLanguage'
 
 type View = { name: 'list' } | { name: 'create' } | { name: 'edit'; product: ProductProfile }
 type CreateStep = 'url-input' | 'generating' | 'review' | 'manual'
 
 function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<void>; onCancel: () => void }) {
-	const t = useT()
 	const [step, setStep] = useState<CreateStep>('url-input')
 	const [url, setUrl] = useState('')
 	const [profile, setProfile] = useState<GeneratedProfile | null>(null)
@@ -46,23 +44,23 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 			setStep('review')
 		} catch (err) {
 			if ((err as Error).name === 'AbortError') return
-			setError((err as Error).message || t('options.generationFailed'))
+			setError((err as Error).message || '生成失败')
 			setStep('url-input')
 		}
-	}, [url, t])
+	}, [url])
 
 	if (step === 'review' && profile) {
 		return (
 			<div>
 				<div className="flex items-center gap-2 mb-6">
-					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => { setStep('url-input'); setProfile(null) }}>{t('options.backToList')}</button>
-					<span className="text-sm text-muted-foreground">{t('options.reviewProfile')}</span>
+					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => { setStep('url-input'); setProfile(null) }}>{'← 返回'}</button>
+					<span className="text-sm text-muted-foreground">{'审核 AI 生成的资料'}</span>
 				</div>
 				<ProductForm
 					initial={profile as FormData}
 					onSave={onSave}
 					onCancel={onCancel}
-					submitLabel={t('options.saveProduct')}
+					submitLabel={'保存产品'}
 				/>
 			</div>
 		)
@@ -72,10 +70,10 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 		return (
 			<div>
 				<div className="flex items-center gap-2 mb-6">
-					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setStep('url-input')}>{t('options.backToList')}</button>
-					<span className="text-sm text-muted-foreground">{t('options.newProductLabel')}</span>
+					<button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setStep('url-input')}>{'← 返回'}</button>
+					<span className="text-sm text-muted-foreground">{'新产品'}</span>
 				</div>
-				<ProductForm onSave={onSave} onCancel={onCancel} submitLabel={t('options.saveProduct')} />
+				<ProductForm onSave={onSave} onCancel={onCancel} submitLabel={'保存产品'} />
 			</div>
 		)
 	}
@@ -83,13 +81,13 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 	return (
 		<div className="max-w-md">
 			<div className="flex items-center gap-2 mb-6">
-				<button className="text-sm text-muted-foreground hover:text-foreground" onClick={onCancel}>{t('options.backToList')}</button>
-				<span className="text-sm font-medium">{t('options.newProductLabel')}</span>
+				<button className="text-sm text-muted-foreground hover:text-foreground" onClick={onCancel}>{'← 返回'}</button>
+				<span className="text-sm font-medium">{'新产品'}</span>
 			</div>
 			<div className="space-y-4">
 				<div>
-					<h2 className="text-base font-semibold">{t('options.urlTitle')}</h2>
-					<p className="text-sm text-muted-foreground mt-1">{t('options.urlDesc')}</p>
+					<h2 className="text-base font-semibold">{'你的产品 URL 是什么？'}</h2>
+					<p className="text-sm text-muted-foreground mt-1">{'AI 将读取你的网站并自动生成资料。'}</p>
 				</div>
 				<Input
 					placeholder="https://your-product.com"
@@ -104,7 +102,7 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 				)}
 				{llmReady === false && (
 					<div className="text-xs text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 rounded p-3">
-						{t('options.llmRequired')}
+						{'AI 生成功能需要在设置中配置 LLM API。'}
 					</div>
 				)}
 				<Button
@@ -112,14 +110,14 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 					onClick={handleGenerate}
 					disabled={!url.trim() || step === 'generating' || llmReady === false}
 				>
-					{step === 'generating' ? t('options.analyzingProduct') : t('options.generateWithAi')}
+					{step === 'generating' ? '正在分析你的产品...' : '用 AI 生成资料'}
 				</Button>
 				<button
 					type="button"
 					className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
 					onClick={() => setStep('manual')}
 				>
-					{t('options.orManually')}
+					{'或手动填写'}
 				</button>
 			</div>
 		</div>
@@ -127,7 +125,6 @@ function CreateView({ onSave, onCancel }: { onSave: (data: FormData) => Promise<
 }
 
 export default function App() {
-	const t = useT()
 	const [view, setView] = useState<View>({ name: 'list' })
 	const { products, activeProduct, loading, createProduct, editProduct, deleteProduct, setActive } =
 		useProduct()
@@ -165,24 +162,24 @@ export default function App() {
 		<div className="max-w-2xl mx-auto p-6">
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<h1 className="text-xl font-bold">{t('options.title')}</h1>
+					<h1 className="text-xl font-bold">{'Submit Agent'}</h1>
 					<p className="text-sm text-muted-foreground mt-1">
-						{t('options.subtitle')}
+						{'管理你的产品资料，用于自动提交'}
 					</p>
 				</div>
-				<Button onClick={() => setView({ name: 'create' })}>{t('options.newProduct')}</Button>
+				<Button onClick={() => setView({ name: 'create' })}>{'新建产品'}</Button>
 			</div>
 
 			{loading ? (
-				<div className="text-sm text-muted-foreground">{t('common.loading')}</div>
+				<div className="text-sm text-muted-foreground">{'加载中...'}</div>
 			) : products.length === 0 ? (
 				<Card>
 					<CardContent className="py-8 text-center">
 						<div className="text-sm text-muted-foreground mb-3">
-							{t('options.noProducts')}
+							{'暂无产品资料，创建一个开始提交吧。'}
 						</div>
 						<Button size="sm" onClick={() => setView({ name: 'create' })}>
-							{t('options.createFirst')}
+							{'创建第一个产品资料'}
 						</Button>
 					</CardContent>
 				</Card>
@@ -198,7 +195,7 @@ export default function App() {
 								<CardHeader>
 									<div className="flex items-center gap-2">
 										<CardTitle>{product.name}</CardTitle>
-										{isActive && <Badge variant="default">{t('options.active')}</Badge>}
+										{isActive && <Badge variant="default">{'当前使用'}</Badge>}
 									</div>
 									<div className="flex gap-1">
 										{!isActive && (
@@ -207,7 +204,7 @@ export default function App() {
 												size="sm"
 												onClick={() => setActive(product.id)}
 											>
-												{t('options.setActive')}
+												{'设为当前'}
 											</Button>
 										)}
 										<Button
@@ -215,19 +212,19 @@ export default function App() {
 											size="sm"
 											onClick={() => setView({ name: 'edit', product })}
 										>
-											{t('common.edit')}
+											{'编辑'}
 										</Button>
 										<Button
 											variant="ghost"
 											size="sm"
 											className="text-destructive"
 											onClick={() => {
-												if (confirm(t('options.confirmDelete', { name: product.name }))) {
+												if (confirm(`确定删除「${product.name}」？`)) {
 													deleteProduct(product.id)
 												}
 											}}
 										>
-											{t('common.delete')}
+											{'删除'}
 										</Button>
 									</div>
 								</CardHeader>
