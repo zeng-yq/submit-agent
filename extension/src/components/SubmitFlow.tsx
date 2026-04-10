@@ -142,11 +142,6 @@ export function SubmitFlow({
 				<span className="text-xs text-muted-foreground shrink-0">
 					DR {site.dr}
 				</span>
-				{site.pricing && (
-					<span className="text-[10px] bg-muted px-1.5 py-0.5 rounded shrink-0">
-						{site.pricing.startsWith('Free') ? 'Free' : 'Paid'}
-					</span>
-				)}
 			</header>
 
 			{/* Body */}
@@ -160,19 +155,6 @@ export function SubmitFlow({
 							<div className="flex items-center justify-between">
 								<span className="text-[10px] text-muted-foreground shrink-0">{site.category}</span>
 							</div>
-							<div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-								<div className="flex items-center gap-1.5">
-									<span className="text-muted-foreground">{'流量'}</span>
-									<span className="font-medium">{site.monthly_traffic || '—'}</span>
-								</div>
-								<div className="flex items-center gap-1.5">
-									<span className="text-muted-foreground">{'定价'}</span>
-									<span className="font-medium capitalize">{site.pricing}</span>
-								</div>
-							</div>
-							{site.notes && (
-								<p className="text-[11px] text-muted-foreground italic border-t border-border pt-2">{site.notes}</p>
-							)}
 						</div>
 
 						{/* Already submitted notice */}

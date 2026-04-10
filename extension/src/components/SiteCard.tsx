@@ -68,11 +68,6 @@ export function SiteCard({ site, status = 'not_started', onSelect }: SiteCardPro
 
 			{/* Right badges */}
 			<div className="shrink-0 flex flex-col items-end gap-1">
-				{site.pricing && (
-					<span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-						{site.pricing.startsWith('Free') ? 'Free' : 'Paid'}
-					</span>
-				)}
 				{labelKey && (
 					<span className="text-[9px] text-muted-foreground">{labelKey}</span>
 				)}

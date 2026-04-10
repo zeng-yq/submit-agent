@@ -97,13 +97,8 @@ export function useBacklinkAgent() {
 						name: backlink.sourceTitle || extractDomain(backlink.sourceUrl),
 						submit_url: backlink.sourceUrl,
 						category: 'Blog Comment',
-						lang: '',
 						dr: null,
-						monthly_traffic: '',
-						pricing: 'Free',
 						status: 'alive',
-						notes: result.summary || '',
-						source: 'crawled',
 						createdAt: Date.now(),
 						updatedAt: Date.now(),
 					}

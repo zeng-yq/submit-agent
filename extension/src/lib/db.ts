@@ -27,7 +27,6 @@ interface SubmitAgentDB extends DBSchema {
 		indexes: {
 			'by-category': string
 			'by-dr': number
-			'by-source': string
 		}
 	}
 	backlinks: {
@@ -61,8 +60,7 @@ function getDB() {
 					const sites = db.createObjectStore('sites', { keyPath: 'name' })
 					sites.createIndex('by-category', 'category')
 					sites.createIndex('by-dr', 'dr')
-					sites.createIndex('by-source', 'source')
-				}
+					}
 				if (oldVersion < 3) {
 					const backlinks = db.createObjectStore('backlinks', { keyPath: 'id' })
 					backlinks.createIndex('by-status', 'status')
@@ -205,7 +203,6 @@ export async function seedSites(sites: SiteData[]): Promise<void> {
 		if (!existing) {
 			const record: SiteRecord = {
 				...site,
-				source: 'curated',
 				createdAt: now,
 				updatedAt: now,
 			}

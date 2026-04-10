@@ -137,26 +137,46 @@ export async function generateProfile(
 	const baseUrl = config.baseUrl.replace(/\/+$/, '')
 	const endpoint = `${baseUrl}/chat/completions`
 
-	const response = await fetch(endpoint, {
+	const requestPayload: Record<string, unknown> = {
+		model: config.model,
+		messages: [
+			{ role: 'system', content: SYSTEM_PROMPT },
+			{
+				role: 'user',
+				content: `Generate a directory submission profile from this webpage content:\n\n${pageContent}`,
+			},
+		],
+		temperature: 0.7,
+		max_tokens: 1024,
+		response_format: { type: 'json_object' },
+	}
+
+	let response = await fetch(endpoint, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 			...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
 		},
-		body: JSON.stringify({
-			model: config.model,
-			messages: [
-				{ role: 'system', content: SYSTEM_PROMPT },
-				{
-					role: 'user',
-					content: `Generate a directory submission profile from this webpage content:\n\n${pageContent}`,
-				},
-			],
-			temperature: 0.7,
-			max_tokens: 1024,
-		}),
+		body: JSON.stringify(requestPayload),
 		signal,
 	})
+
+	// Some providers don't support response_format — retry without it
+	if (!response.ok && response.status === 400) {
+		const errorText = await response.text().catch(() => '')
+		if (errorText.toLowerCase().includes('response_format')) {
+			delete requestPayload.response_format
+			response = await fetch(endpoint, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+				},
+				body: JSON.stringify(requestPayload),
+				signal,
+			})
+		}
+	}
 
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')

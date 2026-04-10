@@ -41,12 +41,8 @@ export interface SubmissionRecord {
 	updatedAt: number
 }
 
-/** Site data source type */
-export type SiteSource = 'curated' | 'crawled' | 'manual'
-
 /** Site record stored in IndexedDB, extends SiteData with DB metadata */
 export interface SiteRecord extends SiteData {
-  source: SiteSource
   createdAt: number
   updatedAt: number
 }
@@ -58,10 +54,7 @@ export interface SiteData {
 	category: string
 	lang?: string
 	dr: number | null
-	monthly_traffic: string
-	pricing: string
 	status?: string
-	notes?: string
 }
 
 /** sites.json top-level structure */
