@@ -99,16 +99,27 @@ function parseJsonResponse(text: string): GeneratedProfile {
 		cleaned = fenceMatch[1].trim()
 	}
 
+	let parsed: Record<string, unknown>
 	try {
-		return JSON.parse(cleaned)
+		parsed = JSON.parse(cleaned)
 	} catch {
 		const objectMatch = cleaned.match(/\{[\s\S]*\}/)
 		if (objectMatch) {
-			return JSON.parse(objectMatch[0])
+			parsed = JSON.parse(objectMatch[0])
+		} else {
+			throw new Error(
+				'The AI model returned an unexpected format. This usually means the model doesn\'t support structured JSON output well. Try a different model in Settings.'
+			)
 		}
-		throw new Error(
-			'The AI model returned an unexpected format. This usually means the model doesn\'t support structured JSON output well. Try a different model in Settings.'
-		)
+	}
+
+	return {
+		name: typeof parsed.name === 'string' ? parsed.name : '',
+		url: typeof parsed.url === 'string' ? parsed.url : '',
+		tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
+		shortDesc: typeof parsed.shortDesc === 'string' ? parsed.shortDesc : '',
+		longDesc: typeof parsed.longDesc === 'string' ? parsed.longDesc : '',
+		categories: Array.isArray(parsed.categories) ? parsed.categories.filter((c): c is string => typeof c === 'string') : [],
 	}
 }
 
