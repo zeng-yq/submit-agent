@@ -17,7 +17,7 @@ interface DashboardProps {
 	batchCurrentIndex: number
 	batchTotal: number
 	batchCurrentSite: string
-	onStartBatch: () => void
+	onStartBatch: (category?: string) => void
 	onStopBatch: () => void
 	// Agent state for inline progress
 	agentStatus: AgentStatus
@@ -61,6 +61,12 @@ function humanizeActivity(activity: AgentActivity): string {
 	}
 }
 
+const CATEGORY_OPTIONS = [
+	{ value: 'all', label: '全部站点' },
+	{ value: 'Non-Blog Comment', label: '非博客站点' },
+	{ value: 'Blog Comment', label: '博客站点' },
+] as const
+
 export function Dashboard({
 	sites,
 	submissions,
@@ -85,6 +91,19 @@ export function Dashboard({
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
+	const [showCategoryDialog, setShowCategoryDialog] = useState(false)
+	const [selectedCategory, setSelectedCategory] = useState<string>('all')
+
+	const categoryCounts = useMemo(() => {
+		const pending = sites.filter(
+			(s) => !!s.submit_url && (submissions.get(s.name)?.status ?? 'not_started') === 'not_started'
+		)
+		return {
+			all: pending.length,
+			'Non-Blog Comment': pending.filter((s) => s.category === 'Non-Blog Comment').length,
+			'Blog Comment': pending.filter((s) => s.category === 'Blog Comment').length,
+		}
+	}, [sites, submissions])
 
 	const submittableSites = useMemo(
 		() => sites.filter((s) => !!s.submit_url),
@@ -245,7 +264,7 @@ export function Dashboard({
 						<button
 							type="button"
 							className="text-xs font-medium bg-primary text-primary-foreground rounded-md px-2.5 h-7 hover:bg-primary/90 transition-colors"
-							onClick={onStartBatch}
+							onClick={() => setShowCategoryDialog(true)}
 						>
 							{'开始提交'}
 						</button>
@@ -362,6 +381,54 @@ export function Dashboard({
 					</div>
 				)}
 			</div>
+
+			{/* Category selection dialog */}
+			{showCategoryDialog && (
+				<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+					<div className="bg-card rounded-lg border border-border shadow-lg w-72 p-4 space-y-3">
+						<div className="text-sm font-semibold">{'选择提交类型'}</div>
+						<div className="space-y-1.5">
+							{CATEGORY_OPTIONS.map((opt) => (
+								<label
+									key={opt.value}
+									className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted transition-colors text-xs"
+								>
+									<input
+										type="radio"
+										name="category"
+										value={opt.value}
+										checked={selectedCategory === opt.value}
+										onChange={() => setSelectedCategory(opt.value)}
+										className="accent-primary"
+									/>
+									{opt.label}
+										<span className="text-muted-foreground">({categoryCounts[opt.value]})</span>
+								</label>
+							))}
+						</div>
+						<div className="flex justify-end gap-2">
+							<button
+								type="button"
+								className="text-xs px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+								onClick={() => setShowCategoryDialog(false)}
+							>
+								{'取消'}
+							</button>
+							<button
+								type="button"
+								disabled={categoryCounts[selectedCategory as keyof typeof categoryCounts] === 0}
+								className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary"
+								onClick={() => {
+									setShowCategoryDialog(false)
+									onStartBatch(selectedCategory === 'all' ? undefined : selectedCategory)
+								}}
+							>
+								{'开始提交'}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

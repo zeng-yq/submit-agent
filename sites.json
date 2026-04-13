@@ -3,16 +3,16 @@
     "name": "Submit Agent — Target Sites",
     "description": "Curated list of directories and platforms for AI product submissions.",
     "last_updated": "2026-04-03",
-    "total_sites": 385,
-    "total_alive": 321,
-    "total_dead": 64,
+    "total_sites": 375,
+    "total_alive": 311,
+    "total_dead": 0,
     "license": "MIT"
   },
   "sites": [
     {
       "name": "G2",
       "submit_url": "https://www.g2.com/products/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 98,
       "monthly_traffic": "3.2M",
@@ -23,7 +23,7 @@
     {
       "name": "Medium",
       "submit_url": "https://medium.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 95,
       "monthly_traffic": "",
@@ -34,7 +34,7 @@
     {
       "name": "Issuu",
       "submit_url": "https://issuu.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 94,
       "monthly_traffic": "",
@@ -45,7 +45,7 @@
     {
       "name": "Behance",
       "submit_url": "https://behance.net",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 93,
       "monthly_traffic": "",
@@ -56,7 +56,7 @@
     {
       "name": "BasedTools",
       "submit_url": "https://buy.stripe.com/5kA2ax0aD7b93bG3cc?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 93,
       "monthly_traffic": "22000",
@@ -67,7 +67,7 @@
     {
       "name": "SourceForge",
       "submit_url": "https://sourceforge.net/software/vendors/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 92,
       "monthly_traffic": "2.5M",
@@ -78,7 +78,7 @@
     {
       "name": "Crunchbase",
       "submit_url": "https://crunchbase.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 91,
       "monthly_traffic": "",
@@ -89,7 +89,7 @@
     {
       "name": "Product Hunt",
       "submit_url": "https://producthunt.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 91,
       "monthly_traffic": "",
@@ -100,7 +100,7 @@
     {
       "name": "G2",
       "submit_url": "https://g2.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 91,
       "monthly_traffic": "",
@@ -111,7 +111,7 @@
     {
       "name": "Disqus",
       "submit_url": "https://disqus.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 91,
       "monthly_traffic": "",
@@ -122,7 +122,7 @@
     {
       "name": "Provenexpert",
       "submit_url": "https://app.provenexpert.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 91,
       "monthly_traffic": "",
@@ -133,7 +133,7 @@
     {
       "name": "AI Infinity",
       "submit_url": "https://forms.gle/Ze6pdWzmweCfKWnLA",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 90,
       "monthly_traffic": "2K",
@@ -144,7 +144,7 @@
     {
       "name": "AlternativeTo",
       "submit_url": "https://alternativeto.net/add",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 89,
       "monthly_traffic": "",
@@ -155,7 +155,7 @@
     {
       "name": "Startup88",
       "submit_url": "https://startup88.typeform.com/to/CRjWqM",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 88,
       "monthly_traffic": "1000",
@@ -166,7 +166,7 @@
     {
       "name": "dev.to",
       "submit_url": "https://dev.to/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 87,
       "monthly_traffic": "",
@@ -177,7 +177,7 @@
     {
       "name": "FinancesOnline",
       "submit_url": "https://financesonline.com/add-product/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 87,
       "monthly_traffic": "1.5M",
@@ -188,7 +188,7 @@
     {
       "name": "F6S",
       "submit_url": "https://www.f6s.com/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 86,
       "monthly_traffic": "1600000",
@@ -199,7 +199,7 @@
     {
       "name": "Your Story",
       "submit_url": "https://eu.frms.link/g4juley/?ref=aidirecori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 86,
       "monthly_traffic": "8.5M",
@@ -210,7 +210,7 @@
     {
       "name": "SourceForge",
       "submit_url": "https://sourceforge.net",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 86,
       "monthly_traffic": "",
@@ -221,7 +221,7 @@
     {
       "name": "Muck Rack",
       "submit_url": "https://muckrack.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 85,
       "monthly_traffic": "",
@@ -232,7 +232,7 @@
     {
       "name": "Wellfound/AngelList",
       "submit_url": "https://wellfound.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 82,
       "monthly_traffic": "",
@@ -243,7 +243,7 @@
     {
       "name": "F6S",
       "submit_url": "https://f6s.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 82,
       "monthly_traffic": "",
@@ -254,7 +254,7 @@
     {
       "name": "AppSumo",
       "submit_url": "https://appsumo.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 82,
       "monthly_traffic": "3.3M",
@@ -265,7 +265,7 @@
     {
       "name": "AlternativeTo",
       "submit_url": "https://alternativeto.net/manage-item/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 80,
       "monthly_traffic": "1.3M",
@@ -276,7 +276,7 @@
     {
       "name": "Crunchbase",
       "submit_url": "https://www.crunchbase.com/add-new/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 80,
       "monthly_traffic": "10M",
@@ -287,7 +287,7 @@
     {
       "name": "Stackshare",
       "submit_url": "https://stackshare.io/submit/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 79,
       "monthly_traffic": "1.6M",
@@ -298,7 +298,7 @@
     {
       "name": "Alternative.me",
       "submit_url": "https://alternative.me/how-to/submit-software/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 77,
       "monthly_traffic": "2.0M",
@@ -309,7 +309,7 @@
     {
       "name": "Digital Agency Network",
       "submit_url": "https://digitalagencynetwork.com/join-free-listing-tools/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 76,
       "monthly_traffic": "528K",
@@ -320,7 +320,7 @@
     {
       "name": "EU Startups",
       "submit_url": "https://www.eu-startups.com/directory/?wpbdp_view=submit_listing",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 76,
       "monthly_traffic": "323K",
@@ -331,7 +331,7 @@
     {
       "name": "Software World",
       "submit_url": "https://www.softwareworld.co/vendor/listing/create/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 75,
       "monthly_traffic": "65000",
@@ -342,7 +342,7 @@
     {
       "name": "Product Hunt",
       "submit_url": "https://www.producthunt.com/posts/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 75,
       "monthly_traffic": "6.0M",
@@ -353,7 +353,7 @@
     {
       "name": "There is an AI for that",
       "submit_url": "https://theresanaiforthat.com/get-featured/#opt_submit?via=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 74,
       "monthly_traffic": "3.2M",
@@ -364,7 +364,7 @@
     {
       "name": "SaasWorthy",
       "submit_url": "https://www.saasworthy.com/offerings",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 72,
       "monthly_traffic": "172000",
@@ -375,7 +375,7 @@
     {
       "name": "Whatsthebigdata",
       "submit_url": "https://whatsthebigdata.com/submit-new-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 72,
       "monthly_traffic": "2.7M",
@@ -386,7 +386,7 @@
     {
       "name": "Getlatka",
       "submit_url": "https://getlatka.com/saas-companies?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 71,
       "monthly_traffic": "20000",
@@ -397,7 +397,7 @@
     {
       "name": "Beta List",
       "submit_url": "https://betalist.com/submissions/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 70,
       "monthly_traffic": "180k",
@@ -408,7 +408,7 @@
     {
       "name": "SaasHub",
       "submit_url": "https://www.saashub.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 68,
       "monthly_traffic": "1.6M",
@@ -419,7 +419,7 @@
     {
       "name": "SideProjectors",
       "submit_url": "https://www.sideprojectors.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 67,
       "monthly_traffic": "52600",
@@ -430,7 +430,7 @@
     {
       "name": "Startup Ranking",
       "submit_url": "https://www.startupranking.com/startup/create/url-validation?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 67,
       "monthly_traffic": "25k",
@@ -441,7 +441,7 @@
     {
       "name": "Pitchwall",
       "submit_url": "https://pitchwall.co/product/submit?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 64,
       "monthly_traffic": "59000",
@@ -452,7 +452,7 @@
     {
       "name": "Submission Web Directory",
       "submit_url": "https://www.submissionwebdirectory.com/submit.php",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 64,
       "monthly_traffic": "10K",
@@ -463,7 +463,7 @@
     {
       "name": "SoMuch",
       "submit_url": "https://somuch.com/submit-links/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 64,
       "monthly_traffic": "10600",
@@ -474,7 +474,7 @@
     {
       "name": "All Top Startups",
       "submit_url": "https://alltopstartups.com/submit-startup/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 63,
       "monthly_traffic": "70K",
@@ -485,7 +485,7 @@
     {
       "name": "Marketing Internet Directory",
       "submit_url": "https://www.marketinginternetdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 61,
       "monthly_traffic": "",
@@ -496,7 +496,7 @@
     {
       "name": "eBool",
       "submit_url": "https://www.ebool.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 61,
       "monthly_traffic": "25K",
@@ -507,7 +507,7 @@
     {
       "name": "dang.ai",
       "submit_url": "https://dang.ai/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 60,
       "monthly_traffic": "32K",
@@ -518,7 +518,7 @@
     {
       "name": "GPTs Hunter",
       "submit_url": "https://www.gptshunter.com/submit-gpt?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 59,
       "monthly_traffic": "400000",
@@ -529,7 +529,7 @@
     {
       "name": "KitPloit",
       "submit_url": "https://www.kitploit.com/p/submit-tool.html?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 57,
       "monthly_traffic": "2.5M",
@@ -540,7 +540,7 @@
     {
       "name": "business-software.com",
       "submit_url": "https://www.business-software.com/add-your-product/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 55,
       "monthly_traffic": "100K",
@@ -551,7 +551,7 @@
     {
       "name": "Tekpon",
       "submit_url": "https://tekpon.com/get-listed/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 54,
       "monthly_traffic": "134K",
@@ -562,7 +562,7 @@
     {
       "name": "AITOOLS",
       "submit_url": "https://aitools.inc/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 53,
       "monthly_traffic": "",
@@ -573,7 +573,7 @@
     {
       "name": "FiveTaco",
       "submit_url": "https://fivetaco.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 53,
       "monthly_traffic": "106000",
@@ -584,7 +584,7 @@
     {
       "name": "Dev Hunt",
       "submit_url": "https://devhunt.org/account/tools/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 53,
       "monthly_traffic": "65K",
@@ -595,7 +595,7 @@
     {
       "name": "uneed",
       "submit_url": "https://www.uneed.best/submit-a-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 52,
       "monthly_traffic": "",
@@ -606,7 +606,7 @@
     {
       "name": "ToolPilot",
       "submit_url": "https://www.toolpilot.ai/pages/submit-your-ai-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 51,
       "monthly_traffic": "600K",
@@ -617,7 +617,7 @@
     {
       "name": "Startup Base",
       "submit_url": "https://startupbase.io/submissions/start?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 50,
       "monthly_traffic": "3000",
@@ -628,7 +628,7 @@
     {
       "name": "Tool Directory",
       "submit_url": "https://tooldirectory.ai/submit-tool?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 50,
       "monthly_traffic": "4K",
@@ -639,7 +639,7 @@
     {
       "name": "AI top tools",
       "submit_url": "https://aitoptools.com/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 48,
       "monthly_traffic": "260K",
@@ -650,7 +650,7 @@
     {
       "name": "TechPluto",
       "submit_url": "https://www.techpluto.com/submit-startup?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 47,
       "monthly_traffic": "",
@@ -661,7 +661,7 @@
     {
       "name": "EZWeb Directory",
       "submit_url": "http://ezwebdirectory.com/item/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 47,
       "monthly_traffic": "3500",
@@ -672,7 +672,7 @@
     {
       "name": "Future Tools",
       "submit_url": "https://www.futuretools.io/submit-a-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 44,
       "monthly_traffic": "3.0M",
@@ -683,7 +683,7 @@
     {
       "name": "Uneed",
       "submit_url": "https://www.uneed.best/promote-your-tool",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 44,
       "monthly_traffic": "252K",
@@ -694,7 +694,7 @@
     {
       "name": "Hacker News",
       "submit_url": "https://hackernews.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 44,
       "monthly_traffic": "300K",
@@ -705,7 +705,7 @@
     {
       "name": "StartupTracker",
       "submit_url": "https://startuptracker.io/crowdsourcing/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 44,
       "monthly_traffic": "12500",
@@ -716,7 +716,7 @@
     {
       "name": "Tiny Startups",
       "submit_url": "https://tally.so/r/wMzP8X",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 44,
       "monthly_traffic": "10000",
@@ -727,7 +727,7 @@
     {
       "name": "Appscriber",
       "submit_url": "https://appscribed.com/product-list/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 44,
       "monthly_traffic": "42100",
@@ -738,7 +738,7 @@
     {
       "name": "aitools.fyi",
       "submit_url": "https://aitools.fyi/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 43,
       "monthly_traffic": "500K",
@@ -749,7 +749,7 @@
     {
       "name": "Find My AI Tool",
       "submit_url": "https://findmyaitool.com/submit-tool?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 42,
       "monthly_traffic": "",
@@ -760,7 +760,7 @@
     {
       "name": "100L5",
       "submit_url": "https://10015.io/product-finder/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 41,
       "monthly_traffic": "",
@@ -771,7 +771,7 @@
     {
       "name": "Insidr.ai",
       "submit_url": "https://www.insidr.ai/submit-tools/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 40,
       "monthly_traffic": "150k",
@@ -782,7 +782,7 @@
     {
       "name": "Toolio AI",
       "submit_url": "https://toolio.ai/submit-a-tool?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 40,
       "monthly_traffic": "23000",
@@ -793,7 +793,7 @@
     {
       "name": "Resource fyi",
       "submit_url": "https://resource.fyi/account/submit/?ref=aidirecori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 39,
       "monthly_traffic": "5k",
@@ -804,7 +804,7 @@
     {
       "name": "Ben's Bites News",
       "submit_url": "https://news.bensbites.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 39,
       "monthly_traffic": "13K",
@@ -815,7 +815,7 @@
     {
       "name": "Startup Buffer",
       "submit_url": "https://startupbuffer.com/site/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 39,
       "monthly_traffic": "16K",
@@ -826,7 +826,7 @@
     {
       "name": "AlterOpen",
       "submit_url": "https://alteropen.com/submit/pack?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 39,
       "monthly_traffic": "2000",
@@ -837,7 +837,7 @@
     {
       "name": "AI Library",
       "submit_url": "https://library.phygital.plus/tool-submission",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 38,
       "monthly_traffic": "255K",
@@ -848,7 +848,7 @@
     {
       "name": "Launched",
       "submit_url": "https://launched.io/SubmitStartup",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 38,
       "monthly_traffic": "2.4K",
@@ -859,7 +859,7 @@
     {
       "name": "ToolsFine",
       "submit_url": "https://tally.so/r/3qVzOG",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 38,
       "monthly_traffic": "34K",
@@ -870,7 +870,7 @@
     {
       "name": "Aixploria",
       "submit_url": "https://www.aixploria.com/en/add-ai/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 38,
       "monthly_traffic": "584K",
@@ -881,7 +881,7 @@
     {
       "name": "Dockey AI",
       "submit_url": "https://dokeyai.com/submit?ref=aidirecotri.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 37,
       "monthly_traffic": "3900",
@@ -892,7 +892,7 @@
     {
       "name": "Paggu",
       "submit_url": "https://www.paggu.com/submit-your-startup/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 35,
       "monthly_traffic": "1000",
@@ -903,7 +903,7 @@
     {
       "name": "BroUseAI",
       "submit_url": "https://www.brouseai.com/submission/ai",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 35,
       "monthly_traffic": "31000",
@@ -914,7 +914,7 @@
     {
       "name": "PromoteProject",
       "submit_url": "https://www.promoteproject.com/login",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 34,
       "monthly_traffic": "5000",
@@ -925,7 +925,7 @@
     {
       "name": "Anyfp",
       "submit_url": "https://anyfp.com/contact/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 33,
       "monthly_traffic": "1000",
@@ -936,7 +936,7 @@
     {
       "name": "Saas AI Tools",
       "submit_url": "https://saasaitools.com/submit/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 33,
       "monthly_traffic": "73000",
@@ -947,7 +947,7 @@
     {
       "name": "Robingood",
       "submit_url": "https://tools.robingood.com/?ref=aidirecori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 33,
       "monthly_traffic": "5600",
@@ -958,7 +958,7 @@
     {
       "name": "Crazy About Startups",
       "submit_url": "https://crazyaboutstartups.com/share-your-startup-2",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 33,
       "monthly_traffic": "5K",
@@ -969,7 +969,7 @@
     {
       "name": "That AI Collection",
       "submit_url": "https://www.thataicollection.com/submit/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 32,
       "monthly_traffic": "34000",
@@ -980,7 +980,7 @@
     {
       "name": "AI Tool guru",
       "submit_url": "https://aitoolguru.com/submit-ai-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 31,
       "monthly_traffic": "27K",
@@ -991,7 +991,7 @@
     {
       "name": "Open Future",
       "submit_url": "https://openfuture.ai/submit-tool?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 31,
       "monthly_traffic": "496K",
@@ -1002,7 +1002,7 @@
     {
       "name": "DEV Resources",
       "submit_url": "https://github.com/marcelscruz/dev-resources",
-      "category": "GitHub Awesome Lists",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 31,
       "monthly_traffic": "2.7K",
@@ -1013,7 +1013,7 @@
     {
       "name": "Post Make",
       "submit_url": "https://postmake.io/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 31,
       "monthly_traffic": "10K",
@@ -1024,7 +1024,7 @@
     {
       "name": "Fazier",
       "submit_url": "https://fazier.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 31,
       "monthly_traffic": "36K",
@@ -1035,7 +1035,7 @@
     {
       "name": "AppsThunder",
       "submit_url": "https://appsthunder.com/submit-your-app/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 30,
       "monthly_traffic": "5k",
@@ -1046,7 +1046,7 @@
     {
       "name": "Mars AI directory",
       "submit_url": "https://www.marsx.dev/ai-startups",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 30,
       "monthly_traffic": "90K",
@@ -1057,7 +1057,7 @@
     {
       "name": "1000tools",
       "submit_url": "https://1000.tools/my/tools/create",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 30,
       "monthly_traffic": "10K",
@@ -1068,7 +1068,7 @@
     {
       "name": "Saas Po",
       "submit_url": "https://www.saaspo.com/submit?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 29,
       "monthly_traffic": "69K",
@@ -1079,7 +1079,7 @@
     {
       "name": "NextGenTools",
       "submit_url": "https://nextgentools.me/submit-your-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 27,
       "monthly_traffic": "47K",
@@ -1090,7 +1090,7 @@
     {
       "name": "TipSeason",
       "submit_url": "https://tipseason.com/ai-tools/submit?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 27,
       "monthly_traffic": "30000",
@@ -1101,7 +1101,7 @@
     {
       "name": "DoMore",
       "submit_url": "https://domore.ai/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 27,
       "monthly_traffic": "45K",
@@ -1112,7 +1112,7 @@
     {
       "name": "Open Tools",
       "submit_url": "https://opentools.ai/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 27,
       "monthly_traffic": "91K",
@@ -1123,7 +1123,7 @@
     {
       "name": "THE NEXT AI TOOL",
       "submit_url": "https://thenextaitool.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 26,
       "monthly_traffic": "",
@@ -1134,7 +1134,7 @@
     {
       "name": "Early Tools",
       "submit_url": "https://www.early.tools/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 26,
       "monthly_traffic": "",
@@ -1145,7 +1145,7 @@
     {
       "name": "Favird",
       "submit_url": "https://favird.com/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 26,
       "monthly_traffic": "30000",
@@ -1156,7 +1156,7 @@
     {
       "name": "Dev Pages",
       "submit_url": "https://www.devpages.io/submit-a-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 26,
       "monthly_traffic": "50K",
@@ -1167,7 +1167,7 @@
     {
       "name": "AI Lib",
       "submit_url": "https://ailib.ru/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 26,
       "monthly_traffic": "119K",
@@ -1178,7 +1178,7 @@
     {
       "name": "AI Valley",
       "submit_url": "https://aivalley.ai/submit-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "230K",
@@ -1189,7 +1189,7 @@
     {
       "name": "Bestwebsites",
       "submit_url": "https://bestwebsites.info/en/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "",
@@ -1200,7 +1200,7 @@
     {
       "name": "Promptzone",
       "submit_url": "https://www.promptzone.com/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "",
@@ -1211,7 +1211,7 @@
     {
       "name": "GptDemo.net",
       "submit_url": "https://www.gptdemo.net/gpt/add-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "",
@@ -1222,7 +1222,7 @@
     {
       "name": "Startups fyi",
       "submit_url": "https://tally.so/r/3lOGLk",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "13000",
@@ -1233,7 +1233,7 @@
     {
       "name": "Educator Tools",
       "submit_url": "https://docs.google.com/forms/d/e/1FAIpQLSdXXbiHAdQTWUSzLvU6xw-asbIoppIiQo0W9PuZLw2DnkhKew/viewform?usp=send_for",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "131000",
@@ -1244,7 +1244,7 @@
     {
       "name": "Joinly",
       "submit_url": "https://www.joinly.xyz/submit-startup",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "",
@@ -1255,7 +1255,7 @@
     {
       "name": "SaaS Surf",
       "submit_url": "https://saassurf.com/submit-a-product#submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 24,
       "monthly_traffic": "31K",
@@ -1266,7 +1266,7 @@
     {
       "name": "JOINLY",
       "submit_url": "https://joinly.xyz/submit-startup",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 24,
       "monthly_traffic": "",
@@ -1277,7 +1277,7 @@
     {
       "name": "AI Mojo",
       "submit_url": "https://aimojo.io/submit/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 23,
       "monthly_traffic": "",
@@ -1288,7 +1288,7 @@
     {
       "name": "Simple Lister",
       "submit_url": "https://simplelister.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 23,
       "monthly_traffic": "",
@@ -1299,7 +1299,7 @@
     {
       "name": "Lachief",
       "submit_url": "https://tally.so/r/w4Jb4b",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 23,
       "monthly_traffic": "266K",
@@ -1310,7 +1310,7 @@
     {
       "name": "Startup Collections",
       "submit_url": "https://startupcollections.com/submit-product/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 22,
       "monthly_traffic": "5000",
@@ -1321,7 +1321,7 @@
     {
       "name": "Toolspedia",
       "submit_url": "https://www.toolspedia.io/submit-tool/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 22,
       "monthly_traffic": "26000",
@@ -1332,7 +1332,7 @@
     {
       "name": "Apps and Websites",
       "submit_url": "https://landing.mycloudmedia.co.uk/apps-and-websites-submit-ai-or-saas-tool/new-submission.html",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 21,
       "monthly_traffic": "<5K",
@@ -1343,7 +1343,7 @@
     {
       "name": "The AI Library",
       "submit_url": "https://www.theailibrary.co/account/tools/new",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 21,
       "monthly_traffic": "19.3K",
@@ -1354,7 +1354,7 @@
     {
       "name": "Supertools",
       "submit_url": "https://supertools.therundown.ai/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 20,
       "monthly_traffic": "380k",
@@ -1365,7 +1365,7 @@
     {
       "name": "Advanced Innovation",
       "submit_url": "https://www.advanced-innovation.io/ki-tool-einreichen?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 20,
       "monthly_traffic": "25K",
@@ -1376,7 +1376,7 @@
     {
       "name": "BPLDIRECTORY.info",
       "submit_url": "https://blpdirectory.info/submit.php?LINK_TYPE=2",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 19,
       "monthly_traffic": "",
@@ -1387,7 +1387,7 @@
     {
       "name": "Micro Launch",
       "submit_url": "https://tally.so/r/mYaR6N",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 19,
       "monthly_traffic": "60K",
@@ -1398,7 +1398,7 @@
     {
       "name": "Site-Plus",
       "submit_url": "https://www.sites-plus.com/submit?c=96&LINK_TYPE=9",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 18,
       "monthly_traffic": "",
@@ -1409,7 +1409,7 @@
     {
       "name": "AI Tool Board",
       "submit_url": "https://aitoolboard.com/submit-ai-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 18,
       "monthly_traffic": "7K",
@@ -1420,7 +1420,7 @@
     {
       "name": "AI Dude Info",
       "submit_url": "https://aidude.info/submit-your-tool?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 17,
       "monthly_traffic": "84.7K",
@@ -1431,7 +1431,7 @@
     {
       "name": "DropYourAI",
       "submit_url": "https://www.dropyourai.com/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 16,
       "monthly_traffic": "6800",
@@ -1442,7 +1442,7 @@
     {
       "name": "Pay Once Alternatives",
       "submit_url": "https://payoncealternatives.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 16,
       "monthly_traffic": "",
@@ -1453,7 +1453,7 @@
     {
       "name": "AI trendz",
       "submit_url": "https://aitrendz.xyz/submit-ai-link/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 16,
       "monthly_traffic": "90",
@@ -1464,7 +1464,7 @@
     {
       "name": "App Rater",
       "submit_url": "https://apprater.net/add/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 15,
       "monthly_traffic": "",
@@ -1475,7 +1475,7 @@
     {
       "name": "AI to Grow",
       "submit_url": "https://aitogrow.com/#send-your-tool/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 15,
       "monthly_traffic": "5K",
@@ -1486,7 +1486,7 @@
     {
       "name": "Tools.so",
       "submit_url": "https://tools.so/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 15,
       "monthly_traffic": "N/A",
@@ -1497,7 +1497,7 @@
     {
       "name": "AI Wizard",
       "submit_url": "https://www.aiwizard.ai/submit?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 15,
       "monthly_traffic": "5K",
@@ -1508,7 +1508,7 @@
     {
       "name": "Gpt Forge",
       "submit_url": "https://forms.gle/8h1SokDHfcPwkbaZ8",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 14,
       "monthly_traffic": "41K",
@@ -1519,7 +1519,7 @@
     {
       "name": "Wailworld",
       "submit_url": "https://waildworld.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 13,
       "monthly_traffic": "",
@@ -1530,7 +1530,7 @@
     {
       "name": "Buffer Apps",
       "submit_url": "https://www.bufferapps.com/beta-listing/new?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 13,
       "monthly_traffic": "<5K",
@@ -1541,7 +1541,7 @@
     {
       "name": "Tool Battles",
       "submit_url": "https://toolbattles.com/submit-product/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 12,
       "monthly_traffic": "NA",
@@ -1552,7 +1552,7 @@
     {
       "name": "AI Marketing",
       "submit_url": "https://aimarketing.directory/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 12,
       "monthly_traffic": "9.6K",
@@ -1563,7 +1563,7 @@
     {
       "name": "NextGenTool",
       "submit_url": "https://nextgentool.io/submit/?ref=aidirecories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 12,
       "monthly_traffic": "300",
@@ -1574,7 +1574,7 @@
     {
       "name": "AI Depot",
       "submit_url": "https://aidepot.co/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "30K",
@@ -1585,7 +1585,7 @@
     {
       "name": "The ai Generation",
       "submit_url": "https://www.theaigeneration.com/add/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "77K",
@@ -1596,7 +1596,7 @@
     {
       "name": "Nextpedia",
       "submit_url": "https://www.nextpedia.io/submit-tool/?ref=aidirecories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "8000",
@@ -1607,7 +1607,7 @@
     {
       "name": "The AI Warehouse",
       "submit_url": "https://inside.thewarehouse.ai/submissions?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "6000",
@@ -1618,7 +1618,7 @@
     {
       "name": "Disrupt 500",
       "submit_url": "https://www.disrupt500.com/submit-your-tool/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "",
@@ -1629,7 +1629,7 @@
     {
       "name": "AIToolsDirectory",
       "submit_url": "https://aitoolsdirectory.com/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "25K",
@@ -1640,7 +1640,7 @@
     {
       "name": "AI Directory",
       "submit_url": "https://www.aidirectory.org/user-submit/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "5.7K",
@@ -1651,7 +1651,7 @@
     {
       "name": "Startup AI tools",
       "submit_url": "https://www.startupaitools.com/submit-ai-tools/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "900",
@@ -1662,7 +1662,7 @@
     {
       "name": "ToolScout",
       "submit_url": "https://toolscout.ai/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "23K",
@@ -1673,7 +1673,7 @@
     {
       "name": "The Hack Stack",
       "submit_url": "https://thehackstack.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "5000",
@@ -1684,7 +1684,7 @@
     {
       "name": "Faind AI",
       "submit_url": "https://faind.ai/submit-a-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "5K",
@@ -1695,7 +1695,7 @@
     {
       "name": "Tools Nocode",
       "submit_url": "https://www.toolsnocode.com/ai#form1",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 10,
       "monthly_traffic": "5K",
@@ -1706,7 +1706,7 @@
     {
       "name": "GPT Academy",
       "submit_url": "https://www.gptacademy.co/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 9,
       "monthly_traffic": "24K",
@@ -1717,7 +1717,7 @@
     {
       "name": "tools-ai.online",
       "submit_url": "https://www.tools-ai.online/tool-submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 8,
       "monthly_traffic": "67K",
@@ -1728,7 +1728,7 @@
     {
       "name": "AI Tools Arena",
       "submit_url": "https://aitoolsarena.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 8,
       "monthly_traffic": "700",
@@ -1739,7 +1739,7 @@
     {
       "name": "AI Top Rank",
       "submit_url": "https://www.aitoprank.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 8,
       "monthly_traffic": "5k",
@@ -1750,7 +1750,7 @@
     {
       "name": "Tool AI",
       "submit_url": "https://toolai.io/Login?ReturnUrl=%2Fen%2Fsubmit%3Fref%3Daidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 7,
       "monthly_traffic": "75000",
@@ -1761,7 +1761,7 @@
     {
       "name": "Easy Save AI",
       "submit_url": "https://easysaveai.com/submit-your-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 7,
       "monthly_traffic": "245",
@@ -1772,7 +1772,7 @@
     {
       "name": "1payment Tools",
       "submit_url": "https://1payment.tools/login",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 6,
       "monthly_traffic": "1K",
@@ -1783,7 +1783,7 @@
     {
       "name": "MadGenius",
       "submit_url": "https://madgenius.co/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 5,
       "monthly_traffic": "",
@@ -1794,7 +1794,7 @@
     {
       "name": "TrackBes",
       "submit_url": "https://trackbes.com/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 4,
       "monthly_traffic": "20k",
@@ -1805,7 +1805,7 @@
     {
       "name": "Human or Not",
       "submit_url": "https://www.humanornot.co/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 3.5,
       "monthly_traffic": "10K",
@@ -1816,7 +1816,7 @@
     {
       "name": "Find Cool Tools",
       "submit_url": "https://findcool.tools/submit-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 3.1,
       "monthly_traffic": "2300",
@@ -1827,7 +1827,7 @@
     {
       "name": "SaaSBaba",
       "submit_url": "https://saasbaba.com/add-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 2.5,
       "monthly_traffic": "9.0K",
@@ -1838,7 +1838,7 @@
     {
       "name": "Invent List",
       "submit_url": "https://inventlist.com/sites/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 2.5,
       "monthly_traffic": "200",
@@ -1849,7 +1849,7 @@
     {
       "name": "AI Tools Up",
       "submit_url": "https://aitoolsup.com/submit-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 2,
       "monthly_traffic": "700",
@@ -1860,7 +1860,7 @@
     {
       "name": "100 AI Apps",
       "submit_url": "https://100apps.org/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 2,
       "monthly_traffic": "1k",
@@ -1871,7 +1871,7 @@
     {
       "name": "Intersys",
       "submit_url": "https://intersys.ai/submit?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 1,
       "monthly_traffic": "100",
@@ -1882,7 +1882,7 @@
     {
       "name": "Tool Summary",
       "submit_url": "https://toolsummary.com/submit-ai-tool/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 1,
       "monthly_traffic": "100",
@@ -1893,7 +1893,7 @@
     {
       "name": "1000gpt.shop",
       "submit_url": "https://buy.stripe.com/dR6eVi1lRgj9bsY4gg",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 1,
       "monthly_traffic": "",
@@ -1904,7 +1904,7 @@
     {
       "name": "There's An AI For That",
       "submit_url": "https://theresanaiforthat.com/launch/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1915,7 +1915,7 @@
     {
       "name": "AIToolMall",
       "submit_url": "https://aitoolmall.com/submit/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1926,7 +1926,7 @@
     {
       "name": "AIFINDY",
       "submit_url": "https://aifindy.com/contacto/publica-tu-ia-en-aifindy",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1937,7 +1937,7 @@
     {
       "name": "AITopTools",
       "submit_url": "https://aitoptools.com/login?redirect_to=submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1948,7 +1948,7 @@
     {
       "name": "AI Homes",
       "submit_url": "https://aihomes.io/submit/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1959,7 +1959,7 @@
     {
       "name": "Ai Business Tool",
       "submit_url": "https://aibusinesstool.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1970,7 +1970,7 @@
     {
       "name": "AI Tool For Business",
       "submit_url": "https://aitoolforbusiness.com/submit-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1981,7 +1981,7 @@
     {
       "name": "AIToolGuru",
       "submit_url": "https://aitoolguru.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -1992,7 +1992,7 @@
     {
       "name": "AILib",
       "submit_url": "https://ailib.ru/en/add-ai/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2003,7 +2003,7 @@
     {
       "name": "AIWikiTools",
       "submit_url": "https://aiwikitools.com/submit-a-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2014,7 +2014,7 @@
     {
       "name": "ChatGPTDemo.pro",
       "submit_url": "https://chatgptdemo.pro/submit-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2025,7 +2025,7 @@
     {
       "name": "DigiProToolz",
       "submit_url": "https://digiprotoolz.com/contact-us/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2036,7 +2036,7 @@
     {
       "name": "Free AI Tools Directory",
       "submit_url": "https://free-ai-tools-directory.com/submit-request/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2047,7 +2047,7 @@
     {
       "name": "findcool.tools",
       "submit_url": "https://www.findcool.tools/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2058,7 +2058,7 @@
     {
       "name": "Full Stack AI",
       "submit_url": "https://fullstackai.co/submit-a-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2069,7 +2069,7 @@
     {
       "name": "PoweredbyAI",
       "submit_url": "https://poweredbyai.app/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2080,7 +2080,7 @@
     {
       "name": "Paxi",
       "submit_url": "https://paxi.ai/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2091,7 +2091,7 @@
     {
       "name": "SpotTheAI",
       "submit_url": "https://www.spottheai.com/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2102,7 +2102,7 @@
     {
       "name": "Nextool AI",
       "submit_url": "https://www.nextool.ai/submit-a-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2113,7 +2113,7 @@
     {
       "name": "OpenFuture AI",
       "submit_url": "https://openfuture.ai/zh/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "multi",
       "dr": null,
       "monthly_traffic": "",
@@ -2124,7 +2124,7 @@
     {
       "name": "TopApps.Ai",
       "submit_url": "https://topapps.ai/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2135,7 +2135,7 @@
     {
       "name": "ToolHunter.ai",
       "submit_url": "https://www.toolhunter.ai/submit-a-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2146,7 +2146,7 @@
     {
       "name": "ToolStory.net",
       "submit_url": "https://toolsstory.net/add-listing/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2157,7 +2157,7 @@
     {
       "name": "Super AI Tools",
       "submit_url": "https://www.superaitools.io/submit-a-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2168,7 +2168,7 @@
     {
       "name": "Free AI Tool",
       "submit_url": "https://freeaitool.ai/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2179,7 +2179,7 @@
     {
       "name": "aitoolslist.io",
       "submit_url": "https://aitoolslist.io/submit-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2190,7 +2190,7 @@
     {
       "name": "AI Tools Masters",
       "submit_url": "https://aitoolsmasters.com/add-ai-tools/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2201,7 +2201,7 @@
     {
       "name": "AILibri",
       "submit_url": "https://ailibri.com/addAi",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2212,7 +2212,7 @@
     {
       "name": "aitoolhunt",
       "submit_url": "https://www.aitoolhunt.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2223,7 +2223,7 @@
     {
       "name": "Cipinet",
       "submit_url": "https://www.cipinet.com/submit.php",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2234,7 +2234,7 @@
     {
       "name": "A List Directory",
       "submit_url": "http://www.alistdirectory.com/submit.php",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2245,7 +2245,7 @@
     {
       "name": "Foundr.ai",
       "submit_url": "https://foundr.ai/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2256,7 +2256,7 @@
     {
       "name": "Tap4 AI",
       "submit_url": "https://tap4.ai/cn/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "multi",
       "dr": null,
       "monthly_traffic": "",
@@ -2267,7 +2267,7 @@
     {
       "name": "aiwith.me",
       "submit_url": "https://aiwith.me/zh/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "multi",
       "dr": null,
       "monthly_traffic": "",
@@ -2278,7 +2278,7 @@
     {
       "name": "ToolsFine",
       "submit_url": "https://tally.so/r/wvB7Xg",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2289,7 +2289,7 @@
     {
       "name": "AlternativeTo",
       "submit_url": "https://alternativeto.net/faq/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2300,7 +2300,7 @@
     {
       "name": "Appoid",
       "submit_url": "http://appiod.com/submit-app-for-review/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2311,7 +2311,7 @@
     {
       "name": "BufferApps",
       "submit_url": "https://bufferapps.com/beta-listing/new",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2322,7 +2322,7 @@
     {
       "name": "Changelog",
       "submit_url": "https://changelog.com/news/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2333,7 +2333,7 @@
     {
       "name": "Digital Stuff We Love",
       "submit_url": "https://digitalstuffwelove.org.nz/submit-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2344,7 +2344,7 @@
     {
       "name": "10words",
       "submit_url": "https://10words.io/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2355,7 +2355,7 @@
     {
       "name": "MicroLaunch",
       "submit_url": "https://microlaunch.net/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2366,7 +2366,7 @@
     {
       "name": "Fund a Maker",
       "submit_url": "https://fundamaker.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2377,7 +2377,7 @@
     {
       "name": "Joinly",
       "submit_url": "https://www.joinly.xyz/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2388,7 +2388,7 @@
     {
       "name": "KillerStartups",
       "submit_url": "https://www.killerstartups.com/submit-startup/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2399,7 +2399,7 @@
     {
       "name": "PitchWall",
       "submit_url": "https://pitchwall.co/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2410,7 +2410,7 @@
     {
       "name": "Toools.design",
       "submit_url": "https://toools.design/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2421,7 +2421,7 @@
     {
       "name": "TechPluto",
       "submit_url": "https://www.techpluto.com/submit-a-startup/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2432,7 +2432,7 @@
     {
       "name": "Top Best Alternatives",
       "submit_url": "https://www.topbestalternatives.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2443,7 +2443,7 @@
     {
       "name": "Launched!",
       "submit_url": "https://launched.io/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2454,7 +2454,7 @@
     {
       "name": "StartupRanking",
       "submit_url": "https://www.startupranking.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2465,7 +2465,7 @@
     {
       "name": "StartupBase",
       "submit_url": "https://startupbase.io/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2476,7 +2476,7 @@
     {
       "name": "techdirectory.io",
       "submit_url": "https://www.techdirectory.io/get-listed",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2487,7 +2487,7 @@
     {
       "name": "Toolbase.io",
       "submit_url": "https://form.typeform.com/to/LQcTJr",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2498,7 +2498,7 @@
     {
       "name": "TechFaster",
       "submit_url": "http://techfaster.com/submit-your-company/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2509,7 +2509,7 @@
     {
       "name": "Indie Tools",
       "submit_url": "https://indietools.co/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2520,7 +2520,7 @@
     {
       "name": "MakerPeak",
       "submit_url": "https://makerpeak.com/sign-up?redirect=/profile/products/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2531,7 +2531,7 @@
     {
       "name": "Simple Lister",
       "submit_url": "https://simplelister.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2542,7 +2542,7 @@
     {
       "name": "WebsiteHunt",
       "submit_url": "https://www.websitehunt.co/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2553,7 +2553,7 @@
     {
       "name": "Twelve.tools",
       "submit_url": "https://twelve.tools/submit-your-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2564,7 +2564,7 @@
     {
       "name": "WhatLaunched.Today",
       "submit_url": "https://www.whatlaunched.today",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2575,7 +2575,7 @@
     {
       "name": "bigstartups.co",
       "submit_url": "https://bigstartups.co/overview/list-product",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2586,7 +2586,7 @@
     {
       "name": "osalt.com",
       "submit_url": "https://osalt.com/suggest",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2597,7 +2597,7 @@
     {
       "name": "Broadwise.org",
       "submit_url": "https://broadwise.org/t/how-to-promote-your-startup-on-broadwise-org/125",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2608,7 +2608,7 @@
     {
       "name": "ASR",
       "submit_url": "https://www.activesearchresults.com/addwebsite.php",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2619,7 +2619,7 @@
     {
       "name": "insanelycooltools",
       "submit_url": "https://www.insanelycooltools.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2630,7 +2630,7 @@
     {
       "name": "once.tools",
       "submit_url": "https://once.tools/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2641,7 +2641,7 @@
     {
       "name": "Viesearch",
       "submit_url": "https://viesearch.com/submit",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2652,7 +2652,7 @@
     {
       "name": "OnToplist.com",
       "submit_url": "https://www.ontoplist.com/join/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2663,7 +2663,7 @@
     {
       "name": "Offpagesavvy",
       "submit_url": "https://www.offpagesavvy.com/submit-your-site/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2674,7 +2674,7 @@
     {
       "name": "Unmatched Style",
       "submit_url": "https://unmatchedstyle.com/submit",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2685,7 +2685,7 @@
     {
       "name": "01webdirectory",
       "submit_url": "https://www.01webdirectory.com/frmPreSubmit.aspx",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2696,7 +2696,7 @@
     {
       "name": "247WebDirectory",
       "submit_url": "https://www.247webdirectory.com/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2707,7 +2707,7 @@
     {
       "name": "9Sites.net",
       "submit_url": "https://www.9sites.net/addurl.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2718,7 +2718,7 @@
     {
       "name": "ABC Directory",
       "submit_url": "https://www.abc-directory.com/submiturl",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2729,7 +2729,7 @@
     {
       "name": "All Business Directory",
       "submit_url": "https://www.allbusinessdirectory.biz/directory.php?page=submission-guidelines",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2740,7 +2740,7 @@
     {
       "name": "All States USA Directory",
       "submit_url": "https://www.allstatesusadirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2751,7 +2751,7 @@
     {
       "name": "BusinessSeek.biz",
       "submit_url": "https://www.businessseek.biz/page.php?page=submission-policy",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2762,7 +2762,7 @@
     {
       "name": "Submission Web Directory",
       "submit_url": "https://www.submissionwebdirectory.com/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2773,7 +2773,7 @@
     {
       "name": "Highrankdirectory",
       "submit_url": "https://www.highrankdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2784,7 +2784,7 @@
     {
       "name": "Sonic Run",
       "submit_url": "https://www.sonicrun.com/freelisting.html",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2795,7 +2795,7 @@
     {
       "name": "Site Promotion Directory",
       "submit_url": "https://www.sitepromotiondirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2806,7 +2806,7 @@
     {
       "name": "SitesWebdirectory",
       "submit_url": "https://www.siteswebdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2817,7 +2817,7 @@
     {
       "name": "Promote Business Directory",
       "submit_url": "https://www.promotebusinessdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2828,7 +2828,7 @@
     {
       "name": "ProLinkDirectory",
       "submit_url": "https://www.prolinkdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2839,7 +2839,7 @@
     {
       "name": "GainWeb.org",
       "submit_url": "https://gainweb.org/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2850,7 +2850,7 @@
     {
       "name": "Jayde",
       "submit_url": "https://www.jayde.com/submit.html",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2861,7 +2861,7 @@
     {
       "name": "Free Directory",
       "submit_url": "https://www.directory-free.com/submit/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2872,7 +2872,7 @@
     {
       "name": "Free PR Web Directory",
       "submit_url": "https://www.freeprwebdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2883,7 +2883,7 @@
     {
       "name": "Free Internet Web Directory",
       "submit_url": "https://www.freeinternetwebdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2894,7 +2894,7 @@
     {
       "name": "TXTLinks",
       "submit_url": "https://www.txtlinks.com/sug_url.php?cat_id=0",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2905,7 +2905,7 @@
     {
       "name": "Tsection",
       "submit_url": "https://www.tsection.com/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2916,7 +2916,7 @@
     {
       "name": "Quality Internet Directory",
       "submit_url": "https://www.qualityinternetdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2927,7 +2927,7 @@
     {
       "name": "UK Internet Directory",
       "submit_url": "https://www.ukinternetdirectory.net/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2938,7 +2938,7 @@
     {
       "name": "USA Websites Directory",
       "submit_url": "https://www.usawebsitesdirectory.com/submit.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2949,7 +2949,7 @@
     {
       "name": "World Web Directory",
       "submit_url": "https://www.worldweb-directory.com/add.php",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2960,7 +2960,7 @@
     {
       "name": "Submit.biz",
       "submit_url": "https://www.submit.biz/",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -2971,7 +2971,7 @@
     {
       "name": "ai-bot.cn",
       "submit_url": "https://tally.so/r/wkeKz1",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -2982,7 +2982,7 @@
     {
       "name": "AI NAV",
       "submit_url": "https://www.ainavpro.com/contribute",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -2993,7 +2993,7 @@
     {
       "name": "工具达人AI导航",
       "submit_url": "http://toolsdar.mikecrm.com/nix44in",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3004,7 +3004,7 @@
     {
       "name": "深度AI导航",
       "submit_url": "https://www.deepdhai.com/submit",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3015,7 +3015,7 @@
     {
       "name": "Cooltools",
       "submit_url": "https://backdata.net/submit-site.html",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3026,7 +3026,7 @@
     {
       "name": "iforai",
       "submit_url": "https://iforai.com/submit_website/",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3037,7 +3037,7 @@
     {
       "name": "AIGC工具导航",
       "submit_url": "https://www.aigc.cn/submit",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3048,7 +3048,7 @@
     {
       "name": "AIGC便利店",
       "submit_url": "https://aigclist.com/submit-ai-tools-free/",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3059,7 +3059,7 @@
     {
       "name": "海外导航网",
       "submit_url": "https://www.hhlink.com/%E6%8F%90%E4%BA%A4%E6%96%B0%E7%BD%91%E7%AB%99",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3070,7 +3070,7 @@
     {
       "name": "智鹭AI",
       "submit_url": "https://www.aiheron.com/promote",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3081,7 +3081,7 @@
     {
       "name": "老北鼻AI导航",
       "submit_url": "https://lbbai.com/contribute",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3092,7 +3092,7 @@
     {
       "name": "AI工具箱 (ailookme)",
       "submit_url": "https://www.ailookme.com/%e7%bd%91%e5%9d%80%e6%8f%90%e4%ba%a4",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3103,7 +3103,7 @@
     {
       "name": "AI导航网 (aiopenminds)",
       "submit_url": "https://jinshuju.net/f/BhEFyJ",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3114,7 +3114,7 @@
     {
       "name": "ABABTOOLS",
       "submit_url": "https://ababtools.com/?post=1292",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3125,7 +3125,7 @@
     {
       "name": "新趣集",
       "submit_url": "https://xinquji.com/",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3136,7 +3136,7 @@
     {
       "name": "Mergeek",
       "submit_url": "https://mergeek.com/publish_project",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3147,7 +3147,7 @@
     {
       "name": "挖互联网",
       "submit_url": "https://tigg.cc/share",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3158,7 +3158,7 @@
     {
       "name": "线圈",
       "submit_url": "https://xquan.net/help?tab=submit-guide",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3169,7 +3169,7 @@
     {
       "name": "Solo 社区",
       "submit_url": "https://solo.xin/product",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3180,7 +3180,7 @@
     {
       "name": "名站在线",
       "submit_url": "http://www.fwol.cn/infos_add.php",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3191,7 +3191,7 @@
     {
       "name": "63243网址导航",
       "submit_url": "https://www.63243.com/about/add.html",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3202,7 +3202,7 @@
     {
       "name": "小木屋",
       "submit_url": "https://wechalet.cn/appstore/add",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3213,7 +3213,7 @@
     {
       "name": "笛卡",
       "submit_url": "https://dizkaz.com/",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3224,7 +3224,7 @@
     {
       "name": "FUUN.FUN",
       "submit_url": "https://fuun.fun/talk.html",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3235,7 +3235,7 @@
     {
       "name": "Show HN (Hacker News)",
       "submit_url": "https://news.ycombinator.com/submit",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3246,7 +3246,7 @@
     {
       "name": "Product Hunt",
       "submit_url": "https://www.producthunt.com/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3257,7 +3257,7 @@
     {
       "name": "Dev Hunt",
       "submit_url": "https://devhunt.org/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3268,7 +3268,7 @@
     {
       "name": "Indie Hackers",
       "submit_url": "https://www.indiehackers.com/products",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3279,7 +3279,7 @@
     {
       "name": "Hashnode",
       "submit_url": "https://hashnode.com/discussions",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3290,7 +3290,7 @@
     {
       "name": "HackerNoon",
       "submit_url": "https://hackernoon.com/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3301,7 +3301,7 @@
     {
       "name": "即刻",
       "submit_url": "https://web.okjike.com/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3312,7 +3312,7 @@
     {
       "name": "V2EX",
       "submit_url": "https://www.v2ex.com/go/create",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3323,7 +3323,7 @@
     {
       "name": "W2solo",
       "submit_url": "https://w2solo.com/topics/newproduct",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3334,7 +3334,7 @@
     {
       "name": "掘金",
       "submit_url": "https://juejin.cn/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3345,7 +3345,7 @@
     {
       "name": "HelloGitHub",
       "submit_url": "https://hellogithub.com/",
-      "category": "Communities & Forums",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3356,7 +3356,7 @@
     {
       "name": "中国独立开发者项目列表",
       "submit_url": "https://github.com/1c7/chinese-independent-developer/issues",
-      "category": "GitHub Awesome Lists",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3367,7 +3367,7 @@
     {
       "name": "Best App",
       "submit_url": "https://github.com/hzlzh/Best-App/issues",
-      "category": "GitHub Awesome Lists",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3378,7 +3378,7 @@
     {
       "name": "科技爱好者周刊",
       "submit_url": "https://github.com/ruanyf/weekly/issues",
-      "category": "GitHub Awesome Lists",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -3389,118 +3389,8 @@
     {
       "name": "独立开发变现周刊",
       "submit_url": "https://github.com/ljinkai/weekly/issues",
-      "category": "GitHub Awesome Lists",
+      "category": "Non-Blog Comment",
       "lang": "zh",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/SideProject",
-      "submit_url": "https://reddit.com/r/sideproject",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/AlphaandBetausers",
-      "submit_url": "https://www.reddit.com/r/alphaandbetausers/",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/IMadeThis",
-      "submit_url": "https://www.reddit.com/r/IMadeThis/",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/Startups",
-      "submit_url": "https://reddit.com/r/startups",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/Entrepreneur",
-      "submit_url": "https://reddit.com/r/entrepreneur",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/InternetIsBeautiful",
-      "submit_url": "https://www.reddit.com/r/InternetIsBeautiful/",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/webdev (Showoff Saturday)",
-      "submit_url": "https://www.reddit.com/r/webdev/",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": "Only on Saturdays"
-    },
-    {
-      "name": "r/opensource",
-      "submit_url": "https://www.reddit.com/r/opensource/",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/selfhosted",
-      "submit_url": "https://www.reddit.com/r/selfhosted/",
-      "category": "Reddit",
-      "lang": "en",
-      "dr": null,
-      "monthly_traffic": "",
-      "pricing": "Free",
-      "status": "alive",
-      "notes": ""
-    },
-    {
-      "name": "r/buildinpublic",
-      "submit_url": "https://www.reddit.com/r/buildinpublic/",
-      "category": "Reddit",
-      "lang": "en",
       "dr": null,
       "monthly_traffic": "",
       "pricing": "Free",
@@ -3510,7 +3400,7 @@
     {
       "name": "Sick Tools",
       "submit_url": "https://tally.so/r/wvY09d",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "100",
@@ -3521,7 +3411,7 @@
     {
       "name": "BetaList",
       "submit_url": "https://betalist.com/submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3532,7 +3422,7 @@
     {
       "name": "About.me",
       "submit_url": "https://about.me",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3543,7 +3433,7 @@
     {
       "name": "SlideShare",
       "submit_url": "https://slideshare.net",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 95,
       "monthly_traffic": "",
@@ -3554,7 +3444,7 @@
     {
       "name": "Clutch",
       "submit_url": "https://clutch.co",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 83,
       "monthly_traffic": "",
@@ -3565,7 +3455,7 @@
     {
       "name": "Serchen",
       "submit_url": "https://www.serchen.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 71,
       "monthly_traffic": "129000",
@@ -3576,7 +3466,7 @@
     {
       "name": "Toolify.ai",
       "submit_url": "https://www.toolify.ai/login?from=%2Fsubmit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 64,
       "monthly_traffic": "340K",
@@ -3587,7 +3477,7 @@
     {
       "name": "Top AI tools",
       "submit_url": "https://topai.tools/submit?aff=8Mjlz",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 58,
       "monthly_traffic": "2M",
@@ -3598,7 +3488,7 @@
     {
       "name": "Easy with AI",
       "submit_url": "https://easywithai.com/submit-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 53,
       "monthly_traffic": "922k",
@@ -3609,7 +3499,7 @@
     {
       "name": "Ismailblogger",
       "submit_url": "https://ismailblogger.com/submit-tools/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 46,
       "monthly_traffic": "10K",
@@ -3620,7 +3510,7 @@
     {
       "name": "The Startup Pitch",
       "submit_url": "https://thestartuppitch.com/post-a-pitch/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 40,
       "monthly_traffic": "<5K",
@@ -3631,7 +3521,7 @@
     {
       "name": "AI scout",
       "submit_url": "https://aiscout.net/submit-listing/details/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 38,
       "monthly_traffic": "100",
@@ -3642,7 +3532,7 @@
     {
       "name": "AllStartups Info",
       "submit_url": "https://www.allstartups.info/Startups/Submit?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 33,
       "monthly_traffic": "17K",
@@ -3653,7 +3543,7 @@
     {
       "name": "AI Search",
       "submit_url": "https://ai-search.io/submit",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 31,
       "monthly_traffic": "4K",
@@ -3664,7 +3554,7 @@
     {
       "name": "Ankore",
       "submit_url": "https://ankore.io/submit/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 29,
       "monthly_traffic": "1500",
@@ -3675,7 +3565,7 @@
     {
       "name": "What the AI",
       "submit_url": "https://whattheai.tech/submit-a-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 28,
       "monthly_traffic": "50000",
@@ -3686,7 +3576,7 @@
     {
       "name": "Gate2AI",
       "submit_url": "https://www.gate2ai.com/submit-tool?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 27,
       "monthly_traffic": "129K",
@@ -3697,7 +3587,7 @@
     {
       "name": "BestOfAI",
       "submit_url": "https://bestofai.com/tool/add",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "1K",
@@ -3708,7 +3598,7 @@
     {
       "name": "RayDay",
       "submit_url": "https://raiday.ai/submit-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 25,
       "monthly_traffic": "134000",
@@ -3719,7 +3609,7 @@
     {
       "name": "FunFun Tools",
       "submit_url": "https://www.funfun.tools/submit-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 23,
       "monthly_traffic": "",
@@ -3730,7 +3620,7 @@
     {
       "name": "Startup Roulette",
       "submit_url": "https://startuproulette.com/promote-my-startup",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 21,
       "monthly_traffic": "0",
@@ -3741,7 +3631,7 @@
     {
       "name": "Unloc",
       "submit_url": "https://www.unloc.tools/submit-tool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 20,
       "monthly_traffic": "1K",
@@ -3752,7 +3642,7 @@
     {
       "name": "Critiqs AI",
       "submit_url": "https://critiqs.ai/submit-new-ai-tool/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 17,
       "monthly_traffic": "2000",
@@ -3763,7 +3653,7 @@
     {
       "name": "riseofmachine",
       "submit_url": "https://docs.google.com/forms/d/e/1FAIpQLSf_bdfoMR7WkMfqWa4zDfBIFrYhz12lQCBWQHFlZ9UewHhzgg/viewform",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 14,
       "monthly_traffic": "",
@@ -3774,7 +3664,7 @@
     {
       "name": "AI Stash",
       "submit_url": "https://www.aistash.co/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 14,
       "monthly_traffic": "15K",
@@ -3785,7 +3675,7 @@
     {
       "name": "AI-Hunter.io",
       "submit_url": "https://ai-hunter.io/submit-ai-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "25K",
@@ -3796,7 +3686,7 @@
     {
       "name": "The AI Warehouse",
       "submit_url": "https://www.thewarehouse.ai/product-submission",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 11,
       "monthly_traffic": "15K",
@@ -3807,7 +3697,7 @@
     {
       "name": "Under1000MRR.tools",
       "submit_url": "https://under1000mrr.tools/login",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 6,
       "monthly_traffic": "",
@@ -3818,7 +3708,7 @@
     {
       "name": "Orbic AI",
       "submit_url": "https://orbic.ai/login?callbackUrl=https%3A%2F%2Forbic.ai%2Fsubmit%2Ftools",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 5,
       "monthly_traffic": "100",
@@ -3829,7 +3719,7 @@
     {
       "name": "Future AGI Tools",
       "submit_url": "https://www.futureagitools.com/submit-a-site",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 3.5,
       "monthly_traffic": "5K",
@@ -3840,7 +3730,7 @@
     {
       "name": "AI Top Picks",
       "submit_url": "https://www.aitoppicks.com/?ref=aidirectori.es",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 2.8,
       "monthly_traffic": "5800",
@@ -3851,7 +3741,7 @@
     {
       "name": "One Hub AI",
       "submit_url": "https://www.onehubai.com/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 1.6,
       "monthly_traffic": "4600",
@@ -3862,7 +3752,7 @@
     {
       "name": "Free AI Apps",
       "submit_url": "https://freeappsai.com/add/?ref=aidirectories",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": 1.5,
       "monthly_traffic": "400",
@@ -3873,7 +3763,7 @@
     {
       "name": "AI Finder",
       "submit_url": "https://ai-finder.net/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3884,7 +3774,7 @@
     {
       "name": "AllThingsAI",
       "submit_url": "https://allthingsai.com",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3895,7 +3785,7 @@
     {
       "name": "AiDude",
       "submit_url": "https://aidude.pro/submit-your-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3906,7 +3796,7 @@
     {
       "name": "AiSuperSmart",
       "submit_url": "https://www.aisupersmart.com/submit-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3917,7 +3807,7 @@
     {
       "name": "Draeno.io",
       "submit_url": "https://draeno.io/submit-a-tool/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3928,7 +3818,7 @@
     {
       "name": "Human Alternative",
       "submit_url": "https://www.humanalternative.com/submit-resource/submit-a-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3939,7 +3829,7 @@
     {
       "name": "Gate2AI",
       "submit_url": "https://www.gate2ai.com/zh-cn/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "multi",
       "dr": null,
       "monthly_traffic": "",
@@ -3950,7 +3840,7 @@
     {
       "name": "ToolsAI.net",
       "submit_url": "https://toolsai.net/add-listing/",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3961,7 +3851,7 @@
     {
       "name": "Interested In AI",
       "submit_url": "https://www.interestedinai.com/submit-tool",
-      "category": "AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3972,7 +3862,7 @@
     {
       "name": "All Startups",
       "submit_url": "http://www.allstartups.info/Startups/Submit",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3983,7 +3873,7 @@
     {
       "name": "DataTau",
       "submit_url": "https://datatau.net/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -3994,7 +3884,7 @@
     {
       "name": "Fiddy",
       "submit_url": "https://fiddy.co/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4005,7 +3895,7 @@
     {
       "name": "Prime Indies",
       "submit_url": "https://primeindies.com/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4016,7 +3906,7 @@
     {
       "name": "Wewaat",
       "submit_url": "https://www.wewaat.com/submitnewtool",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4027,7 +3917,7 @@
     {
       "name": "Launching Today",
       "submit_url": "https://www.launching.today/",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4038,7 +3928,7 @@
     {
       "name": "700.tools",
       "submit_url": "https://700.tools/add",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4049,7 +3939,7 @@
     {
       "name": "Dizila",
       "submit_url": "https://www.dizila.com/submit",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4060,7 +3950,7 @@
     {
       "name": "5118.link",
       "submit_url": "http://www.5118.link/article/22.html",
-      "category": "Web Directories (SEO)",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4071,7 +3961,7 @@
     {
       "name": "2AGI",
       "submit_url": "https://2agi.net/zh/submit",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4082,7 +3972,7 @@
     {
       "name": "AI大师",
       "submit_url": "https://www.aidashi.cn/sl",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4093,7 +3983,7 @@
     {
       "name": "AI智式",
       "submit_url": "https://aiwaytools.com/%e7%bd%91%e5%9d%80%e6%8f%90%e4%ba%a4/",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4104,7 +3994,7 @@
     {
       "name": "AI工具箱 (aitool123)",
       "submit_url": "https://www.aitool123.cc/%E6%8F%90%E4%BA%A4%E6%94%B6%E5%BD%95/",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4115,7 +4005,7 @@
     {
       "name": "映技派",
       "submit_url": "https://www.yjpoo.com/submit-ai-tool/",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4126,7 +4016,7 @@
     {
       "name": "懂AI",
       "submit_url": "https://www.dongaiapp.com/sub",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4137,7 +4027,7 @@
     {
       "name": "南城FE AI导航",
       "submit_url": "https://nancheng.fun/contribute",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4148,7 +4038,7 @@
     {
       "name": "zhexieai",
       "submit_url": "https://zhexieai.com/%e6%8f%90%e4%ba%a4%e7%bd%91%e5%9d%80",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4159,7 +4049,7 @@
     {
       "name": "未来百科",
       "submit_url": "https://nav.6aiq.com/contribute",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4170,7 +4060,7 @@
     {
       "name": "123AI导航",
       "submit_url": "https://www.fsl123.com/contribute",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4181,7 +4071,7 @@
     {
       "name": "AI导航网 (94kan)",
       "submit_url": "https://ai.94kan.cn/submit",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4192,7 +4082,7 @@
     {
       "name": "知否Box AI导航",
       "submit_url": "https://www.zhifoubox.com/submission",
-      "category": "Chinese AI Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4203,7 +4093,7 @@
     {
       "name": "一网一匠",
       "submit_url": "https://ywyj.cn/",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4214,7 +4104,7 @@
     {
       "name": "电商导航网",
       "submit_url": "https://www.dianshangdaohang.cn/shoulu/",
-      "category": "Chinese General Directories",
+      "category": "Non-Blog Comment",
       "lang": "zh",
       "dr": null,
       "monthly_traffic": "",
@@ -4225,7 +4115,7 @@
     {
       "name": "Capterra",
       "submit_url": "https://capterra.com/vendors",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",
@@ -4236,7 +4126,7 @@
     {
       "name": "Hashnode",
       "submit_url": "https://hashnode.com",
-      "category": "Startup & Product Directories",
+      "category": "Non-Blog Comment",
       "lang": "en",
       "dr": null,
       "monthly_traffic": "",

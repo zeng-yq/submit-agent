@@ -141,9 +141,10 @@ export default function App() {
 		}
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
 
-	const startBatch = useCallback(() => {
+	const startBatch = useCallback((category?: string) => {
 		const notStarted = sites
 			.filter((s) => !!s.submit_url && (submissions.get(s.name)?.status ?? 'not_started') === 'not_started')
+				.filter((s) => !category || s.category === category)
 			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
 			.slice(0, batchCount)
 
