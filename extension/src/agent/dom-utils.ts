@@ -1,0 +1,130 @@
+/**
+ * Native DOM utility functions for form filling.
+ * Replaces @page-agent/page-controller with lightweight, focused operations.
+ */
+
+/** Set value on an <input> element and dispatch events for React/Vue. */
+export function setInputValue(el: HTMLInputElement, value: string): void {
+  // Use the native setter to bypass React's read-only value property
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value',
+  )?.set;
+  if (nativeInputValueSetter) {
+    nativeInputValueSetter.call(el, value);
+  } else {
+    el.value = value;
+  }
+  el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/** Set value on a <textarea> element and dispatch events. */
+export function setTextareaValue(el: HTMLTextAreaElement, value: string): void {
+  const nativeSetter = Object.getOwnPropertyDescriptor(
+    HTMLTextAreaElement.prototype,
+    'value',
+  )?.set;
+  if (nativeSetter) {
+    nativeSetter.call(el, value);
+  } else {
+    el.value = value;
+  }
+  el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/** Set value on a <select> element and dispatch change event. */
+export function setSelectValue(el: HTMLSelectElement, value: string): void {
+  el.value = value;
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/** Set text content on a contenteditable element and dispatch input event. */
+export function setContentEditable(el: HTMLElement, value: string): void {
+  el.textContent = value;
+  el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+}
+
+/** Fill any form field based on its element type. */
+export function fillField(el: HTMLElement, value: string): void {
+  const tag = el.tagName.toLowerCase();
+
+  if (tag === 'input') {
+    setInputValue(el as HTMLInputElement, value);
+  } else if (tag === 'textarea') {
+    setTextareaValue(el as HTMLTextAreaElement, value);
+  } else if (tag === 'select') {
+    setSelectValue(el as HTMLSelectElement, value);
+  } else if ((el as HTMLElement).isContentEditable) {
+    setContentEditable(el, value);
+  }
+}
+
+/** Wait for the next animation frame. */
+export function waitForRAF(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+/** CAPTCHA-related selectors to skip. */
+const CAPTCHA_SELECTORS = [
+  '[name*="captcha"]',
+  '[name*="recaptcha"]',
+  '[name*="hcaptcha"]',
+  '[id*="captcha"]',
+  '[id*="recaptcha"]',
+  '[class*="captcha"]',
+  '[class*="recaptcha"]',
+  'iframe[src*="recaptcha"]',
+  'iframe[src*="hcaptcha"]',
+  '.g-recaptcha',
+  '.h-captcha',
+];
+
+/** Check if an element is a CAPTCHA element. */
+function isCaptchaElement(el: Element): boolean {
+  if (CAPTCHA_SELECTORS.some((sel) => el.matches?.(sel))) return true;
+  // Check iframe src
+  if (el.tagName === 'IFRAME') {
+    const src = (el as HTMLIFrameElement).src || '';
+    if (src.includes('recaptcha') || src.includes('hcaptcha')) return true;
+  }
+  return false;
+}
+
+/** Types of input elements to skip. */
+const SKIP_INPUT_TYPES = new Set([
+  'hidden',
+  'submit',
+  'button',
+  'reset',
+  'image',
+  'file',
+]);
+
+/** Check if an element is a form field we should analyze/fill. */
+export function isFormField(el: Element): boolean {
+  const tag = el.tagName.toLowerCase();
+
+  // Check for CAPTCHA first
+  if (isCaptchaElement(el)) return false;
+
+  if (tag === 'input') {
+    const type = (el as HTMLInputElement).type?.toLowerCase() || 'text';
+    if (SKIP_INPUT_TYPES.has(type)) return false;
+    return true;
+  }
+
+  if (tag === 'textarea' || tag === 'select') return true;
+
+  // contenteditable elements (but not the ones used by rich text editors for layout)
+  if ((el as HTMLElement).isContentEditable) {
+    // Skip if it's a large contenteditable div that's likely a page editor
+    const role = el.getAttribute('role');
+    if (role === 'textbox') return true;
+    // Skip generic contenteditable divs without a form context
+    return false;
+  }
+
+  return false;
+}

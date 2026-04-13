@@ -6,16 +6,16 @@ import { SettingsPanel } from '@/components/SettingsPanel'
 import { Button } from '@/components/ui/Button'
 import { useProduct } from '@/hooks/useProduct'
 import { useSites } from '@/hooks/useSites'
-import { useSubmitAgent } from '@/hooks/useSubmitAgent'
+import { useFormFillEngine } from '@/hooks/useFormFillEngine'
 import { useBacklinkAgent } from '@/hooks/useBacklinkAgent'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
+import { matchCurrentPage, filterSubmittable } from '@/lib/sites'
 
 type View =
 	| { name: 'dashboard' }
 	| { name: 'quick-create' }
 	| { name: 'settings' }
-	| { name: 'float-fill' }
 	| { name: 'backlink-analysis' }
 
 export default function App() {
@@ -24,7 +24,7 @@ export default function App() {
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
 	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite } = useSites(activeProduct?.id ?? null)
-	const { status: agentStatus, history, activity, startSubmission, startSubmissionOnCurrentTab, stop, reset } = useSubmitAgent()
+	const { status: engineStatus, result: engineResult, error: engineError, startSubmission, stop, reset } = useFormFillEngine()
 
 	const handleDeleteSite = useCallback(
 		async (siteName: string) => {
@@ -50,8 +50,7 @@ export default function App() {
 		selectBatch,
 		dismissBatch,
 	} = useBacklinkAgent()
-	const [agentError, setAgentError] = useState<string | null>(null)
-	const [currentAgentSite, setCurrentAgentSite] = useState<SiteData | null>(null)
+	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 
 	// Batch submit state
 	const [batchCount, setBatchCount] = useState(20)
@@ -70,30 +69,34 @@ export default function App() {
 					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
 					return
 				}
-				setView({ name: 'float-fill' })
-				setAgentError(null)
+				// The float button triggers are now handled by the floating button's own state.
+				// The sidepanel just needs to know to run the engine.
 				chrome.storage.session.get('floatFillTabId').then(async (res) => {
 					const tabId = res.floatFillTabId as number | undefined
-					let tabUrl = window.location.href
-					if (tabId) {
-						try {
-							const tab = await chrome.tabs.get(tabId)
-							tabUrl = tab.url ?? tabUrl
-						} catch {}
-					}
-					startSubmissionOnCurrentTab(activeProduct, tabUrl)
-						.then(() => {
-							setView({ name: 'dashboard' })
-						})
-						.catch((err: Error) => {
-							setAgentError(err.message)
-						})
+					if (!tabId) return
+					try {
+						const tab = await chrome.tabs.get(tabId)
+						const tabUrl = tab.url ?? ''
+						if (!activeProduct) return
+						// Find matching site
+						const submittable = filterSubmittable(sites)
+						const matched = matchCurrentPage(submittable, tabUrl)
+						if (matched) {
+							startSubmission(matched)
+								.then((r) => {
+									if (r.failed === 0 && r.filled > 0) {
+										markSubmitted(matched.name, activeProduct.id)
+									}
+								})
+								.catch(() => {})
+						}
+					} catch {}
 				})
 			}
 		}
 		chrome.runtime.onMessage.addListener(handler)
 		return () => chrome.runtime.onMessage.removeListener(handler)
-	}, [activeProduct, startSubmissionOnCurrentTab])
+	}, [activeProduct, sites, startSubmission, markSubmitted])
 
 	useEffect(() => {
 		if (!dropdownOpen) return
@@ -110,21 +113,17 @@ export default function App() {
 	const handleStartSite = useCallback(async (site: SiteData) => {
 		if (!activeProduct) return
 		reset()
-		setAgentError(null)
-		setCurrentAgentSite(site)
+		setCurrentEngineSite(site)
 
 		try {
-			const result = await startSubmission(site, activeProduct)
-			if (result.success) {
+			const result = await startSubmission(site)
+			if (result.failed === 0 && result.filled > 0) {
 				await markSubmitted(site.name, activeProduct.id)
-			} else {
-				const msg = result.data || '提交失败'
-				setAgentError(msg)
-				await markFailed(site.name, activeProduct.id, msg)
+			} else if (result.failed > 0) {
+				await markFailed(site.name, activeProduct.id, result.notes)
 			}
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err)
-			setAgentError(msg)
 			await markFailed(site.name, activeProduct.id, msg)
 		}
 
@@ -132,10 +131,8 @@ export default function App() {
 		if (batchModeRef.current) {
 			advanceBatch()
 		} else {
-			// Clear agent state after a short delay so user sees the completion
 			setTimeout(() => {
-				setCurrentAgentSite(null)
-				setAgentError(null)
+				setCurrentEngineSite(null)
 				reset()
 			}, 3000)
 		}
@@ -144,7 +141,7 @@ export default function App() {
 	const startBatch = useCallback((category?: string) => {
 		const notStarted = sites
 			.filter((s) => !!s.submit_url && (submissions.get(s.name)?.status ?? 'not_started') === 'not_started')
-				.filter((s) => !category || s.category === category)
+			.filter((s) => !category || s.category === category)
 			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
 			.slice(0, batchCount)
 
@@ -156,7 +153,6 @@ export default function App() {
 		batchStopRef.current = false
 		batchModeRef.current = true
 		reset()
-		setAgentError(null)
 		// Start first site directly
 		handleStartSite(notStarted[0])
 	}, [sites, submissions, batchCount, reset, handleStartSite])
@@ -172,7 +168,7 @@ export default function App() {
 		if (batchStopRef.current || !batchModeRef.current) {
 			setBatchRunning(false)
 			batchModeRef.current = false
-			setCurrentAgentSite(null)
+			setCurrentEngineSite(null)
 			return
 		}
 
@@ -180,13 +176,12 @@ export default function App() {
 		if (nextIndex >= batchSites.length) {
 			setBatchRunning(false)
 			batchModeRef.current = false
-			setCurrentAgentSite(null)
+			setCurrentEngineSite(null)
 			return
 		}
 
 		setBatchCurrentIndex(nextIndex)
 		reset()
-		setAgentError(null)
 		handleStartSite(batchSites[nextIndex])
 	}, [batchCurrentIndex, batchSites, reset, handleStartSite])
 
@@ -255,32 +250,7 @@ export default function App() {
 		)
 	}
 
-	if (view.name === 'float-fill') {
-		return (
-			<div className="flex flex-col h-screen bg-background">
-				<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-					<span className="text-base font-semibold">{'正在自动填写表单...'}</span>
-					<Button variant="ghost" size="sm" onClick={() => { stop(); setView({ name: 'dashboard' }) }}>
-						{'取消'}
-					</Button>
-				</header>
-				<div className="flex-1 p-3 space-y-2">
-					{agentError ? (
-						<div className="text-xs text-destructive bg-destructive/10 rounded p-2">{agentError}</div>
-					) : (
-						<div className="text-xs text-muted-foreground">
-							<div className="font-medium text-foreground mb-1">{'产品：'} {activeProduct?.name}</div>
-							<div>{'状态：'} {agentStatus}</div>
-							{activity && <div className="mt-1 text-xs">{activity.type}: {JSON.stringify(activity).slice(0, 80)}</div>}
-						</div>
-					)}
-				</div>
-			</div>
-		)
-	}
-
 	const isLoading = productLoading || sitesLoading
-	const isAgentActive = agentStatus === 'running' || agentStatus === 'completed' || agentStatus === 'error' || !!agentError
 
 	return (
 		<div className="flex flex-col h-screen bg-background">
@@ -378,12 +348,10 @@ export default function App() {
 						batchCurrentSite={batchSites[batchCurrentIndex]?.name ?? ''}
 						onStartBatch={startBatch}
 						onStopBatch={stopBatch}
-						agentStatus={agentStatus}
-						agentActivity={activity}
-						agentHistory={history}
-						agentError={agentError}
-						agentSiteName={currentAgentSite?.name ?? null}
-						onStopAgent={stop}
+						engineStatus={engineStatus}
+						engineError={engineError?.message ?? null}
+						engineSiteName={currentEngineSite?.name ?? null}
+						onStopEngine={stop}
 					/>
 				)}
 			</main>

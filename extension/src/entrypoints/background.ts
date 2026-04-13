@@ -1,20 +1,12 @@
-import { handlePageControlMessage } from '@/agent/RemotePageController.background'
-import { handleTabControlMessage, setupTabChangeEvents } from '@/agent/TabsController.background'
 import { setFloatButtonEnabled } from '@/lib/storage'
 
 export default defineBackground(() => {
 	console.log('[Submit Agent] Background service worker started')
 
-	setupTabChangeEvents()
-
 	chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {})
 
 	chrome.runtime.onMessage.addListener((message, sender, sendResponse): true | undefined => {
-		if (message.type === 'TAB_CONTROL') {
-			return handleTabControlMessage(message, sender, sendResponse)
-		} else if (message.type === 'PAGE_CONTROL') {
-			return handlePageControlMessage(message, sender, sendResponse)
-		} else if (message.type === 'SUBMIT_CONTROL') {
+		if (message.type === 'SUBMIT_CONTROL') {
 			return handleSubmitControl(message, sendResponse)
 		} else if (message.type === 'FETCH_PAGE_CONTENT') {
 			return handleFetchPageContent(message, sendResponse)
@@ -22,6 +14,8 @@ export default defineBackground(() => {
 			return handleFloatButtonToggle(message, sendResponse)
 		} else if (message.type === 'FLOAT_FILL') {
 			return handleFloatFill(message, sender, sendResponse)
+		} else if (message.type === 'STATUS_UPDATE') {
+			return handleStatusUpdate(message, sender)
 		} else {
 			sendResponse({ error: 'Unknown message type' })
 			return
@@ -30,7 +24,7 @@ export default defineBackground(() => {
 })
 
 function handleSubmitControl(
-	message: { type: string; action: string; payload?: any },
+	message: { type: string; action: string; payload?: unknown },
 	sendResponse: (response: unknown) => void
 ): true | undefined {
 	switch (message.action) {
@@ -74,7 +68,6 @@ function handleFetchPageContent(
 
 	const run = async () => {
 		try {
-			// Step 1: Open a background tab
 			const tab = await chrome.tabs.create({ url, active: false })
 			if (!tab.id) {
 				sendResponse({ error: 'Failed to open tab' })
@@ -82,26 +75,24 @@ function handleFetchPageContent(
 			}
 			openedTabId = tab.id
 
-			// Step 2: Wait for the tab to finish loading
 			const loaded = await waitForTabLoad(tab.id, PAGE_LOAD_TIMEOUT_MS)
 			if (!loaded) {
 				sendResponse({ error: `Page load timed out after ${PAGE_LOAD_TIMEOUT_MS / 1000}s` })
 				return
 			}
 
-			// Step 3: Wait for JS frameworks to finish rendering
 			await new Promise((resolve) => setTimeout(resolve, JS_RENDER_DELAY_MS))
 
-			// Step 4: Ask content script for the rendered HTML
 			const result = await chrome.tabs.sendMessage(tab.id, {
-				type: 'PAGE_CONTROL',
-				action: 'get_page_html',
+				type: 'FLOAT_FILL',
+				action: 'analyze',
+				payload: { siteType: 'directory_submit' },
 			})
 
-			if (result?.ok && result.html) {
-				sendResponse({ ok: true, html: result.html })
+			if (result?.ok && result.analysis) {
+				sendResponse({ ok: true, analysis: result.analysis })
 			} else {
-				sendResponse({ error: result?.error || 'Content script did not return HTML' })
+				sendResponse({ error: result?.error || 'Content script did not return analysis' })
 			}
 		} catch (err) {
 			sendResponse({ error: err instanceof Error ? err.message : String(err) })
@@ -151,7 +142,7 @@ function waitForTabLoad(tabId: number, timeoutMs: number): Promise<boolean> {
 }
 
 function handleFloatFill(
-	message: { type: string; action: string; payload?: any },
+	message: { type: string; action: string; payload?: unknown },
 	sender: chrome.runtime.MessageSender,
 	sendResponse: (response: unknown) => void
 ): true {
@@ -164,11 +155,20 @@ function handleFloatFill(
 		chrome.sidePanel.open({ tabId }).catch(() => {})
 	}
 
-	// Broadcast to sidepanel / relay back to content scripts
+	// Broadcast to sidepanel
 	chrome.runtime.sendMessage(message).catch(() => {})
 
 	sendResponse({ ok: true })
 	return true
+}
+
+function handleStatusUpdate(
+	message: { type: string; payload: unknown },
+	_sender: chrome.runtime.MessageSender
+): undefined {
+	// Broadcast status updates from content script to sidepanel
+	chrome.runtime.sendMessage(message).catch(() => {})
+	return
 }
 
 function handleFloatButtonToggle(

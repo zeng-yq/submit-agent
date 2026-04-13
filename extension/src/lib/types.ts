@@ -37,6 +37,7 @@ export interface SubmissionRecord {
 	notes?: string
 	error?: string        // 失败时的错误信息
 	failedAt?: number     // 失败时间戳 (Date.now())
+	submittedFromFloatButton?: boolean
 	createdAt: number
 	updatedAt: number
 }
@@ -55,6 +56,9 @@ export interface SiteData {
 	lang?: string
 	dr: number | null
 	status?: string
+	monthly_traffic?: number
+	pricing?: string
+	notes?: string
 }
 
 /** sites.json top-level structure */
@@ -92,7 +96,23 @@ export interface ExtSettings {
 }
 
 /** Message types for background <-> content script communication */
-export type MessageType = 'PAGE_CONTROL' | 'TAB_CONTROL' | 'TAB_CHANGE' | 'SUBMIT_CONTROL' | 'GET_STATUS'
+export type MessageType =
+	| 'SUBMIT_CONTROL'
+	| 'FETCH_PAGE_CONTENT'
+	| 'FLOAT_BUTTON_TOGGLE'
+	| 'FLOAT_FILL'
+	| 'STATUS_UPDATE'
+
+/** FLOAT_FILL message actions */
+export type FloatFillAction =
+	| 'start'
+	| 'analyze'
+	| 'fill'
+	| 'progress'
+	| 'done'
+	| 'error'
+	| 'no-product'
+	| 'all-done'
 
 export interface ExtMessage {
 	type: MessageType

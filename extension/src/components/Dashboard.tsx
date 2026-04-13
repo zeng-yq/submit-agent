@@ -1,5 +1,5 @@
-import type { AgentActivity, AgentStatus, HistoricalEvent } from '@page-agent/core'
 import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
+import type { FillEngineStatus } from '@/agent/types'
 import { useMemo, useState } from 'react'
 import { Play, Trash2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
@@ -19,47 +19,16 @@ interface DashboardProps {
 	batchCurrentSite: string
 	onStartBatch: (category?: string) => void
 	onStopBatch: () => void
-	// Agent state for inline progress
-	agentStatus: AgentStatus
-	agentActivity: AgentActivity | null
-	agentHistory: HistoricalEvent[]
-	agentError: string | null
-	agentSiteName: string | null
-	onStopAgent: () => void
+	// Engine state for inline progress
+	engineStatus: FillEngineStatus
+	engineError: string | null
+	engineSiteName: string | null
+	onStopEngine: () => void
 }
 
 type Tab = 'all' | 'done' | 'failed'
 
 const DONE_STATUSES: SubmissionStatus[] = ['submitted', 'approved', 'skipped']
-
-function humanizeActivity(activity: AgentActivity): string {
-	switch (activity.type) {
-		case 'thinking': return '思考中...'
-		case 'executing': {
-			const tool = activity.tool
-			if (tool === 'click') return '正在点击元素...'
-			if (tool === 'type' || tool === 'input_text') return '正在输入内容...'
-			if (tool === 'scroll') return '正在滚动页面...'
-			if (tool === 'navigate' || tool === 'goto') return '正在跳转页面...'
-			if (tool === 'select') return '正在选择选项...'
-			if (tool === 'screenshot' || tool === 'snapshot') return '正在读取页面...'
-			return `正在执行：${tool}...`
-		}
-		case 'executed': {
-			const tool = activity.tool
-			if (tool === 'click') return '已点击元素'
-			if (tool === 'type' || tool === 'input_text') return '已填入字段'
-			if (tool === 'scroll') return '已滚动页面'
-			if (tool === 'navigate' || tool === 'goto') return '已跳转页面'
-			if (tool === 'select') return '已选择选项'
-			if (tool === 'screenshot' || tool === 'snapshot') return '已读取页面'
-			return `已完成：${tool}`
-		}
-		case 'retrying': return `重试中... (${activity.attempt}/${activity.maxAttempts})`
-		case 'error': return `错误：${activity.message}`
-		default: return ''
-	}
-}
 
 const CATEGORY_OPTIONS = [
 	{ value: 'all', label: '全部站点' },
@@ -82,12 +51,10 @@ export function Dashboard({
 	batchCurrentSite,
 	onStartBatch,
 	onStopBatch,
-	agentStatus,
-	agentActivity,
-	agentHistory,
-	agentError,
-	agentSiteName,
-	onStopAgent,
+	engineStatus,
+	engineError,
+	engineSiteName,
+	onStopEngine,
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
@@ -150,7 +117,7 @@ export function Dashboard({
 	const displaySites =
 		tab === 'all' ? allSites : tab === 'done' ? doneSites : failedSites
 
-	const isAgentActive = agentStatus === 'running' || agentStatus === 'completed' || agentStatus === 'error' || !!agentError
+	const isEngineActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling' || !!engineError
 
 	return (
 		<div className="flex flex-col gap-2 h-full">
@@ -170,53 +137,48 @@ export function Dashboard({
 				</div>
 			</div>
 
-			{/* Agent progress panel */}
-			{isAgentActive && agentSiteName && (
+			{/* Engine progress panel */}
+			{isEngineActive && engineSiteName && (
 				<div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-3 space-y-2">
-					{agentStatus === 'running' && (
+					{(engineStatus === 'analyzing' || engineStatus === 'filling') && (
 						<div className="flex items-center gap-2">
 							<span className="relative flex h-2 w-2">
 								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
 								<span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
 							</span>
 							<span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-								{'AI 正在提交'} — {agentSiteName}
+								{engineStatus === 'analyzing' ? '正在分析表单' : '正在填写字段'} — {engineSiteName}
 							</span>
 							<span className="ml-auto">
 								<button
 									type="button"
 									className="text-xs text-red-600 dark:text-red-400 hover:underline"
-									onClick={onStopAgent}
+									onClick={onStopEngine}
 								>
 									{'停止'}
 								</button>
 							</span>
 						</div>
 					)}
-					{agentStatus === 'completed' && !agentError && (
+					{engineStatus === 'done' && !engineError && (
 						<div className="flex items-center gap-2">
 							<span className="text-green-600 dark:text-green-400 text-sm">{'✓'}</span>
 							<span className="text-xs font-medium text-green-700 dark:text-green-300">
-								{'已完成'} — {agentSiteName}
+								{'已完成'} — {engineSiteName}
 							</span>
 						</div>
 					)}
-					{(agentStatus === 'error' || !!agentError) && (
+					{(engineStatus === 'error' || !!engineError) && (
 						<div className="flex items-center gap-2">
 							<span className="text-red-500 text-sm">{'✕'}</span>
 							<span className="text-xs font-medium text-red-700 dark:text-red-300">
-								{'失败'} — {agentSiteName}
+								{'失败'} — {engineSiteName}
 							</span>
 						</div>
 					)}
-					{agentActivity && agentStatus === 'running' && (
-						<div className="text-xs text-blue-600 dark:text-blue-300">
-							{humanizeActivity(agentActivity)}
-						</div>
-					)}
-					{agentError && (
+					{engineError && (
 						<div className="text-xs text-red-600 dark:text-red-400 truncate">
-							{agentError}
+							{engineError}
 						</div>
 					)}
 				</div>
@@ -369,7 +331,7 @@ export function Dashboard({
 							onSelect={onSelectSite}
 							onDelete={onDeleteSite}
 							onResetStatus={onResetStatus}
-							disabled={isAgentActive}
+							disabled={isEngineActive}
 						/>
 					))
 				)}

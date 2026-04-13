@@ -3,7 +3,7 @@ import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRe
 import { extractDomain } from './backlinks'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
