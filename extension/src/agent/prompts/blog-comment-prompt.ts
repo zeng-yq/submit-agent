@@ -5,27 +5,20 @@
  */
 
 import type { PageContent } from '../PageContentExtractor'
-import type { FormField } from '../FormAnalyzer'
+import type { FormField, FormGroup } from '../FormAnalyzer'
+import { buildFieldList } from '../FormAnalyzer'
 
 export interface BlogCommentPromptInput {
   productContext: string
   pageContent: PageContent
   fields: FormField[]
+  forms: FormGroup[]
 }
 
 export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
-  const { productContext, pageContent, fields } = input
+  const { productContext, pageContent, fields, forms } = input
 
-  const fieldList = fields
-    .map((f) => {
-      const parts = [`${f.canonical_id}: type=${f.effective_type || f.type}`];
-      if (f.label) parts.push(`label="${f.label}"`);
-      if (f.placeholder) parts.push(`placeholder="${f.placeholder}"`);
-      if (f.inferred_purpose) parts.push(`inferred_purpose="${f.inferred_purpose}"`);
-      parts.push(f.required ? 'required' : 'optional');
-      return `- ${parts.join(', ')}`;
-    })
-    .join('\n')
+  const fieldList = buildFieldList(fields, forms)
 
   const exampleWithUrl = JSON.stringify({
     field_0: 'ProductAI',
@@ -59,20 +52,21 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '## Rules',
     '',
-    '1. Read the page content carefully and write a relevant, authentic-sounding comment (not generic praise).',
-    '2. Comment structure: ~30 chars of genuine value affirmation + ~50 chars of supplementary insight. Naturally weave in the product name or a relevant keyword as part of the comment.',
-    '3. Link placement priority (follow this order):',
+    '1. The page may contain multiple forms. Only fill fields from the target comment form (marked with [Form N] above). Ignore any forms marked as "filtered" — these are unrelated forms and should NOT receive any values. Your comment and personal info go into the comment form only.',
+    '2. Read the page content carefully and write a relevant, authentic-sounding comment (not generic praise).',
+    '3. Comment structure: ~30 chars of genuine value affirmation + ~50 chars of supplementary insight. Naturally weave in the product name or a relevant keyword as part of the comment.',
+    '4. Link placement priority (follow this order):',
     '   - FIRST: "URL" / "website" / "homepage" field → fill with the product URL directly.',
     '   - SECOND: "name" / "author" field → use the product name (or a keyword from the product tagline) as the display name. This is the preferred anchor text strategy.',
     '   - FALLBACK: If neither a URL/website field nor a name/author field exists, place the link in the comment body using HTML: `<a href="{product_url}" rel="dofollow">{keyword}</a>`. The link text must be semantically coherent with the comment content.',
-    '4. If placing a link in the comment body (fallback only):',
+    '5. If placing a link in the comment body (fallback only):',
     '   - Use HTML format: `<a href="{product_url}" rel="dofollow">{keyword}</a>`',
     '   - The keyword must naturally relate to the surrounding comment text',
     '   - Do NOT use promotional phrases like "best tool", "must try", "highly recommend", etc.',
-    '5. For the "email" field: use the founder email from product data if available, otherwise leave empty.',
-    '6. Fill all required fields. For optional fields, only fill if the product data has relevant information.',
-    '7. All text should be in the same language as the page content.',
-    '8. The comment must feel like a genuine contribution — no spam, no generic praise, no overt promotion. The goal is for the comment to be approved by the blog owner.',
+    '6. For the "email" field: use the founder email from product data if available, otherwise leave empty.',
+    '7. Fill all required fields. For optional fields, only fill if the product data has relevant information.',
+    '8. All text should be in the same language as the page content.',
+    '9. The comment must feel like a genuine contribution — no spam, no generic praise, no overt promotion. The goal is for the comment to be approved by the blog owner.',
     '',
     '## Output',
     '',

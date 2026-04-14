@@ -179,9 +179,9 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		let systemPrompt: string
 
 		if (siteType === 'blog_comment' && pageContent) {
-			systemPrompt = buildBlogCommentPrompt({ productContext, pageContent, fields: analysis.fields })
+			systemPrompt = buildBlogCommentPrompt({ productContext, pageContent, fields: analysis.fields, forms: analysis.forms })
 		} else {
-			systemPrompt = buildDirectorySubmitPrompt({ productContext, pageInfo: analysis.page_info, fields: analysis.fields })
+			systemPrompt = buildDirectorySubmitPrompt({ productContext, pageInfo: analysis.page_info, fields: analysis.fields, forms: analysis.forms })
 		}
 
 		const userPrompt = siteType === 'blog_comment'
