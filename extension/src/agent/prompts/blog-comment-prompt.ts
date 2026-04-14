@@ -18,7 +18,14 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
 	const { productContext, pageContent, fields } = input
 
 	const fieldList = fields
-		.map((f) => `- ${f.canonical_id}: type=${f.type}, label="${f.label || f.placeholder || f.name}", ${f.required ? 'required' : 'optional'}`)
+		.map((f) => {
+			const parts = [`${f.canonical_id}: type=${f.effective_type || f.type}`];
+			if (f.label) parts.push(`label="${f.label}"`);
+			if (f.placeholder) parts.push(`placeholder="${f.placeholder}"`);
+			if (f.inferred_purpose) parts.push(`inferred_purpose="${f.inferred_purpose}"`);
+			parts.push(f.required ? 'required' : 'optional');
+			return `- ${parts.join(', ')}`;
+		})
 		.join('\n')
 
 	const example = JSON.stringify({
