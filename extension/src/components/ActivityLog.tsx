@@ -44,8 +44,7 @@ function formatTime(ts: number): string {
 	return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-function LogItem({ entry }: { entry: LogEntry }) {
-	const [expanded, setExpanded] = useState(false)
+function LogItem({ entry, expanded, onToggle }: { entry: LogEntry; expanded: boolean; onToggle: () => void }) {
 	const config = LEVEL_CONFIG[entry.level]
 	const Icon = config.icon
 	const hasData = entry.data !== undefined && entry.data !== null
@@ -68,7 +67,7 @@ function LogItem({ entry }: { entry: LogEntry }) {
 						<button
 							type="button"
 							className="flex items-center gap-0.5 shrink-0 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer ml-auto"
-							onClick={() => setExpanded(!expanded)}
+							onClick={onToggle}
 						>
 							{expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
 							{'详情'}
@@ -89,6 +88,11 @@ function LogItem({ entry }: { entry: LogEntry }) {
 export function ActivityLog({ logs, onClear, className }: ActivityLogProps) {
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const userScrolledRef = useRef(false)
+	const [expandedId, setExpandedId] = useState<number | null>(null)
+
+	const toggleEntry = useCallback((id: number) => {
+		setExpandedId((prev) => (prev === id ? null : id))
+	}, [])
 
 	useEffect(() => {
 		if (!userScrolledRef.current && scrollRef.current) {
@@ -134,7 +138,7 @@ export function ActivityLog({ logs, onClear, className }: ActivityLogProps) {
 					</div>
 				) : (
 					logs.map((entry) => (
-						<LogItem key={entry.id} entry={entry} />
+						<LogItem key={entry.id} entry={entry} expanded={expandedId === entry.id} onToggle={() => toggleEntry(entry.id)} />
 					))
 				)}
 			</div>
