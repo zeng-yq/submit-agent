@@ -48,7 +48,6 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		setStatus('idle')
 		setResult(null)
 		setError(null)
-		setLogs([])
 	}, [stop])
 
 	const startSubmission = useCallback(
@@ -56,7 +55,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			stop()
 			setError(null)
 			setResult(null)
-			setLogs([])
+			// logs are NOT cleared — they accumulate across submissions
 
 			const abort = new AbortController()
 			abortRef.current = abort
@@ -100,7 +99,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			stop()
 			setError(null)
 			setResult(null)
-			setLogs([])
+			// logs are NOT cleared — they accumulate across submissions
 
 			const abort = new AbortController()
 			abortRef.current = abort
