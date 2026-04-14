@@ -24,7 +24,7 @@ export default function App() {
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
 	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite } = useSites(activeProduct?.id ?? null)
-	const { status: engineStatus, result: engineResult, error: engineError, startSubmission, stop, reset } = useFormFillEngine()
+	const { status: engineStatus, result: engineResult, error: engineError, logs: engineLogs, startSubmission, stop, reset, clearLogs } = useFormFillEngine()
 
 	const handleDeleteSite = useCallback(
 		async (siteName: string) => {
@@ -60,43 +60,70 @@ export default function App() {
 	const batchStopRef = useRef(false)
 	const batchModeRef = useRef(false)
 
+	// Run float-fill: match current tab to a site and start submission
+	const runFloatFill = useCallback(async () => {
+		if (!activeProduct) {
+			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
+			return
+		}
+		const res = await chrome.storage.session.get('floatFillTabId')
+		const tabId = res.floatFillTabId as number | undefined
+		if (!tabId) return
+		try {
+			const tab = await chrome.tabs.get(tabId)
+			const tabUrl = tab.url ?? ''
+			const submittable = filterSubmittable(sites)
+			const matched = matchCurrentPage(submittable, tabUrl)
+			if (matched) {
+				reset()
+				setCurrentEngineSite(matched)
+				startSubmission(matched)
+					.then((r) => {
+						if (r.failed === 0 && r.filled > 0) {
+							markSubmitted(matched.name, activeProduct.id)
+						}
+						setTimeout(() => {
+							setCurrentEngineSite(null)
+							reset()
+						}, 3000)
+					})
+					.catch((err) => {
+						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
+						setTimeout(() => {
+							setCurrentEngineSite(null)
+							reset()
+						}, 3000)
+					})
+			} else {
+				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
+			}
+		} catch (err) {
+			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+		}
+	}, [activeProduct, sites, startSubmission, markSubmitted, reset, markFailed])
+
+	// On mount, check if there's a pending float-fill request (sidepanel may have been opened by float button)
+	useEffect(() => {
+		if (!activeProduct || sites.length === 0) return
+		chrome.storage.session.get('floatFillPending').then((res) => {
+			if (res.floatFillPending) {
+				chrome.storage.session.remove('floatFillPending').catch(() => {})
+				runFloatFill()
+			}
+		})
+	}, [activeProduct, sites.length, runFloatFill])
+
 	// Listen for float-fill trigger from content script via background
 	useEffect(() => {
 		const handler = (message: any) => {
 			if (message.type !== 'FLOAT_FILL') return
 			if (message.action === 'start') {
-				if (!activeProduct) {
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
-					return
-				}
-				// The float button triggers are now handled by the floating button's own state.
-				// The sidepanel just needs to know to run the engine.
-				chrome.storage.session.get('floatFillTabId').then(async (res) => {
-					const tabId = res.floatFillTabId as number | undefined
-					if (!tabId) return
-					try {
-						const tab = await chrome.tabs.get(tabId)
-						const tabUrl = tab.url ?? ''
-						if (!activeProduct) return
-						// Find matching site
-						const submittable = filterSubmittable(sites)
-						const matched = matchCurrentPage(submittable, tabUrl)
-						if (matched) {
-							startSubmission(matched)
-								.then((r) => {
-									if (r.failed === 0 && r.filled > 0) {
-										markSubmitted(matched.name, activeProduct.id)
-									}
-								})
-								.catch(() => {})
-						}
-					} catch {}
-				})
+				runFloatFill()
 			}
 		}
 		chrome.runtime.onMessage.addListener(handler)
 		return () => chrome.runtime.onMessage.removeListener(handler)
-	}, [activeProduct, sites, startSubmission, markSubmitted])
+	}, [runFloatFill])
 
 	useEffect(() => {
 		if (!dropdownOpen) return
@@ -352,7 +379,9 @@ export default function App() {
 						engineError={engineError?.message ?? null}
 						engineSiteName={currentEngineSite?.name ?? null}
 						onStopEngine={stop}
-					/>
+						 engineLogs={engineLogs}
+						 onClearEngineLogs={clearLogs}
+						/>
 				)}
 			</main>
 		</div>

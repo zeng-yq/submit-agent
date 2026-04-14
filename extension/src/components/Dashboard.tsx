@@ -1,8 +1,9 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
-import type { FillEngineStatus } from '@/agent/types'
+import type { FillEngineStatus, LogEntry } from '@/agent/types'
 import { useMemo, useState } from 'react'
 import { Play, Trash2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
+import { ActivityLog } from './ActivityLog'
 
 interface DashboardProps {
 	sites: SiteData[]
@@ -24,6 +25,8 @@ interface DashboardProps {
 	engineError: string | null
 	engineSiteName: string | null
 	onStopEngine: () => void
+	engineLogs: LogEntry[]
+	onClearEngineLogs: () => void
 }
 
 type Tab = 'all' | 'done' | 'failed'
@@ -55,6 +58,8 @@ export function Dashboard({
 	engineError,
 	engineSiteName,
 	onStopEngine,
+	engineLogs,
+	onClearEngineLogs,
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
@@ -182,6 +187,11 @@ export function Dashboard({
 						</div>
 					)}
 				</div>
+			)}
+
+			{/* Activity log panel */}
+			{engineLogs.length > 0 && (
+				<ActivityLog logs={engineLogs} onClear={onClearEngineLogs} />
 			)}
 
 			{/* Tabs + batch controls */}

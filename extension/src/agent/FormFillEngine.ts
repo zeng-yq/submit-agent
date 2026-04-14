@@ -8,7 +8,7 @@ import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
-import type { FillEngineStatus, FillResult, SiteType, FieldValueMap } from './types'
+import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel } from './types'
 import { callLLM, parseLLMJson } from './llm-utils'
 import { buildProductContext } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
@@ -20,6 +20,7 @@ const FILL_TIMEOUT_MS = 10_000
 export interface FormFillEngineCallbacks {
 	onStatusChange: (status: FillEngineStatus) => void
 	onError: (error: Error) => void
+	onLog?: (entry: LogEntry) => void
 }
 
 export interface FormFillEngineConfig {
@@ -54,11 +55,20 @@ function sendToTab<T>(tabId: number, message: unknown, timeoutMs: number): Promi
 
 export async function executeFormFill(config: FormFillEngineConfig): Promise<FillResult> {
 	const { llmConfig, product, site, siteType, tabId, callbacks, signal } = config
-	const { onStatusChange, onError } = callbacks
+	const { onStatusChange, onError, onLog } = callbacks
+
+	let logId = 0
+	const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown) => {
+		if (onLog) {
+			onLog({ id: ++logId, timestamp: Date.now(), level, phase, message, data })
+		}
+	}
 
 	try {
 		// Step 1: Analyze form
 		onStatusChange('analyzing')
+		log('info', 'system', `开始填写: ${site.name} (tab ${tabId})`)
+		log('info', 'analyze', '正在发送表单分析请求...')
 		const analyzePayload = { siteType }
 		const analyzeMsg = { type: 'FLOAT_FILL', action: 'analyze', payload: analyzePayload }
 
@@ -75,7 +85,21 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		const analysis = analyzeResponse.analysis
 		const pageContent = analyzeResponse.pageContent
 
+		log('success', 'analyze', `表单分析完成: 发现 ${analysis.fields.length} 个字段`, {
+			fields: analysis.fields.map(f => ({
+				id: f.canonical_id,
+				type: f.type,
+				label: f.label || f.placeholder || f.name,
+				required: f.required,
+			})),
+			pageInfo: {
+				title: analysis.page_info.title,
+				description: analysis.page_info.description?.slice(0, 100),
+			},
+		})
+
 		if (analysis.fields.length === 0) {
+			log('warning', 'analyze', '页面未发现可填写的表单字段')
 			onStatusChange('done')
 			return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
 		}
@@ -97,6 +121,14 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			? `Fill the comment form on ${site.name}. Page URL: ${site.submit_url || 'current page'}.`
 			: `Fill the submission form on ${site.name}. Submit URL: ${site.submit_url || 'current page'}.`
 
+		const promptType = siteType === 'blog_comment' ? '博客评论' : '目录提交'
+		log('info', 'llm', `正在调用 LLM (${promptType})...`, {
+			systemPromptLength: systemPrompt.length,
+			userPromptLength: userPrompt.length,
+			model: llmConfig.model,
+			fieldCount: analysis.fields.length,
+		})
+
 		const rawResponse = await callLLM({
 			config: llmConfig,
 			systemPrompt,
@@ -109,6 +141,11 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 
 		// Step 3: Parse LLM response
 		const fieldValues = parseLLMJson(rawResponse) as FieldValueMap
+		const valueCount = Object.keys(fieldValues).length
+		log('success', 'llm', `LLM 响应已解析: ${valueCount} 个字段值`, {
+			fieldValues,
+			responseLength: rawResponse.length,
+		})
 
 		// Map canonical_ids to selectors for content script
 		const fieldsToFill = analysis.fields
@@ -120,12 +157,16 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			}))
 
 		if (fieldsToFill.length === 0) {
+			log('warning', 'llm', 'LLM 未返回任何字段值')
 			onStatusChange('done')
 			return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM returned no field values.' }
 		}
 
 		// Step 4: Fill form
 		onStatusChange('filling')
+		log('info', 'fill', `正在填写 ${fieldsToFill.length} 个字段...`, {
+			fields: fieldsToFill.map(f => ({ id: f.canonical_id, value: f.value.slice(0, 50) })),
+		})
 		const fillMsg = { type: 'FLOAT_FILL', action: 'fill', payload: { fields: fieldsToFill } }
 
 		const fillResponse = await sendToTab<{ ok: boolean; filled: number; failed: number }>(
@@ -134,20 +175,34 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			FILL_TIMEOUT_MS
 		)
 
+		const filledCount = fillResponse?.filled ?? 0
+		const failedCount = fillResponse?.failed ?? 0
+		if (failedCount > 0) {
+			log('warning', 'fill', `填写完成: ${filledCount} 成功, ${failedCount} 失败`)
+		} else {
+			log('success', 'fill', `填写完成: ${filledCount} 个字段已成功填写`)
+		}
+
 		const result: FillResult = {
-			filled: fillResponse?.filled ?? 0,
+			filled: filledCount,
 			skipped: analysis.fields.length - fieldsToFill.length,
-			failed: fillResponse?.failed ?? 0,
-			notes: `Filled ${fillResponse?.filled ?? 0} of ${analysis.fields.length} fields.`,
+			failed: failedCount,
+			notes: `Filled ${filledCount} of ${analysis.fields.length} fields.`,
 		}
 
 		// Notify done
 		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'done' }).catch(() => {})
+		log('success', 'system', `提交完成: ${result.filled} 填写, ${result.skipped} 跳过, ${result.failed} 失败`)
 		onStatusChange('done')
 
 		return result
 	} catch (error) {
 		const err = error instanceof Error ? error : new Error(String(error))
+
+		log('error', 'system', err.message, {
+			error: err.message,
+			stack: err.stack?.split('\n').slice(0, 3),
+		})
 
 		// Check if aborted
 		if (err.name === 'AbortError') {

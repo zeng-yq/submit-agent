@@ -3,17 +3,21 @@ import type { SiteData } from '@/lib/types'
 import { getLLMConfig, getActiveProductId } from '@/lib/storage'
 import { getProduct, listSubmissionsByProduct } from '@/lib/db'
 import { loadSites, matchCurrentPage, getRandomUnsubmitted, filterSubmittable } from '@/lib/sites'
-import type { FillEngineStatus, FillResult, SiteType } from '@/agent/types'
+import type { FillEngineStatus, FillResult, SiteType, LogEntry } from '@/agent/types'
 import { executeFormFill } from '@/agent/FormFillEngine'
+
+const MAX_LOG_ENTRIES = 200
 
 export interface UseFormFillEngineResult {
 	status: FillEngineStatus
 	result: FillResult | null
 	error: Error | null
+	logs: LogEntry[]
 	startSubmission: (site: SiteData) => Promise<FillResult>
 	startFloatFill: (tabId: number, currentUrl: string) => Promise<FillResult>
 	stop: () => void
 	reset: () => void
+	clearLogs: () => void
 }
 
 export function useFormFillEngine(): UseFormFillEngineResult {
@@ -21,6 +25,18 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 	const [status, setStatus] = useState<FillEngineStatus>('idle')
 	const [result, setResult] = useState<FillResult | null>(null)
 	const [error, setError] = useState<Error | null>(null)
+	const [logs, setLogs] = useState<LogEntry[]>([])
+
+	const handleLog = useCallback((entry: LogEntry) => {
+		setLogs(prev => {
+			const next = [...prev, entry]
+			return next.length > MAX_LOG_ENTRIES ? next.slice(-MAX_LOG_ENTRIES) : next
+		})
+	}, [])
+
+	const clearLogs = useCallback(() => {
+		setLogs([])
+	}, [])
 
 	const stop = useCallback(() => {
 		abortRef.current?.abort()
@@ -32,6 +48,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		setStatus('idle')
 		setResult(null)
 		setError(null)
+		setLogs([])
 	}, [stop])
 
 	const startSubmission = useCallback(
@@ -39,6 +56,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			stop()
 			setError(null)
 			setResult(null)
+			setLogs([])
 
 			const abort = new AbortController()
 			abortRef.current = abort
@@ -67,13 +85,14 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 				callbacks: {
 					onStatusChange: setStatus,
 					onError: setError,
+					onLog: handleLog,
 				},
 			})
 
 			setResult(fillResult)
 			return fillResult
 		},
-		[stop]
+		[stop, handleLog]
 	)
 
 	const startFloatFill = useCallback(
@@ -81,6 +100,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			stop()
 			setError(null)
 			setResult(null)
+			setLogs([])
 
 			const abort = new AbortController()
 			abortRef.current = abort
@@ -132,22 +152,25 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 				callbacks: {
 					onStatusChange: setStatus,
 					onError: setError,
+					onLog: handleLog,
 				},
 			})
 
 			setResult(fillResult)
 			return fillResult
 		},
-		[stop]
+		[stop, handleLog]
 	)
 
 	return {
 		status,
 		result,
 		error,
+		logs,
 		startSubmission,
 		startFloatFill,
 		stop,
 		reset,
+		clearLogs,
 	}
 }

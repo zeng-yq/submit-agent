@@ -307,6 +307,7 @@ export function initFloatButton(enabled: boolean) {
 					updateButtonState('done')
 					break
 				case 'error':
+				case 'no-match':
 					updateButtonState('error')
 					break
 				case 'no-product':

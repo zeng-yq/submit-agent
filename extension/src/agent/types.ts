@@ -38,3 +38,19 @@ export interface DirectorySubmitResponse {
 
 /** Site type for determining prompt strategy */
 export type SiteType = 'blog_comment' | 'directory_submit'
+
+/** Log level for activity entries */
+export type LogLevel = 'info' | 'success' | 'warning' | 'error'
+
+/** Pipeline phase that produced the log entry */
+export type LogPhase = 'analyze' | 'llm' | 'fill' | 'system'
+
+/** A single log entry emitted by FormFillEngine during pipeline execution */
+export interface LogEntry {
+  id: number
+  timestamp: number
+  level: LogLevel
+  phase: LogPhase
+  message: string
+  data?: unknown
+}

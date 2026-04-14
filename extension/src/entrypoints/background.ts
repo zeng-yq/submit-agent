@@ -150,7 +150,7 @@ function handleFloatFill(
 
 	if (message.action === 'start' && tabId) {
 		// Store requesting tab so sidepanel knows which tab to operate on
-		chrome.storage.session.set({ floatFillTabId: tabId }).catch(() => {})
+		chrome.storage.session.set({ floatFillTabId: tabId, floatFillPending: true }).catch(() => {})
 		// Auto-open sidepanel on this tab
 		chrome.sidePanel.open({ tabId }).catch(() => {})
 	}
