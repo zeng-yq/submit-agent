@@ -3,6 +3,7 @@ import { getFloatButtonEnabled } from '@/lib/storage'
 import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { fillField } from '@/agent/dom-utils'
+import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
 
 export default defineContentScript({
 	matches: ['<all_urls>'],
@@ -59,6 +60,27 @@ export default defineContentScript({
 					}
 
 					sendResponse({ ok: true, filled, failed })
+					return
+				}
+				case 'annotate': {
+					const fields = message.payload?.fields as Array<{ selector: string }> | undefined
+					if (fields) {
+						annotateFields(fields)
+					}
+					sendResponse({ ok: true })
+					return
+				}
+				case 'annotate-active': {
+					const index = message.payload?.index as number | undefined
+					if (typeof index === 'number') {
+						annotateActive(index)
+					}
+					sendResponse({ ok: true })
+					return
+				}
+				case 'annotate-clear': {
+					clearAnnotations()
+					sendResponse({ ok: true })
 					return
 				}
 			}
