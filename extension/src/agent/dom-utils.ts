@@ -102,12 +102,27 @@ const SKIP_INPUT_TYPES = new Set([
   'file',
 ]);
 
+/** Check if an element is visually visible on the page. */
+function isVisible(el: Element): boolean {
+  const htmlEl = el as HTMLElement;
+  // Fast check: zero dimensions and no layout rects means hidden
+  if (!htmlEl.offsetWidth && !htmlEl.offsetHeight && !htmlEl.getClientRects().length) return false;
+  const style = window.getComputedStyle(htmlEl);
+  if (style.display === 'none') return false;
+  if (style.visibility === 'hidden') return false;
+  if (parseFloat(style.opacity) === 0) return false;
+  return true;
+}
+
 /** Check if an element is a form field we should analyze/fill. */
 export function isFormField(el: Element): boolean {
   const tag = el.tagName.toLowerCase();
 
   // Check for CAPTCHA first
   if (isCaptchaElement(el)) return false;
+
+  // Skip elements that are visually hidden via CSS
+  if (!isVisible(el)) return false;
 
   if (tag === 'input') {
     const type = (el as HTMLInputElement).type?.toLowerCase() || 'text';
