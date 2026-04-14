@@ -107,6 +107,14 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		// Notify progress
 		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
 
+		// Annotate detected fields on the page
+		const annotateMsg = {
+			type: 'FLOAT_FILL',
+			action: 'annotate',
+			payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
+		}
+		await sendToTab(tabId, annotateMsg, 5000).catch(() => {})
+
 		// Step 2: Build prompt and call LLM
 		const productContext = buildProductContext(product)
 		let systemPrompt: string
@@ -165,21 +173,42 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM returned no field values.' }
 		}
 
-		// Step 4: Fill form
+		// Step 4: Fill form — sequential with annotation
 		onStatusChange('filling')
 		log('info', 'fill', `正在填写 ${fieldsToFill.length} 个字段...`, {
 			fields: fieldsToFill.map(f => ({ id: f.canonical_id, value: f.value.slice(0, 50) })),
 		})
-		const fillMsg = { type: 'FLOAT_FILL', action: 'fill', payload: { fields: fieldsToFill } }
 
-		const fillResponse = await sendToTab<{ ok: boolean; filled: number; failed: number }>(
-			tabId,
-			fillMsg,
-			FILL_TIMEOUT_MS
-		)
+		let filledCount = 0
+		let failedCount = 0
 
-		const filledCount = fillResponse?.filled ?? 0
-		const failedCount = fillResponse?.failed ?? 0
+		for (let i = 0; i < fieldsToFill.length; i++) {
+			const field = fieldsToFill[i]
+
+			// Highlight current field
+			await sendToTab(tabId, {
+				type: 'FLOAT_FILL',
+				action: 'annotate-active',
+				payload: { index: i },
+			}, 3000).catch(() => {})
+
+			// Small delay so user can see the highlight
+			await new Promise(r => setTimeout(r, 150))
+
+			// Fill this single field
+			const fillMsg = { type: 'FLOAT_FILL', action: 'fill', payload: { fields: [field] } }
+			const fillResponse = await sendToTab<{ ok: boolean; filled: number; failed: number }>(
+				tabId, fillMsg, FILL_TIMEOUT_MS
+			)
+
+			filledCount += fillResponse?.filled ?? 0
+			failedCount += fillResponse?.failed ?? 0
+
+			log('info', 'fill', `字段 ${field.canonical_id}: ${fillResponse?.filled ? '成功' : '失败'}`, {
+				canonicalId: field.canonical_id,
+				value: field.value.slice(0, 50),
+			})
+		}
 		if (failedCount > 0) {
 			log('warning', 'fill', `填写完成: ${filledCount} 成功, ${failedCount} 失败`)
 		} else {
@@ -218,5 +247,11 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		onError(err)
 
 		return { filled: 0, skipped: 0, failed: 0, notes: err.message }
-	}
+		} finally {
+			// Always clear annotations
+			await sendToTab(tabId, {
+				type: 'FLOAT_FILL',
+				action: 'annotate-clear',
+			}, 3000).catch(() => {})
+		}
 }
