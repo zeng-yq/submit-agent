@@ -14,6 +14,8 @@ export interface FormField {
   placeholder: string;
   required: boolean;
   maxlength: number | null;
+  inferred_purpose?: string;  // heuristic purpose when label is empty
+  effective_type?: string;    // enhanced type for LLM context
   selector: string;
   tagName: string;
 }
@@ -82,7 +84,8 @@ function buildSelector(el: HTMLElement): string {
 }
 
 /**
- * Find the associated <label> text for a form element.
+ * Find the associated label text for a form element.
+ * Uses a 7-step cascade from most specific to most general.
  */
 function findLabel(doc: Document, el: HTMLElement): string {
   // 1. <label for="id">
@@ -97,7 +100,6 @@ function findLabel(doc: Document, el: HTMLElement): string {
   // 2. Wrapping <label>
   const parentLabel = el.closest('label');
   if (parentLabel) {
-    // Get text content excluding the input's own value
     const clone = parentLabel.cloneNode(true) as HTMLElement;
     const inputs = clone.querySelectorAll('input, textarea, select');
     inputs.forEach((input) => input.remove());
@@ -118,6 +120,94 @@ function findLabel(doc: Document, el: HTMLElement): string {
       if (text) return text;
     }
   }
+
+  // 5. title attribute
+  const title = el.getAttribute('title');
+  if (title) return title;
+
+  // 6. Adjacent sibling <label> (previous sibling, without for attribute)
+  let prev = el.previousElementSibling;
+  while (prev) {
+    if (prev.tagName === 'LABEL') {
+      const text = prev.textContent?.trim();
+      if (text) return text;
+    }
+    prev = prev.previousElementSibling;
+  }
+
+  // 7. Parent container text — last text-bearing child element before this input
+  const parent = el.parentElement;
+  if (parent) {
+    const labelTags = new Set(['LABEL', 'SPAN', 'DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+    const children = Array.from(parent.children);
+    const elIndex = children.indexOf(el);
+
+    for (let i = elIndex - 1; i >= 0; i--) {
+      const sibling = children[i];
+      if (labelTags.has(sibling.tagName)) {
+        const text = sibling.textContent?.trim();
+        if (text) return text;
+      }
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Infer field purpose from placeholder, name attribute, and type
+ * when no label could be resolved. Returns empty string if label is already present.
+ */
+export function inferFieldPurpose(field: {
+  label: string;
+  placeholder: string;
+  name: string;
+  type: string;
+}): string {
+  if (field.label) return '';
+
+  const ph = field.placeholder.toLowerCase();
+  const name = field.name.toLowerCase();
+
+  // Type-based inference (highest confidence)
+  if (field.type === 'url') return 'website URL';
+  if (field.type === 'email') return 'email address';
+  if (field.type === 'tel') return 'phone number';
+
+  // Placeholder-based inference
+  if (ph.includes('email') || ph.includes('@')) return 'email address';
+  if (ph.includes('http') || ph.includes('https') || ph.includes('url')) return 'website URL';
+  if (ph.includes('name')) return 'full name';
+
+  // Name-attribute-based inference
+  if (name.includes('email') || name.includes('mail')) return 'email address';
+  if (name.includes('url') || name.includes('website') || name.includes('link')) return 'website URL';
+  if (name.includes('name') || name.includes('author')) return 'name';
+  if (name.includes('desc') || name.includes('description')) return 'description';
+  if (name.includes('title')) return 'title';
+  if (name.includes('category') || name.includes('tag')) return 'category';
+
+  return '';
+}
+
+/**
+ * Infer a more precise field type from context signals.
+ * Only applies when type="text". Returns empty string if no inference possible.
+ */
+export function inferEffectiveType(field: {
+  label: string;
+  placeholder: string;
+  name: string;
+  type: string;
+}): string {
+  if (field.type !== 'text') return '';
+
+  const combined = `${field.label} ${field.placeholder} ${field.name}`.toLowerCase();
+
+  if (combined.includes('email') || combined.includes('@')) return 'email';
+  if (/https?:\/\//.test(field.placeholder)) return 'url';
+  if (combined.includes('url') || combined.includes('website') || combined.includes('link')) return 'url';
+  if (combined.includes('phone') || combined.includes('tel')) return 'tel';
 
   return '';
 }

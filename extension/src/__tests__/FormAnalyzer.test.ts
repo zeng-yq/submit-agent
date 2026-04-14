@@ -3,9 +3,12 @@ import { JSDOM } from 'jsdom';
 
 // Import after DOM is available
 let analyzeForms: typeof import('@/agent/FormAnalyzer').analyzeForms;
+let inferFieldPurpose: typeof import('@/agent/FormAnalyzer').inferFieldPurpose;
+let inferEffectiveType: typeof import('@/agent/FormAnalyzer').inferEffectiveType;
+
+let dom: JSDOM;
 
 describe('FormAnalyzer', () => {
-  let dom: JSDOM;
 
   beforeEach(async () => {
     dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
@@ -15,6 +18,8 @@ describe('FormAnalyzer', () => {
     // Dynamic import to get fresh module with correct `document`
     const mod = await import('@/agent/FormAnalyzer');
     analyzeForms = mod.analyzeForms;
+    inferFieldPurpose = mod.inferFieldPurpose;
+    inferEffectiveType = mod.inferEffectiveType;
   });
 
   function getDoc(): Document {
@@ -264,5 +269,200 @@ describe('FormAnalyzer', () => {
     expect(result.fields[1].selector).toBe(
       'input[name="no-id-field"]',
     );
+  });
+
+  it('finds label via title attribute', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <input type="text" name="search" title="Search keywords">
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].label).toBe('Search keywords');
+  });
+
+  it('finds label via adjacent sibling <label> without for attribute', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <label>Tool Name</label>
+        <input type="text" name="tool_name" placeholder="Enter tool name">
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].label).toBe('Tool Name');
+  });
+
+  it('finds label via parent container text (span before input)', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <div class="form-group">
+          <span class="field-label">Website URL</span>
+          <input type="text" name="website" placeholder="https://example.com">
+        </div>
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].label).toBe('Website URL');
+  });
+
+  it('finds label via parent container text (div before input)', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <div class="form-group">
+          <div class="label-text">Company Name</div>
+          <input type="text" name="company">
+          <div class="help-text">Enter your company</div>
+        </div>
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].label).toBe('Company Name');
+  });
+
+  it('real-world pattern: Next.js form with sibling labels', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <div>
+          <label>Tool Name</label>
+          <input type="text" name="tool_name" placeholder="Enter your tool name">
+        </div>
+        <div>
+          <label>Tool URL</label>
+          <input type="text" name="tool_url" placeholder="https://yourtool.com">
+        </div>
+        <div>
+          <label>Description</label>
+          <textarea name="description" placeholder="Provide a detailed description..."></textarea>
+        </div>
+        <div>
+          <label>Contact Name</label>
+          <input type="text" name="contact_name" placeholder="Your full name">
+        </div>
+        <div>
+          <label>Contact Email</label>
+          <input type="email" name="contact_email" placeholder="your@email.com">
+        </div>
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields).toHaveLength(5);
+    expect(result.fields[0].label).toBe('Tool Name');
+    expect(result.fields[1].label).toBe('Tool URL');
+    expect(result.fields[2].label).toBe('Description');
+    expect(result.fields[3].label).toBe('Contact Name');
+    expect(result.fields[4].label).toBe('Contact Email');
+  });
+});
+
+describe('inferFieldPurpose', () => {
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/FormAnalyzer');
+    inferFieldPurpose = mod.inferFieldPurpose;
+  });
+
+  it('returns empty string when label is present', () => {
+    expect(inferFieldPurpose({ label: 'Name', placeholder: '', name: '', type: 'text' })).toBe('');
+  });
+
+  it('infers email from placeholder containing @', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: 'your@email.com', name: '', type: 'text' })).toBe('email address');
+  });
+
+  it('infers email from placeholder containing "email"', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: 'Enter your email', name: '', type: 'text' })).toBe('email address');
+  });
+
+  it('infers URL from placeholder containing https://', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: 'https://yourtool.com', name: '', type: 'text' })).toBe('website URL');
+  });
+
+  it('infers URL from type=url', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: '', name: '', type: 'url' })).toBe('website URL');
+  });
+
+  it('infers email from name attribute containing "email"', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: '', name: 'user_email', type: 'text' })).toBe('email address');
+  });
+
+  it('infers URL from name attribute containing "url"', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: '', name: 'website_url', type: 'text' })).toBe('website URL');
+  });
+
+  it('infers name from name attribute containing "author"', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: '', name: 'author_name', type: 'text' })).toBe('name');
+  });
+
+  it('infers description from name attribute containing "desc"', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: '', name: 'tool_description', type: 'text' })).toBe('description');
+  });
+
+  it('infers name from placeholder containing "name"', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: 'Your full name', name: '', type: 'text' })).toBe('full name');
+  });
+
+  it('returns empty string when no signal matches', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: 'something random', name: 'field_42', type: 'text' })).toBe('');
+  });
+
+  it('infers phone number from type=tel', () => {
+    expect(inferFieldPurpose({ label: '', placeholder: '', name: '', type: 'tel' })).toBe('phone number');
+  });
+});
+
+describe('inferEffectiveType', () => {
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/FormAnalyzer');
+    inferEffectiveType = mod.inferEffectiveType;
+  });
+
+  it('returns empty string for non-text types', () => {
+    expect(inferEffectiveType({ label: '', placeholder: '', name: '', type: 'email' })).toBe('');
+  });
+
+  it('returns empty string for text type with no signals', () => {
+    expect(inferEffectiveType({ label: '', placeholder: 'something', name: 'field_1', type: 'text' })).toBe('');
+  });
+
+  it('infers url from placeholder containing https://', () => {
+    expect(inferEffectiveType({ label: '', placeholder: 'https://example.com', name: '', type: 'text' })).toBe('url');
+  });
+
+  it('infers url from placeholder containing http://', () => {
+    expect(inferEffectiveType({ label: '', placeholder: 'http://example.com', name: '', type: 'text' })).toBe('url');
+  });
+
+  it('infers email from label containing "email"', () => {
+    expect(inferEffectiveType({ label: 'Email Address', placeholder: '', name: '', type: 'text' })).toBe('email');
+  });
+
+  it('infers email from name containing "email"', () => {
+    expect(inferEffectiveType({ label: '', placeholder: '', name: 'contact_email', type: 'text' })).toBe('email');
+  });
+
+  it('infers tel from combined signals containing "phone"', () => {
+    expect(inferEffectiveType({ label: 'Phone', placeholder: '', name: '', type: 'text' })).toBe('tel');
   });
 });
