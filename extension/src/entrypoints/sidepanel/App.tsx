@@ -57,6 +57,8 @@ export default function App() {
 	const runFloatFill = useCallback(async () => {
 		if (floatFillRunningRef.current) return
 		floatFillRunningRef.current = true
+		// Reset float button to idle so it can be clicked again later
+		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
 		try {
 			if (!activeProduct) {
 				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
@@ -73,23 +75,22 @@ export default function App() {
 				if (matched) {
 					reset()
 					setCurrentEngineSite(matched)
-					startSubmission(matched)
-						.then((r) => {
-							if (r.failed === 0 && r.filled > 0) {
-								markSubmitted(matched.name, activeProduct.id)
-							}
-							setTimeout(() => {
-								setCurrentEngineSite(null)
-								reset()
-							}, 3000)
-						})
-						.catch((err) => {
-							markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
-							setTimeout(() => {
-								setCurrentEngineSite(null)
-								reset()
-							}, 3000)
-						})
+					try {
+						const r = await startSubmission(matched)
+						if (r.failed === 0 && r.filled > 0) {
+							markSubmitted(matched.name, activeProduct.id)
+						}
+						setTimeout(() => {
+							setCurrentEngineSite(null)
+							reset()
+						}, 3000)
+					} catch (err) {
+						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
+						setTimeout(() => {
+							setCurrentEngineSite(null)
+							reset()
+						}, 3000)
+					}
 				} else {
 					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
 				}

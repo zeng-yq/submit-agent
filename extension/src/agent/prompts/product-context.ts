@@ -22,20 +22,5 @@ export function buildProductContext(product: ProductProfile): string {
 		`**Categories:** ${product.categories.join(', ')}`,
 	]
 
-	if (product.founderName) {
-		lines.push(`**Founder:** ${product.founderName}`)
-	}
-	if (product.founderEmail) {
-		lines.push(`**Email:** ${product.founderEmail}`)
-	}
-
-	const socialEntries = Object.entries(product.socialLinks).filter(([_, v]) => v)
-	if (socialEntries.length > 0) {
-		lines.push('', '**Social Links:**')
-		for (const [platform, url] of socialEntries) {
-			lines.push(`- ${platform}: ${url}`)
-		}
-	}
-
 	return lines.join('\n')
 }

@@ -271,6 +271,7 @@ function handleMainClick() {
 		if (chrome.runtime.lastError || !response?.ok) {
 			setState('error')
 		}
+		// On success, stay in loading state until the agent sends progress/done/error
 	})
 }
 
@@ -315,6 +316,9 @@ export function initFloatButton(enabled: boolean) {
 					break
 				case 'all-done':
 					updateButtonState('done')
+					break
+				case 'reset':
+					updateButtonState('idle')
 					break
 			}
 		}
