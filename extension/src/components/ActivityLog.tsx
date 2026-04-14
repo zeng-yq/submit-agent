@@ -51,39 +51,37 @@ function LogItem({ entry }: { entry: LogEntry }) {
 	const hasData = entry.data !== undefined && entry.data !== null
 
 	return (
-		<div className={cn('flex gap-2 px-3 py-1.5 text-xs border-b border-border/30 last:border-b-0', config.bgClass)}>
-			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums pt-0.5 w-16">
-				{formatTime(entry.timestamp)}
-			</span>
+		<div className={cn('text-xs border-b border-border/30 last:border-b-0', config.bgClass)}>
+			<div className="flex gap-2 px-3 py-1.5">
+				<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums pt-0.5 w-16">
+					{formatTime(entry.timestamp)}
+				</span>
 
-			<Icon className={cn('shrink-0 w-3.5 h-3.5 mt-0.5', config.colorClass)} />
+				<Icon className={cn('shrink-0 w-3.5 h-3.5 mt-0.5', config.colorClass)} />
 
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-1.5">
+				<div className="flex-1 min-w-0 flex items-center gap-1.5">
 					<span className="text-[9px] font-medium px-1 py-px rounded bg-muted/80 text-muted-foreground shrink-0">
 						{PHASE_LABELS[entry.phase]}
 					</span>
 					<span className="truncate">{entry.message}</span>
-				</div>
-
-				{hasData && (
-					<div>
+					{hasData && (
 						<button
 							type="button"
-							className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground mt-0.5 cursor-pointer"
+							className="flex items-center gap-0.5 shrink-0 text-[10px] text-muted-foreground hover:text-foreground cursor-pointer ml-auto"
 							onClick={() => setExpanded(!expanded)}
 						>
 							{expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
 							{'详情'}
 						</button>
-						{expanded && (
-							<pre className="mt-1 p-2 rounded bg-background/80 border border-border/50 text-[10px] text-muted-foreground overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-all">
-								{typeof entry.data === 'string' ? entry.data : JSON.stringify(entry.data, null, 2)}
-							</pre>
-						)}
-					</div>
-				)}
+					)}
+				</div>
 			</div>
+
+			{expanded && hasData && (
+				<pre className="mx-3 mb-1.5 mt-0.5 p-2 rounded bg-background/80 border border-border/50 text-[10px] text-muted-foreground overflow-x-auto max-h-80 overflow-y-auto whitespace-pre-wrap break-all">
+					{typeof entry.data === 'string' ? entry.data : JSON.stringify(entry.data, null, 2)}
+				</pre>
+			)}
 		</div>
 	)
 }

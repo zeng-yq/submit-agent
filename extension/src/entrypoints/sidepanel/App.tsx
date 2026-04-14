@@ -53,44 +53,51 @@ export default function App() {
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 
 	// Run float-fill: match current tab to a site and start submission
+	const floatFillRunningRef = useRef(false)
 	const runFloatFill = useCallback(async () => {
-		if (!activeProduct) {
-			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
-			return
-		}
-		const res = await chrome.storage.session.get('floatFillTabId')
-		const tabId = res.floatFillTabId as number | undefined
-		if (!tabId) return
+		if (floatFillRunningRef.current) return
+		floatFillRunningRef.current = true
 		try {
-			const tab = await chrome.tabs.get(tabId)
-			const tabUrl = tab.url ?? ''
-			const submittable = filterSubmittable(sites)
-			const matched = matchCurrentPage(submittable, tabUrl)
-			if (matched) {
-				reset()
-				setCurrentEngineSite(matched)
-				startSubmission(matched)
-					.then((r) => {
-						if (r.failed === 0 && r.filled > 0) {
-							markSubmitted(matched.name, activeProduct.id)
-						}
-						setTimeout(() => {
-							setCurrentEngineSite(null)
-							reset()
-						}, 3000)
-					})
-					.catch((err) => {
-						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
-						setTimeout(() => {
-							setCurrentEngineSite(null)
-							reset()
-						}, 3000)
-					})
-			} else {
-				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
+			if (!activeProduct) {
+				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
+				return
 			}
-		} catch (err) {
-			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+			const res = await chrome.storage.session.get('floatFillTabId')
+			const tabId = res.floatFillTabId as number | undefined
+			if (!tabId) return
+			try {
+				const tab = await chrome.tabs.get(tabId)
+				const tabUrl = tab.url ?? ''
+				const submittable = filterSubmittable(sites)
+				const matched = matchCurrentPage(submittable, tabUrl)
+				if (matched) {
+					reset()
+					setCurrentEngineSite(matched)
+					startSubmission(matched)
+						.then((r) => {
+							if (r.failed === 0 && r.filled > 0) {
+								markSubmitted(matched.name, activeProduct.id)
+							}
+							setTimeout(() => {
+								setCurrentEngineSite(null)
+								reset()
+							}, 3000)
+						})
+						.catch((err) => {
+							markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
+							setTimeout(() => {
+								setCurrentEngineSite(null)
+								reset()
+							}, 3000)
+						})
+				} else {
+					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
+				}
+			} catch (err) {
+				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+			}
+		} finally {
+			floatFillRunningRef.current = false
 		}
 	}, [activeProduct, sites, startSubmission, markSubmitted, reset, markFailed])
 

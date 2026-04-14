@@ -125,6 +125,8 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		log('info', 'llm', `正在调用 LLM (${promptType})...`, {
 			systemPromptLength: systemPrompt.length,
 			userPromptLength: userPrompt.length,
+			systemPrompt,
+			userPrompt,
 			model: llmConfig.model,
 			fieldCount: analysis.fields.length,
 		})
@@ -144,6 +146,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		const valueCount = Object.keys(fieldValues).length
 		log('success', 'llm', `LLM 响应已解析: ${valueCount} 个字段值`, {
 			fieldValues,
+			rawResponse,
 			responseLength: rawResponse.length,
 		})
 
