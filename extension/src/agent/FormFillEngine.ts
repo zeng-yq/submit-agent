@@ -17,43 +17,59 @@ import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
 const ANALYZE_TIMEOUT_MS = 10_000
 const FILL_TIMEOUT_MS = 10_000
 
-/**
- * Normalize a string for fuzzy comparison: lowercase, remove separators.
- */
 function normalizeKey(key: string): string {
 	return key.toLowerCase().replace(/[-_\s]/g, '')
 }
 
+function matchesField(
+	key: string,
+	field: FormAnalysisResult['fields'][number],
+): boolean {
+	const identifiers = [
+		field.canonical_id,
+		field.name,
+		field.id,
+		field.label,
+		field.placeholder,
+		field.inferred_purpose,
+	]
+
+	for (const id of identifiers) {
+		if (!id) continue
+		const norm = normalizeKey(id)
+		if (norm === key || norm.includes(key) || key.includes(norm)) {
+			return true
+		}
+	}
+	return false
+}
+
 /**
  * Try to fuzzy-match an LLM key to a form field.
- * Compares against canonical_id, name, id, label, placeholder, inferred_purpose.
+ * Prefers fields within the same form (formIndex) when provided,
+ * falls back to global match if no same-form match found.
  */
-function fuzzyMatchField(
+export function fuzzyMatchField(
 	llmKey: string,
 	fields: FormAnalysisResult['fields'],
 	usedCanonicalIds: Set<string>,
+	formIndex?: number,
 ): FormAnalysisResult['fields'][number] | null {
 	const key = normalizeKey(llmKey)
 
+	// Phase 1: Try same-form match first
+	if (formIndex !== undefined) {
+		for (const field of fields) {
+			if (usedCanonicalIds.has(field.canonical_id)) continue
+			if (field.form_index !== formIndex) continue
+			if (matchesField(key, field)) return field
+		}
+	}
+
+	// Phase 2: Fall back to global match
 	for (const field of fields) {
 		if (usedCanonicalIds.has(field.canonical_id)) continue
-
-		const identifiers = [
-			field.canonical_id,
-			field.name,
-			field.id,
-			field.label,
-			field.placeholder,
-			field.inferred_purpose,
-		]
-
-		for (const id of identifiers) {
-			if (!id) continue
-			const norm = normalizeKey(id)
-			if (norm === key || norm.includes(key) || key.includes(norm)) {
-				return field
-			}
-		}
+		if (matchesField(key, field)) return field
 	}
 
 	return null
