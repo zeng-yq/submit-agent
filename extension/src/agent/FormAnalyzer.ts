@@ -282,6 +282,14 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
       const effectiveMaxlength =
         maxlength !== null && maxlength >= 0 ? maxlength : null;
 
+      let selector = buildSelector(htmlEl);
+      // Ensure selector is unique in the document — stamp with data attribute if needed
+      if (doc.querySelectorAll(selector).length > 1) {
+        const attr = `data-sa-field-${fieldIndex}`;
+        htmlEl.setAttribute(attr, '');
+        selector = `[${attr}]`;
+      }
+
       const rawField = {
         name: el.getAttribute('name') || '',
         id: el.id || '',
@@ -290,7 +298,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
         placeholder,
         required,
         maxlength: effectiveMaxlength,
-        selector: buildSelector(htmlEl),
+        selector,
         tagName: tag,
       };
 
@@ -315,6 +323,14 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
         const label = findLabel(doc, htmlEl);
         const ariaLabel = el.getAttribute('aria-label') || '';
 
+        let ceSelector = buildSelector(htmlEl);
+        // Ensure selector is unique in the document
+        if (doc.querySelectorAll(ceSelector).length > 1) {
+          const attr = `data-sa-field-${fieldIndex}`;
+          htmlEl.setAttribute(attr, '');
+          ceSelector = `[${attr}]`;
+        }
+
         const ceField = {
           name: el.getAttribute('name') || '',
           id: el.id || '',
@@ -323,7 +339,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
           placeholder: '',
           required: false,
           maxlength: null as number | null,
-          selector: buildSelector(htmlEl),
+          selector: ceSelector,
           tagName: el.tagName.toLowerCase(),
         };
 

@@ -271,6 +271,28 @@ describe('FormAnalyzer', () => {
     );
   });
 
+  it('ensures selectors are unique when elements lack id and name', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <div><input type="text"></div>
+        <div><input type="text"></div>
+        <div><input type="text"></div>
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    // All 3 fields must have unique selectors
+    const selectors = result.fields.map(f => f.selector);
+    expect(new Set(selectors).size).toBe(3);
+
+    // Each selector must resolve to exactly one element
+    for (const selector of selectors) {
+      expect(doc.querySelectorAll(selector)).toHaveLength(1);
+    }
+  });
+
   it('finds label via title attribute', () => {
     const doc = getDoc();
     doc.body.innerHTML = `
