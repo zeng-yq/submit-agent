@@ -52,14 +52,6 @@ export default function App() {
 	} = useBacklinkAgent()
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 
-	// Batch submit state
-	const [batchCount, setBatchCount] = useState(20)
-	const [batchRunning, setBatchRunning] = useState(false)
-	const [batchSites, setBatchSites] = useState<SiteData[]>([])
-	const [batchCurrentIndex, setBatchCurrentIndex] = useState(0)
-	const batchStopRef = useRef(false)
-	const batchModeRef = useRef(false)
-
 	// Run float-fill: match current tab to a site and start submission
 	const runFloatFill = useCallback(async () => {
 		if (!activeProduct) {
@@ -154,63 +146,11 @@ export default function App() {
 			await markFailed(site.name, activeProduct.id, msg)
 		}
 
-		// If in batch mode, advance to next
-		if (batchModeRef.current) {
-			advanceBatch()
-		} else {
-			setTimeout(() => {
-				setCurrentEngineSite(null)
-				reset()
-			}, 3000)
-		}
+		setTimeout(() => {
+			setCurrentEngineSite(null)
+			reset()
+		}, 3000)
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
-
-	const startBatch = useCallback((category?: string) => {
-		const notStarted = sites
-			.filter((s) => !!s.submit_url && (submissions.get(s.name)?.status ?? 'not_started') === 'not_started')
-			.filter((s) => !category || s.category === category)
-			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
-			.slice(0, batchCount)
-
-		if (notStarted.length === 0) return
-
-		setBatchSites(notStarted)
-		setBatchCurrentIndex(0)
-		setBatchRunning(true)
-		batchStopRef.current = false
-		batchModeRef.current = true
-		reset()
-		// Start first site directly
-		handleStartSite(notStarted[0])
-	}, [sites, submissions, batchCount, reset, handleStartSite])
-
-	const stopBatch = useCallback(() => {
-		batchStopRef.current = true
-		setBatchRunning(false)
-		batchModeRef.current = false
-		stop()
-	}, [stop])
-
-	const advanceBatch = useCallback(() => {
-		if (batchStopRef.current || !batchModeRef.current) {
-			setBatchRunning(false)
-			batchModeRef.current = false
-			setCurrentEngineSite(null)
-			return
-		}
-
-		const nextIndex = batchCurrentIndex + 1
-		if (nextIndex >= batchSites.length) {
-			setBatchRunning(false)
-			batchModeRef.current = false
-			setCurrentEngineSite(null)
-			return
-		}
-
-		setBatchCurrentIndex(nextIndex)
-		reset()
-		handleStartSite(batchSites[nextIndex])
-	}, [batchCurrentIndex, batchSites, reset, handleStartSite])
 
 	// Reload backlinks from DB when entering the backlink analysis view
 	useEffect(() => {
