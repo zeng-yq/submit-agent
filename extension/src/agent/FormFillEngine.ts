@@ -227,6 +227,12 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		log('success', 'system', `提交完成: ${result.filled} 填写, ${result.skipped} 跳过, ${result.failed} 失败`)
 		onStatusChange('done')
 
+		// Clear annotations only on successful completion
+		await sendToTab(tabId, {
+			type: 'FLOAT_FILL',
+			action: 'annotate-clear',
+		}, 3000).catch(() => {})
+
 		return result
 	} catch (error) {
 		const err = error instanceof Error ? error : new Error(String(error))
@@ -247,11 +253,5 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		onError(err)
 
 		return { filled: 0, skipped: 0, failed: 0, notes: err.message }
-		} finally {
-			// Always clear annotations
-			await sendToTab(tabId, {
-				type: 'FLOAT_FILL',
-				action: 'annotate-clear',
-			}, 3000).catch(() => {})
-		}
+	}
 }
