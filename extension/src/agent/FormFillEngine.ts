@@ -88,13 +88,14 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		log('success', 'analyze', `表单分析完成: 发现 ${analysis.fields.length} 个字段`, {
 			fields: analysis.fields.map(f => ({
 				id: f.canonical_id,
-				type: f.type,
-				label: f.label || f.placeholder || f.name,
+				type: f.effective_type || f.type,
+				label: f.label || f.inferred_purpose || '(unknown)',
+				placeholder: f.placeholder || undefined,
 				required: f.required,
 			})),
 			pageInfo: {
 				title: analysis.page_info.title,
-				description: analysis.page_info.description?.slice(0, 100),
+				description: analysis.page_info.description?.slice(0, 200),
 			},
 		})
 
