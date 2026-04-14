@@ -6,6 +6,7 @@ import type { LogEntry, LogLevel, LogPhase } from '@/agent/types'
 interface ActivityLogProps {
 	logs: LogEntry[]
 	onClear?: () => void
+	className?: string
 }
 
 const LEVEL_CONFIG: Record<LogLevel, { icon: typeof Info; colorClass: string; bgClass: string }> = {
@@ -87,7 +88,7 @@ function LogItem({ entry }: { entry: LogEntry }) {
 	)
 }
 
-export function ActivityLog({ logs, onClear }: ActivityLogProps) {
+export function ActivityLog({ logs, onClear, className }: ActivityLogProps) {
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const userScrolledRef = useRef(false)
 
@@ -103,11 +104,9 @@ export function ActivityLog({ logs, onClear }: ActivityLogProps) {
 		userScrolledRef.current = scrollHeight - scrollTop - clientHeight > 20
 	}, [])
 
-	if (logs.length === 0) return null
-
 	return (
-		<div className="rounded-lg border border-border bg-card overflow-hidden">
-			<div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/30">
+		<div className={cn('rounded-lg border border-border bg-card overflow-hidden flex flex-col', className)}>
+			<div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/30 shrink-0">
 				<span className="text-xs font-medium">{'活动日志'}</span>
 				<div className="flex items-center gap-2">
 					<span className="text-[10px] text-muted-foreground tabular-nums">
@@ -129,11 +128,17 @@ export function ActivityLog({ logs, onClear }: ActivityLogProps) {
 			<div
 				ref={scrollRef}
 				onScroll={handleScroll}
-				className="max-h-60 overflow-y-auto"
+				className="flex-1 overflow-y-auto"
 			>
-				{logs.map((entry) => (
-					<LogItem key={entry.id} entry={entry} />
-				))}
+				{logs.length === 0 ? (
+					<div className="flex items-center justify-center h-full text-xs text-muted-foreground py-12">
+						{'暂无提交记录'}
+					</div>
+				) : (
+					logs.map((entry) => (
+						<LogItem key={entry.id} entry={entry} />
+					))
+				)}
 			</div>
 		</div>
 	)
