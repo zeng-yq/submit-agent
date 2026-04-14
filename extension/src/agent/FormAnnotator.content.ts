@@ -12,6 +12,7 @@ interface FieldAnnotation {
   selector: string
   labelEl: HTMLElement
   fieldEl: Element | null
+  originalOutline: string
 }
 
 let host: HTMLElement | null = null
@@ -45,7 +46,7 @@ function createContainer() {
     'height: 100%',
     'z-index: 2147483646',
     'pointer-events: none',
-    'overflow: hidden',
+    'overflow: visible',
   ].join(';')
 
   shadow = host.attachShadow({ mode: 'open' })
@@ -144,11 +145,14 @@ export function annotateFields(fields: Array<{ selector: string }>) {
     labelEl.textContent = String(i + 1)
     shadow!.appendChild(labelEl)
 
+    let originalOutline = ''
     if (fieldEl) {
-      (fieldEl as HTMLElement).style.outline = COLORS.outlineDefault
+      const el = fieldEl as HTMLElement
+      originalOutline = el.style.outline
+      el.style.outline = COLORS.outlineDefault
     }
 
-    return { index: i, selector: f.selector, labelEl, fieldEl }
+    return { index: i, selector: f.selector, labelEl, fieldEl, originalOutline }
   })
 
   // Initial position
@@ -179,10 +183,6 @@ export function annotateActive(index: number) {
   }
   curr.labelEl.classList.add('active')
 
-  // Scroll the label into view if needed
-  if (curr.fieldEl) {
-    curr.fieldEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }
 }
 
 /**
@@ -194,7 +194,7 @@ export function clearAnnotations() {
   // Remove outlines from field elements
   for (const ann of annotations) {
     if (ann.fieldEl && document.contains(ann.fieldEl)) {
-      (ann.fieldEl as HTMLElement).style.outline = ''
+      (ann.fieldEl as HTMLElement).style.outline = ann.originalOutline
     }
   }
 
