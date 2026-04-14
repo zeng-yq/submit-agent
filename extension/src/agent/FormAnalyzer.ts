@@ -282,8 +282,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
       const effectiveMaxlength =
         maxlength !== null && maxlength >= 0 ? maxlength : null;
 
-      fields.push({
-        canonical_id: `field_${fieldIndex}`,
+      const rawField = {
         name: el.getAttribute('name') || '',
         id: el.id || '',
         type,
@@ -293,6 +292,13 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
         maxlength: effectiveMaxlength,
         selector: buildSelector(htmlEl),
         tagName: tag,
+      };
+
+      fields.push({
+        canonical_id: `field_${fieldIndex}`,
+        ...rawField,
+        inferred_purpose: inferFieldPurpose(rawField),
+        effective_type: inferEffectiveType(rawField),
       });
 
       fieldIndex++;
@@ -309,17 +315,23 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
         const label = findLabel(doc, htmlEl);
         const ariaLabel = el.getAttribute('aria-label') || '';
 
-        fields.push({
-          canonical_id: `field_${fieldIndex}`,
+        const ceField = {
           name: el.getAttribute('name') || '',
           id: el.id || '',
-          type: 'contenteditable',
+          type: 'contenteditable' as const,
           label: label || ariaLabel,
           placeholder: '',
           required: false,
-          maxlength: null,
+          maxlength: null as number | null,
           selector: buildSelector(htmlEl),
           tagName: el.tagName.toLowerCase(),
+        };
+
+        fields.push({
+          canonical_id: `field_${fieldIndex}`,
+          ...ceField,
+          inferred_purpose: inferFieldPurpose(ceField),
+          effective_type: inferEffectiveType(ceField),
         });
 
         fieldIndex++;

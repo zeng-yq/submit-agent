@@ -331,6 +331,49 @@ describe('FormAnalyzer', () => {
     expect(result.fields[0].label).toBe('Company Name');
   });
 
+  it('populates inferred_purpose when label is empty but placeholder has clues', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <input type="text" name="website" placeholder="https://example.com">
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].label).toBe('');
+    expect(result.fields[0].inferred_purpose).toBe('website URL');
+  });
+
+  it('populates effective_type when type is text but signals indicate url', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <input type="text" name="logo_url" placeholder="https://domain.com/logo.png">
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].type).toBe('text');
+    expect(result.fields[0].effective_type).toBe('url');
+  });
+
+  it('does not populate inferred_purpose when label is resolved', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" placeholder="your@email.com">
+      </form>
+    `;
+
+    const result = analyzeForms(doc);
+
+    expect(result.fields[0].label).toBe('Email');
+    expect(result.fields[0].inferred_purpose).toBe('');
+  });
+
   it('real-world pattern: Next.js form with sibling labels', () => {
     const doc = getDoc();
     doc.body.innerHTML = `
