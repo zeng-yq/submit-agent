@@ -51,6 +51,7 @@ export default function App() {
 		dismissBatch,
 	} = useBacklinkAgent()
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
+	const [pendingUnmatchedUrl, setPendingUnmatchedUrl] = useState<string | null>(null)
 
 	// Run float-fill: match current tab to a site and start submission
 	const floatFillRunningRef = useRef(false)
@@ -92,7 +93,8 @@ export default function App() {
 						}, 3000)
 					}
 				} else {
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
+					setPendingUnmatchedUrl(tabUrl)
+					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'confirm' }).catch(() => {})
 				}
 			} catch (err) {
 				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
@@ -159,6 +161,42 @@ export default function App() {
 			reset()
 		}, 3000)
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
+
+	// Confirm submission for an unmatched page
+	const handleConfirmUnmatched = useCallback(async () => {
+		if (!pendingUnmatchedUrl || !activeProduct) return
+		const url = new URL(pendingUnmatchedUrl)
+		const virtualSite: SiteData = {
+			name: url.hostname,
+			submit_url: pendingUnmatchedUrl,
+			category: 'directory_submit',
+			dr: null,
+		}
+		setPendingUnmatchedUrl(null)
+		reset()
+		setCurrentEngineSite(virtualSite)
+		try {
+			const r = await startSubmission(virtualSite)
+			if (r.failed === 0 && r.filled > 0) {
+				markSubmitted(virtualSite.name, activeProduct.id)
+			}
+			setTimeout(() => {
+				setCurrentEngineSite(null)
+				reset()
+			}, 3000)
+		} catch (err) {
+			markFailed(virtualSite.name, activeProduct.id, err instanceof Error ? err.message : String(err))
+			setTimeout(() => {
+				setCurrentEngineSite(null)
+				reset()
+			}, 3000)
+		}
+	}, [pendingUnmatchedUrl, activeProduct, startSubmission, markSubmitted, reset, markFailed])
+
+	const handleCancelUnmatched = useCallback(() => {
+		setPendingUnmatchedUrl(null)
+		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
+	}, [])
 
 	// Reload backlinks from DB when entering the backlink analysis view
 	useEffect(() => {
@@ -321,6 +359,25 @@ export default function App() {
 					/>
 				)}
 			</main>
+
+			{/* Confirm dialog for unmatched page */}
+			{pendingUnmatchedUrl && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+					<div className="bg-popover border border-border/60 rounded-lg shadow-xl max-w-sm w-full mx-4 p-5">
+						<h3 className="text-sm font-semibold mb-2">{'页面未在资源库中'}</h3>
+						<p className="text-xs text-muted-foreground mb-1">{'当前页面不在外链资源库中，是否仍然提交？'}</p>
+						<p className="text-xs text-muted-foreground break-all mb-4">{pendingUnmatchedUrl}</p>
+						<div className="flex justify-end gap-2">
+							<Button variant="outline" size="sm" onClick={handleCancelUnmatched}>
+								{'取消'}
+							</Button>
+							<Button size="sm" onClick={handleConfirmUnmatched}>
+								{'提交'}
+							</Button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
-	)
+		)
 }

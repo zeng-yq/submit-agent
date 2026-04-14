@@ -3,10 +3,10 @@
  * Floating button with three-state toggle for semi-auto form submission.
  * Uses Shadow DOM for style isolation.
  *
- * Layout: horizontal — [status switch] [action button]
+ * Layout: unified glass container — [status switch | separator | action button]
  *
- * Design language: warm stone palette matching the side panel.
- * Primary: amber-gold (#D4990A), success: emerald, error: rose.
+ * Design language: premium glass-morphism with warm stone palette.
+ * Primary: amber-gold, success: emerald, error: rose.
  */
 
 type ButtonState = 'idle' | 'loading' | 'done' | 'error' | 'no-product'
@@ -14,20 +14,20 @@ type SubmissionState = 'not_started' | 'submitted' | 'failed'
 
 const BUTTON_ID = 'submit-agent-float'
 
-// Main action button configs — aligned with side panel palette
+// Main action button configs — gradient backgrounds with layered shadows
 const BUTTON_CONFIG: Record<ButtonState, { bg: string; shadow: string; icon: string }> = {
-	idle: { bg: '#D4990A', shadow: '0 1px 4px rgba(212, 153, 10, 0.3)', icon: '▶' },
-	loading: { bg: '#F59E0B', shadow: '0 1px 4px rgba(245, 158, 11, 0.3)', icon: '↻' },
-	done: { bg: '#22C55E', shadow: '0 1px 4px rgba(34, 197, 94, 0.3)', icon: '✓' },
-	error: { bg: '#EF4444', shadow: '0 1px 4px rgba(239, 68, 68, 0.3)', icon: '✗' },
-	'no-product': { bg: '#A8A29E', shadow: '0 1px 4px rgba(168, 162, 158, 0.2)', icon: '!' },
+	idle: { bg: 'linear-gradient(135deg, #E8A308 0%, #CA8A04 100%)', shadow: '0 2px 8px rgba(202, 138, 4, 0.35), 0 1px 2px rgba(202, 138, 4, 0.2)', icon: '▶' },
+	loading: { bg: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)', shadow: '0 2px 8px rgba(245, 158, 11, 0.35), 0 1px 2px rgba(245, 158, 11, 0.2)', icon: '↻' },
+	done: { bg: 'linear-gradient(135deg, #34D399 0%, #16A34A 100%)', shadow: '0 2px 8px rgba(22, 163, 74, 0.35), 0 1px 2px rgba(22, 163, 74, 0.2)', icon: '✓' },
+	error: { bg: 'linear-gradient(135deg, #F87171 0%, #DC2626 100%)', shadow: '0 2px 8px rgba(220, 38, 38, 0.35), 0 1px 2px rgba(220, 38, 38, 0.2)', icon: '✗' },
+	'no-product': { bg: 'linear-gradient(135deg, #D6D3D1 0%, #A8A29E 100%)', shadow: '0 2px 8px rgba(168, 162, 158, 0.25), 0 1px 2px rgba(168, 162, 158, 0.15)', icon: '!' },
 }
 
 // Status switch segment configs
-const STATUS_SEGMENTS: Array<{ state: SubmissionState; label: string; activeBg: string; activeColor: string }> = [
-	{ state: 'not_started', label: '未提交', activeBg: '#FEF3C7', activeColor: '#92400E' },
-	{ state: 'submitted', label: '成功', activeBg: '#DCFCE7', activeColor: '#166534' },
-	{ state: 'failed', label: '失败', activeBg: '#FEE2E2', activeColor: '#991B1B' },
+const STATUS_SEGMENTS: Array<{ state: SubmissionState; label: string; activeColor: string; indicatorBg: string }> = [
+	{ state: 'not_started', label: '未提交', activeColor: '#92400E', indicatorBg: '#FEF3C7' },
+	{ state: 'submitted', label: '成功', activeColor: '#166534', indicatorBg: '#DCFCE7' },
+	{ state: 'failed', label: '失败', activeColor: '#991B1B', indicatorBg: '#FEE2E2' },
 ]
 
 let host: HTMLElement | null = null
@@ -48,6 +48,26 @@ function setState(state: ButtonState) {
 	mainBtn.disabled = state === 'loading'
 }
 
+function positionIndicator() {
+	if (!shadow) return
+	const indicator = shadow.querySelector<HTMLDivElement>('#status-indicator')
+	const activeSeg = shadow.querySelector<HTMLElement>('.status-segment.active')
+	if (!indicator || !activeSeg) return
+
+	const switchEl = activeSeg.parentElement
+	if (!switchEl) return
+
+	const switchRect = switchEl.getBoundingClientRect()
+	const segRect = activeSeg.getBoundingClientRect()
+
+	indicator.style.width = `${segRect.width - 4}px`
+	indicator.style.left = `${segRect.left - switchRect.left + 2}px`
+
+	const state = activeSeg.getAttribute('data-state') as SubmissionState
+	const seg = STATUS_SEGMENTS.find(s => s.state === state)
+	indicator.style.background = seg?.indicatorBg || '#E7E5E4'
+}
+
 function setSubmissionState(state: SubmissionState) {
 	currentSubmissionState = state
 
@@ -57,6 +77,9 @@ function setSubmissionState(state: SubmissionState) {
 		const isActive = seg.getAttribute('data-state') === state
 		seg.classList.toggle('active', isActive)
 	}
+
+	// Reposition the sliding indicator
+	requestAnimationFrame(() => positionIndicator())
 
 	// Send status update to background
 	chrome.runtime.sendMessage({
@@ -76,9 +99,6 @@ function createButton() {
 		'right: 24px',
 		'z-index: 2147483647',
 		'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-		'display: flex',
-		'align-items: center',
-		'gap: 4px',
 	].join(';')
 
 	shadow = host.attachShadow({ mode: 'open' })
@@ -87,68 +107,118 @@ function createButton() {
 	style.textContent = `
 		:host { all: initial; }
 
-		/* Status switch */
+		/* Unified glass container */
+		.container {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px;
+			border-radius: 12px;
+			background: rgba(255, 255, 255, 0.82);
+			backdrop-filter: blur(16px) saturate(1.8);
+			-webkit-backdrop-filter: blur(16px) saturate(1.8);
+			border: 1px solid rgba(255, 255, 255, 0.5);
+			box-shadow:
+				0 0 0 1px rgba(0, 0, 0, 0.03),
+				0 2px 4px rgba(0, 0, 0, 0.04),
+				0 8px 24px rgba(0, 0, 0, 0.08);
+			transition: box-shadow 0.3s ease;
+			position: relative;
+		}
+		.container:hover {
+			box-shadow:
+				0 0 0 1px rgba(0, 0, 0, 0.04),
+				0 4px 8px rgba(0, 0, 0, 0.06),
+				0 12px 32px rgba(0, 0, 0, 0.1);
+		}
+
+		/* Separator between switch and action */
+		.separator {
+			width: 1px;
+			height: 18px;
+			background: rgba(0, 0, 0, 0.08);
+			border-radius: 1px;
+			flex-shrink: 0;
+		}
+
+		/* Status switch — pill-style with sliding indicator */
 		.status-switch {
 			display: flex;
-			width: 102px;
-			height: 26px;
+			position: relative;
+			height: 28px;
 			border-radius: 8px;
-			background: rgba(255, 255, 255, 0.88);
-			backdrop-filter: blur(12px);
-			-webkit-backdrop-filter: blur(12px);
-			border: 1px solid rgba(0, 0, 0, 0.06);
-			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 			overflow: hidden;
-			font-size: 11px;
-			font-weight: 500;
 			user-select: none;
 			cursor: pointer;
-			letter-spacing: -0.01em;
+		}
+		/* Sliding pill indicator */
+		#status-indicator {
+			position: absolute;
+			top: 2px;
+			bottom: 2px;
+			border-radius: 6px;
+			transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			z-index: 0;
 		}
 		.status-segment {
 			flex: 1;
+			min-width: 38px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			padding: 0 12px;
+			white-space: nowrap;
 			color: #A8A29E;
-			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+			font-size: 11px;
+			font-weight: 500;
+			letter-spacing: 0.01em;
+			transition: color 0.25s ease;
 			position: relative;
+			z-index: 1;
 		}
 		.status-segment.active {
 			color: var(--active-color, #57534E);
-			background: var(--active-bg, #E7E5E4);
 			font-weight: 600;
 		}
 		.status-segment:hover:not(.active) {
 			color: #78716C;
-			background: rgba(0, 0, 0, 0.03);
 		}
 
-		/* Action button — same height as switch */
+		/* Action button */
 		.action-btn {
-			width: 26px;
-			height: 26px;
+			width: 30px;
+			height: 30px;
 			border: none;
-			border-radius: 8px;
+			border-radius: 9px;
 			color: #fff;
-			font-size: 12px;
+			font-size: 13px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			cursor: pointer;
-			transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-			            box-shadow 0.15s ease;
+			position: relative;
+			transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+			            box-shadow 0.2s ease;
 			outline: none;
 		}
+		/* Glossy highlight */
+		.action-btn::after {
+			content: '';
+			position: absolute;
+			inset: 0;
+			border-radius: inherit;
+			background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 60%);
+			pointer-events: none;
+		}
 		.action-btn:hover:not(:disabled) {
-			transform: scale(1.08);
+			transform: scale(1.1);
 		}
 		.action-btn:active:not(:disabled) {
-			transform: scale(0.94);
+			transform: scale(0.95);
 		}
 		.action-btn:disabled {
 			cursor: default;
-			opacity: 0.9;
+			opacity: 0.85;
 		}
 
 		/* Spinner */
@@ -158,8 +228,8 @@ function createButton() {
 		}
 		.action-btn.loading::before {
 			content: '';
-			width: 12px;
-			height: 12px;
+			width: 14px;
+			height: 14px;
 			border: 2px solid rgba(255,255,255,0.3);
 			border-top-color: #fff;
 			border-radius: 50%;
@@ -169,59 +239,70 @@ function createButton() {
 			display: none;
 		}
 
-		/* Close button */
-		.btn-wrap {
-			position: relative;
-		}
+		/* Close button — appears on container hover */
 		.close-btn {
 			position: absolute;
-			top: -3px;
-			right: -3px;
-			width: 14px;
-			height: 14px;
+			top: -5px;
+			right: -5px;
+			width: 16px;
+			height: 16px;
 			border-radius: 50%;
-			background: #A8A29E;
+			background: rgba(120, 113, 108, 0.9);
 			color: #fff;
-			font-size: 7px;
+			font-size: 8px;
 			line-height: 1;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			border: 1.5px solid rgba(255, 255, 255, 0.92);
+			border: 2px solid rgba(255, 255, 255, 0.95);
 			cursor: pointer;
 			padding: 0;
 			opacity: 0;
-			transform: scale(0.8);
-			transition: opacity 0.15s, background 0.15s, transform 0.15s;
+			transform: scale(0.6);
+			transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+			z-index: 2;
 		}
-		.btn-wrap:hover .close-btn {
+		.container:hover .close-btn {
 			opacity: 1;
 			transform: scale(1);
 		}
 		.close-btn:hover {
 			background: #EF4444;
+			transform: scale(1.1);
 		}
 	`
 	shadow.appendChild(style)
+
+	// Unified container
+	const container = document.createElement('div')
+	container.className = 'container'
 
 	// Status switch
 	const statusSwitch = document.createElement('div')
 	statusSwitch.className = 'status-switch'
 
+	// Sliding indicator (pill background)
+	const indicator = document.createElement('div')
+	indicator.id = 'status-indicator'
+
 	for (const seg of STATUS_SEGMENTS) {
 		const segment = document.createElement('div')
 		segment.className = `status-segment${seg.state === currentSubmissionState ? ' active' : ''}`
 		segment.setAttribute('data-state', seg.state)
-		segment.style.setProperty('--active-bg', seg.activeBg)
 		segment.style.setProperty('--active-color', seg.activeColor)
 		segment.textContent = seg.label
 		segment.addEventListener('click', () => setSubmissionState(seg.state))
 		statusSwitch.appendChild(segment)
 	}
+	statusSwitch.appendChild(indicator)
+
+	// Separator
+	const separator = document.createElement('div')
+	separator.className = 'separator'
 
 	// Action button
 	const btnWrap = document.createElement('div')
-	btnWrap.className = 'btn-wrap'
+	btnWrap.style.position = 'relative'
 
 	mainBtn = document.createElement('button')
 	mainBtn.className = 'action-btn'
@@ -243,13 +324,16 @@ function createButton() {
 		chrome.runtime.sendMessage({ type: 'FLOAT_BUTTON_TOGGLE', enabled: false }).catch(() => {})
 	})
 
-	btnWrap.appendChild(mainBtn)
-	btnWrap.appendChild(closeBtn)
+	container.appendChild(statusSwitch)
+	container.appendChild(separator)
+	container.appendChild(mainBtn)
+	container.appendChild(closeBtn)
 
-	shadow.appendChild(statusSwitch)
-	shadow.appendChild(btnWrap)
-
+	shadow.appendChild(container)
 	document.body.appendChild(host)
+
+	// Position indicator after layout
+	requestAnimationFrame(() => positionIndicator())
 }
 
 function removeButton() {
@@ -302,6 +386,7 @@ export function initFloatButton(enabled: boolean) {
 		if (message.type === 'FLOAT_FILL') {
 			switch (message.action) {
 				case 'progress':
+				case 'confirm':
 					updateButtonState('loading')
 					break
 				case 'done':
