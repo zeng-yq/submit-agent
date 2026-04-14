@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { JSDOM } from 'jsdom';
+import type { FormGroup, FormField } from '@/agent/FormAnalyzer';
 
 // Import after DOM is available
 let analyzeForms: typeof import('@/agent/FormAnalyzer').analyzeForms;
@@ -715,5 +716,49 @@ describe('classifyForm', () => {
     const result = classifyForm(form, 0);
     expect(result.role).toBe('unknown');
     expect(result.filtered).toBe(false);
+  });
+});
+
+describe('buildFieldList', () => {
+  let buildFieldList: typeof import('@/agent/FormAnalyzer').buildFieldList;
+
+  beforeEach(async () => {
+    const mod = await import('@/agent/FormAnalyzer');
+    buildFieldList = mod.buildFieldList;
+  });
+
+  it('renders single unfiltered form with header', () => {
+    const fields: FormField[] = [
+      { canonical_id: 'field_0', name: 'name', id: '', type: 'text', label: 'Name', placeholder: '', required: true, maxlength: null, selector: '', tagName: 'input', form_index: 0 },
+    ];
+    const forms: FormGroup[] = [
+      { form_index: 0, role: 'unknown', confidence: 'low', form_id: 'submit', form_action: '/submit', field_count: 1, filtered: false },
+    ];
+    const result = buildFieldList(fields, forms);
+    expect(result).toContain('[Form 1] id="submit" action="/submit"');
+    expect(result).toContain('field_0: type=text, label="Name", required');
+    expect(result).not.toContain('filtered');
+  });
+
+  it('renders filtered forms as single-line summaries', () => {
+    const fields: FormField[] = [
+      { canonical_id: 'field_0', name: 'product', id: '', type: 'text', label: 'Product', placeholder: '', required: true, maxlength: null, selector: '', tagName: 'input', form_index: 1 },
+    ];
+    const forms: FormGroup[] = [
+      { form_index: 0, role: 'search', confidence: 'high', form_id: undefined, form_action: '/search', field_count: 1, filtered: true },
+      { form_index: 1, role: 'unknown', confidence: 'low', form_id: 'target', form_action: '/submit', field_count: 1, filtered: false },
+    ];
+    const result = buildFieldList(fields, forms);
+    expect(result).toContain('[Form 1] action="/search" role=search — 1 field (filtered)');
+    expect(result).toContain('[Form 2] id="target" action="/submit" — 1 field');
+    expect(result).toContain('field_0: type=text, label="Product", required');
+  });
+
+  it('handles empty forms array gracefully (body fallback)', () => {
+    const fields: FormField[] = [
+      { canonical_id: 'field_0', name: 'name', id: '', type: 'text', label: 'Name', placeholder: '', required: true, maxlength: null, selector: '', tagName: 'input' },
+    ];
+    const result = buildFieldList(fields, []);
+    expect(result).toContain('field_0: type=text, label="Name", required');
   });
 });
