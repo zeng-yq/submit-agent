@@ -356,6 +356,7 @@ export default function App() {
 						engineStatus={engineStatus}
 						engineLogs={engineLogs}
 						onClearEngineLogs={clearLogs}
+						activeSiteName={currentEngineSite?.name ?? null}
 					/>
 				)}
 			</main>

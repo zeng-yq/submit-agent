@@ -1,4 +1,4 @@
-import { Play, Trash2 } from 'lucide-react'
+import { Play, Trash2, Loader2 } from 'lucide-react'
 import type { SiteData, SubmissionStatus } from '@/lib/types'
 
 interface SiteCardProps {
@@ -8,6 +8,7 @@ interface SiteCardProps {
 	onDelete?: (siteName: string) => void
 	onResetStatus?: (siteName: string) => void
 	disabled?: boolean
+	isActive?: boolean
 }
 
 const statusBar: Record<SubmissionStatus, string> = {
@@ -30,7 +31,7 @@ const statusLabelKey: Record<SubmissionStatus, string> = {
 	skipped: '已跳过',
 }
 
-export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onResetStatus, disabled }: SiteCardProps) {
+export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onResetStatus, disabled, isActive }: SiteCardProps) {
 	const hasSubmitUrl = !!site.submit_url
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
@@ -104,18 +105,23 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 					<button
 						type="button"
 						className={`p-1 rounded transition-colors ${
-							disabled
-								? 'text-muted-foreground/20 cursor-not-allowed'
-								: 'text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
+							isActive
+								? 'text-primary'
+								: disabled
+									? 'text-muted-foreground/20 cursor-not-allowed'
+									: 'text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
 						}`}
 						onClick={(e) => {
 							e.stopPropagation()
-							if (!disabled) onSelect(site)
+							if (!disabled && !isActive) onSelect(site)
 						}}
-						disabled={disabled}
-						title="自动提交"
+						disabled={disabled || isActive}
+						title={isActive ? '提交中...' : '自动提交'}
 					>
-						<Play className="w-3.5 h-3.5" />
+						{isActive
+							? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+							: <Play className="w-3.5 h-3.5" />
+						}
 					</button>
 				)}
 				{onDelete && (

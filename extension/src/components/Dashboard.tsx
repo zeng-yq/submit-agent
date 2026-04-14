@@ -1,7 +1,7 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
 import type { FillEngineStatus, LogEntry } from '@/agent/types'
 import { useMemo, useState, useEffect } from 'react'
-import { Play, Trash2 } from 'lucide-react'
+import { Play, Trash2, Loader2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
 import { ActivityLog } from './ActivityLog'
 
@@ -15,6 +15,7 @@ interface DashboardProps {
 	engineStatus: FillEngineStatus
 	engineLogs: LogEntry[]
 	onClearEngineLogs: () => void
+	activeSiteName: string | null
 }
 
 type Tab = 'all' | 'done' | 'failed'
@@ -31,6 +32,7 @@ export function Dashboard({
 	engineStatus,
 	engineLogs,
 	onClearEngineLogs,
+	activeSiteName,
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
@@ -82,6 +84,7 @@ export function Dashboard({
 		tab === 'all' ? allSites : tab === 'done' ? doneSites : failedSites
 
 	const isEngineActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling'
+	const hasActive = !!activeSiteName
 
 	useEffect(() => {
 		if (isEngineActive) {
@@ -196,16 +199,29 @@ export function Dashboard({
 											)}
 										</div>
 										<div className="shrink-0 flex items-center gap-1.5 mt-0.5">
-											{onRetrySite && site.submit_url && (
-												<button
-													type="button"
-													className="p-1 rounded text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
-													onClick={() => onRetrySite(site)}
-													title="重试自动提交"
-												>
-													<Play className="w-3.5 h-3.5" />
-												</button>
-											)}
+											{onRetrySite && site.submit_url && (() => {
+												const siteIsActive = hasActive && site.name === activeSiteName
+												return (
+													<button
+														type="button"
+														className={`p-1 rounded transition-colors ${
+															siteIsActive
+																? 'text-primary'
+																: 'text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
+														}`}
+														onClick={() => {
+															if (!siteIsActive) onRetrySite(site)
+														}}
+														disabled={siteIsActive}
+														title={siteIsActive ? '提交中...' : '重试自动提交'}
+													>
+														{siteIsActive
+															? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+															: <Play className="w-3.5 h-3.5" />
+														}
+													</button>
+												)
+											})()}
 											{onResetStatus && (
 												<button
 													type="button"
@@ -242,7 +258,8 @@ export function Dashboard({
 									onSelect={onSelectSite}
 									onDelete={onDeleteSite}
 									onResetStatus={onResetStatus}
-									disabled={isEngineActive}
+									disabled={hasActive && site.name !== activeSiteName}
+									isActive={hasActive && site.name === activeSiteName}
 								/>
 							))
 						)}
