@@ -367,21 +367,10 @@ export default function App() {
 						onRetrySite={handleStartSite}
 						onResetStatus={resetSubmission}
 						onDeleteSite={handleDeleteSite}
-						batchCount={batchCount}
-						onBatchCountChange={setBatchCount}
-						batchRunning={batchRunning}
-						batchCurrentIndex={batchCurrentIndex + 1}
-						batchTotal={batchSites.length}
-						batchCurrentSite={batchSites[batchCurrentIndex]?.name ?? ''}
-						onStartBatch={startBatch}
-						onStopBatch={stopBatch}
 						engineStatus={engineStatus}
-						engineError={engineError?.message ?? null}
-						engineSiteName={currentEngineSite?.name ?? null}
-						onStopEngine={stop}
-						 engineLogs={engineLogs}
-						 onClearEngineLogs={clearLogs}
-						/>
+						engineLogs={engineLogs}
+						onClearEngineLogs={clearLogs}
+					/>
 				)}
 			</main>
 		</div>
