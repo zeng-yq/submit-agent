@@ -21,15 +21,24 @@ export default defineContentScript({
 			switch (message.action) {
 				case 'analyze': {
 					const siteType = message.payload?.siteType as string | undefined
-					const analysis = analyzeForms(document)
 
-					if (siteType === 'blog_comment') {
-						const pageContent = extractPageContent(document)
-						sendResponse({ ok: true, analysis, pageContent })
-					} else {
-						sendResponse({ ok: true, analysis })
-					}
-					return
+					;(async () => {
+						// Wait briefly for SPA hydration if title is empty
+						if (!document.title) {
+							await new Promise(r => setTimeout(r, 500))
+						}
+
+						const analysis = analyzeForms(document)
+
+						if (siteType === 'blog_comment') {
+							const pageContent = extractPageContent(document)
+							sendResponse({ ok: true, analysis, pageContent })
+						} else {
+							sendResponse({ ok: true, analysis })
+						}
+					})()
+
+					return true // keep message channel open for async response
 				}
 				case 'fill': {
 					const fields = message.payload?.fields as Array<{
