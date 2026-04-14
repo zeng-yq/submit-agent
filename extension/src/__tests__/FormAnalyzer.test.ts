@@ -146,7 +146,7 @@ describe('FormAnalyzer', () => {
     const doc = getDoc();
     doc.body.innerHTML = `
       <form>
-        <input type="text" name="search" aria-label="Search query">
+        <input type="text" name="display_name" aria-label="Search query">
       </form>
     `;
 
@@ -299,7 +299,7 @@ describe('FormAnalyzer', () => {
     const doc = getDoc();
     doc.body.innerHTML = `
       <form>
-        <input type="text" name="search" title="Search keywords">
+        <input type="text" name="display_name" title="Search keywords">
       </form>
     `;
 
@@ -433,6 +433,103 @@ describe('FormAnalyzer', () => {
     expect(result.fields[2].label).toBe('Description');
     expect(result.fields[3].label).toBe('Contact Name');
     expect(result.fields[4].label).toBe('Contact Email');
+  });
+
+  it('filters out search form and returns only target form fields', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form role="search">
+        <input type="text" name="q">
+      </form>
+      <form id="submit-form" action="/submit">
+        <input type="text" name="product_name" placeholder="Product Name">
+        <input type="url" name="url" placeholder="Website URL">
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(2);
+    expect(result.fields[0].name).toBe('product_name');
+    expect(result.fields[1].name).toBe('url');
+    expect(result.forms).toHaveLength(2);
+    expect(result.forms[0].role).toBe('search');
+    expect(result.forms[0].filtered).toBe(true);
+    expect(result.forms[1].role).toBe('unknown');
+    expect(result.forms[1].filtered).toBe(false);
+  });
+
+  it('filters out login and newsletter forms', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form action="/login">
+        <input name="email">
+        <input type="password" name="password">
+      </form>
+      <form action="/subscribe">
+        <input type="email" name="newsletter_email">
+      </form>
+      <form action="/submit-tool">
+        <input name="tool_name">
+        <textarea name="description"></textarea>
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(2);
+    expect(result.fields[0].name).toBe('tool_name');
+    expect(result.fields[1].name).toBe('description');
+    expect(result.forms).toHaveLength(3);
+    expect(result.forms[0].role).toBe('login');
+    expect(result.forms[1].role).toBe('newsletter');
+    expect(result.forms[2].role).toBe('unknown');
+  });
+
+  it('preserves all fields when no forms are classified as irrelevant', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form action="/submit">
+        <input name="name">
+      </form>
+      <form action="/add-listing">
+        <input name="title">
+        <input name="url">
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(3);
+    expect(result.forms).toHaveLength(2);
+    expect(result.forms[0].filtered).toBe(false);
+    expect(result.forms[1].filtered).toBe(false);
+  });
+
+  it('returns empty forms array when no form tags exist (body fallback)', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<input name="username"><input name="password">`;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(2);
+    expect(result.forms).toHaveLength(0);
+  });
+
+  it('attaches form_index to each field from a form element', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form role="search">
+        <input name="q">
+      </form>
+      <form id="target">
+        <input name="name">
+        <input name="email">
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(2);
+    expect(result.fields[0].form_index).toBe(1);
+    expect(result.fields[1].form_index).toBe(1);
+  });
+
+  it('does not attach form_index to fields from body fallback scan', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<input name="username">`;
+    const result = analyzeForms(doc);
+    expect(result.fields[0].form_index).toBeUndefined();
   });
 });
 

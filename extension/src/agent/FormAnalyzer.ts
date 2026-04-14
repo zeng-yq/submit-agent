@@ -18,6 +18,7 @@ export interface FormField {
   effective_type?: string;    // enhanced type for LLM context
   selector: string;
   tagName: string;
+  form_index?: number;        // which form this field belongs to
 }
 
 export interface PageInfo {
@@ -29,6 +30,7 @@ export interface PageInfo {
 
 export interface FormAnalysisResult {
   fields: FormField[];
+  forms: FormGroup[];   // all form metadata (including filtered)
   page_info: PageInfo;
 }
 
@@ -342,14 +344,22 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
   const fields: FormField[] = [];
   let fieldIndex = 0;
 
-  // Collect all form elements
   const formElements = Array.from(doc.querySelectorAll('form'));
+  const formGroups: FormGroup[] = formElements.map((formEl, i) => classifyForm(formEl, i));
+  const filteredIndices = new Set<number>(
+    formGroups.filter(g => g.filtered).map(g => g.form_index)
+  );
 
-  // If no <form> elements, scan the whole document
-  const searchRoots =
+  // If no <form> elements, scan the whole document (no filtering possible)
+  const searchRoots: Array<HTMLElement | Document> =
     formElements.length > 0 ? formElements : [doc.body || doc.documentElement];
 
-  for (const root of searchRoots) {
+  for (let rootIdx = 0; rootIdx < searchRoots.length; rootIdx++) {
+    const root = searchRoots[rootIdx];
+
+    // Skip filtered forms
+    if (formElements.length > 0 && filteredIndices.has(rootIdx)) continue;
+
     const candidates = root.querySelectorAll('input, textarea, select');
 
     for (const el of candidates) {
@@ -396,6 +406,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
         ...rawField,
         inferred_purpose: inferFieldPurpose(rawField),
         effective_type: inferEffectiveType(rawField),
+        form_index: formElements.length > 0 ? rootIdx : undefined,
       });
 
       fieldIndex++;
@@ -436,6 +447,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
           ...ceField,
           inferred_purpose: inferFieldPurpose(ceField),
           effective_type: inferEffectiveType(ceField),
+          form_index: formElements.length > 0 ? rootIdx : undefined,
         });
 
         fieldIndex++;
@@ -445,6 +457,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
 
   return {
     fields,
+    forms: formGroups,
     page_info: extractPageInfo(doc),
   };
 }
