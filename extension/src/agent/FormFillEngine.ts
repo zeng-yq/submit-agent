@@ -233,7 +233,12 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 
 			for (const [llmKey, llmValue] of Object.entries(fieldValues)) {
 				if (typeof llmValue !== 'string' || llmValue === '') continue
-				const matched = fuzzyMatchField(llmKey, analysis.fields, usedCanonicalIds)
+				// When only one unfiltered form exists, pass its index for same-form priority.
+					// Otherwise skip formIndex since we can't determine which form the LLM key targets.
+					const targetFormIndex = analysis.forms.filter(f => !f.filtered).length === 1
+						? analysis.forms.find(f => !f.filtered)!.form_index
+						: undefined
+					const matched = fuzzyMatchField(llmKey, analysis.fields, usedCanonicalIds, targetFormIndex)
 				if (matched) {
 					usedCanonicalIds.add(matched.canonical_id)
 					fieldsToFill.push({

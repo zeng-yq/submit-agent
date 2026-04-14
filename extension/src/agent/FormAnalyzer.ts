@@ -399,6 +399,16 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
     formGroups.filter(g => g.filtered).map(g => g.form_index)
   );
 
+  // Log filtered forms for debugging
+  for (const group of formGroups) {
+    if (group.filtered) {
+      console.debug(
+        `[SubmitAgent] Form ${group.form_index + 1} filtered as "${group.role}"` +
+        ` (action=${group.form_action || 'none'}, id=${group.form_id || 'none'})`
+      );
+    }
+  }
+
   // If no <form> elements, scan the whole document (no filtering possible)
   const searchRoots: Array<HTMLElement | Document> =
     formElements.length > 0 ? formElements : [doc.body || doc.documentElement];
