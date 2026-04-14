@@ -105,12 +105,16 @@ const SKIP_INPUT_TYPES = new Set([
 /** Check if an element is visually visible on the page. */
 function isVisible(el: Element): boolean {
   const htmlEl = el as HTMLElement;
-  // Fast check: zero dimensions and no layout rects means hidden
-  if (!htmlEl.offsetWidth && !htmlEl.offsetHeight && !htmlEl.getClientRects().length) return false;
   const style = window.getComputedStyle(htmlEl);
   if (style.display === 'none') return false;
   if (style.visibility === 'hidden') return false;
   if (parseFloat(style.opacity) === 0) return false;
+  // Dimension check only in real browsers (JSDOM has no layout engine,
+  // so offsetWidth/Height are always 0 — use body as a canary)
+  const body = htmlEl.ownerDocument.body;
+  if (body && (body.offsetWidth || body.offsetHeight || body.getClientRects().length)) {
+    if (!htmlEl.offsetWidth && !htmlEl.offsetHeight && !htmlEl.getClientRects().length) return false;
+  }
   return true;
 }
 
