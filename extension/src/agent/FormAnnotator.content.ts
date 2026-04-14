@@ -100,8 +100,8 @@ function updatePositions() {
       continue
     }
     const rect = ann.fieldEl.getBoundingClientRect()
-    ann.labelEl.style.left = `${rect.left + window.scrollX + LABEL_OFFSET}px`
-    ann.labelEl.style.top = `${rect.top + window.scrollY + LABEL_OFFSET}px`
+    ann.labelEl.style.left = `${rect.left + LABEL_OFFSET}px`
+    ann.labelEl.style.top = `${rect.top + LABEL_OFFSET}px`
   }
 }
 
