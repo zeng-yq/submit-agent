@@ -103,7 +103,7 @@ const SKIP_INPUT_TYPES = new Set([
 ]);
 
 /** Check if an element is visually visible on the page. */
-function isVisible(el: Element): boolean {
+export function isVisible(el: Element): boolean {
   const htmlEl = el as HTMLElement;
   const style = window.getComputedStyle(htmlEl);
   if (style.display === 'none') return false;
@@ -138,9 +138,15 @@ export function isFormField(el: Element): boolean {
 
   // contenteditable elements (but not the ones used by rich text editors for layout)
   if ((el as HTMLElement).isContentEditable) {
-    // Skip if it's a large contenteditable div that's likely a page editor
     const role = el.getAttribute('role');
     if (role === 'textbox') return true;
+    // Accept explicit contenteditable inside form or comment context
+    // (wpDiscuz and similar plugins use contenteditable divs without role="textbox")
+    if (el.hasAttribute('contenteditable')) {
+      if (el.closest('form, .comment-form, #respond, #commentform, .wpd_comm_form, .wpd-form, .wpdiscuz-textarea-wrap, #wpdcom, [class*="comment-form"], [id*="comment-form"]')) {
+        return true;
+      }
+    }
     // Skip generic contenteditable divs without a form context
     return false;
   }

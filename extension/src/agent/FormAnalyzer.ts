@@ -312,12 +312,11 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
       fieldIndex++;
     }
 
-    // Also check for contenteditable elements within the form context
-    if (formElements.length > 0) {
+    // Also check for contenteditable elements (both in <form> and body-fallback contexts)
+    {
       const editables = root.querySelectorAll('[contenteditable="true"]');
       for (const el of editables) {
-        const role = el.getAttribute('role');
-        if (role !== 'textbox') continue;
+        if (!isFormField(el)) continue;
 
         const htmlEl = el as HTMLElement;
         const label = findLabel(doc, htmlEl);
