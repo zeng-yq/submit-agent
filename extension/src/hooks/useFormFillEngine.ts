@@ -55,7 +55,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			stop()
 			setError(null)
 			setResult(null)
-			// logs are NOT cleared — they accumulate across submissions
+			setLogs([])
 
 			const abort = new AbortController()
 			abortRef.current = abort
@@ -99,7 +99,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			stop()
 			setError(null)
 			setResult(null)
-			// logs are NOT cleared — they accumulate across submissions
+			setLogs([])
 
 			const abort = new AbortController()
 			abortRef.current = abort
