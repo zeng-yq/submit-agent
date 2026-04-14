@@ -18,7 +18,15 @@ export function buildDirectorySubmitPrompt(input: DirectorySubmitPromptInput): s
 	const { productContext, pageInfo, fields } = input
 
 	const fieldList = fields
-		.map((f) => `- ${f.canonical_id}: type=${f.type}, label="${f.label || f.placeholder || f.name}", ${f.required ? 'required' : 'optional'}${f.maxlength ? `, maxlength=${f.maxlength}` : ''}`)
+		.map((f) => {
+			const parts = [`${f.canonical_id}: type=${f.effective_type || f.type}`];
+			if (f.label) parts.push(`label="${f.label}"`);
+			if (f.placeholder) parts.push(`placeholder="${f.placeholder}"`);
+			if (f.inferred_purpose) parts.push(`inferred_purpose="${f.inferred_purpose}"`);
+			parts.push(f.required ? 'required' : 'optional');
+			if (f.maxlength) parts.push(`maxlength=${f.maxlength}`);
+			return `- ${parts.join(', ')}`;
+		})
 		.join('\n')
 
 	const example = JSON.stringify({
