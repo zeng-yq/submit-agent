@@ -96,7 +96,7 @@ export function useBacklinkAgent() {
 					const siteRecord: SiteRecord = {
 						name: backlink.sourceTitle || extractDomain(backlink.sourceUrl),
 						submit_url: backlink.sourceUrl,
-						category: 'Blog Comment',
+						category: 'blog_comment',
 						dr: null,
 						status: 'alive',
 						createdAt: Date.now(),
