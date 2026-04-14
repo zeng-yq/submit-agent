@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 
 // Import after DOM is available
 let analyzeForms: typeof import('@/agent/FormAnalyzer').analyzeForms;
+let classifyForm: typeof import('@/agent/FormAnalyzer').classifyForm;
 let inferFieldPurpose: typeof import('@/agent/FormAnalyzer').inferFieldPurpose;
 let inferEffectiveType: typeof import('@/agent/FormAnalyzer').inferEffectiveType;
 
@@ -18,6 +19,7 @@ describe('FormAnalyzer', () => {
     // Dynamic import to get fresh module with correct `document`
     const mod = await import('@/agent/FormAnalyzer');
     analyzeForms = mod.analyzeForms;
+    classifyForm = mod.classifyForm;
     inferFieldPurpose = mod.inferFieldPurpose;
     inferEffectiveType = mod.inferEffectiveType;
   });
@@ -529,5 +531,92 @@ describe('inferEffectiveType', () => {
 
   it('infers tel from combined signals containing "phone"', () => {
     expect(inferEffectiveType({ label: 'Phone', placeholder: '', name: '', type: 'text' })).toBe('tel');
+  });
+});
+
+describe('classifyForm', () => {
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/FormAnalyzer');
+    classifyForm = mod.classifyForm;
+  });
+
+  function getDoc(): Document {
+    return dom.window.document;
+  }
+
+  it('classifies form with role="search" as search', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form role="search"><input type="text" name="q"><button type="submit">Search</button></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.role).toBe('search');
+    expect(result.filtered).toBe(true);
+    expect(result.confidence).toBe('high');
+  });
+
+  it('classifies form with action="/search" as search', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form action="/search"><input type="text" name="q"></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.role).toBe('search');
+    expect(result.filtered).toBe(true);
+  });
+
+  it('classifies form with password field as login', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form action="/login"><input name="email"><input type="password" name="password"><button>Login</button></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.role).toBe('login');
+    expect(result.filtered).toBe(true);
+  });
+
+  it('classifies form with action="/subscribe" and single email as newsletter', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form action="/subscribe"><input type="email" name="email"><button>Subscribe</button></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.role).toBe('newsletter');
+    expect(result.filtered).toBe(true);
+  });
+
+  it('classifies unknown form as unknown and not filtered', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form id="submit-form" action="/submit"><input name="product_name"><textarea name="description"></textarea></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.role).toBe('unknown');
+    expect(result.filtered).toBe(false);
+  });
+
+  it('records form_id and form_action', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form id="my-form" action="/api/submit"><input name="name"></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.form_id).toBe('my-form');
+    expect(result.form_action).toBe('/api/submit');
+  });
+
+  it('records field_count', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form><input name="a"><input name="b"><textarea name="c"></textarea></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.field_count).toBe(3);
+  });
+
+  it('does not classify form with ambiguous action as filtered', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<form action="/process"><input name="title"><input name="url"></form>`;
+    const form = doc.querySelector('form')!;
+    const result = classifyForm(form, 0);
+    expect(result.role).toBe('unknown');
+    expect(result.filtered).toBe(false);
   });
 });
