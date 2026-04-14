@@ -3,8 +3,29 @@
  * Replaces @page-agent/page-controller with lightweight, focused operations.
  */
 
+/** Reset React's internal value tracker via injected page-context script. */
+function resetReactTracker(el: HTMLElement): void {
+  try {
+    const marker = 'data-sa-fill'
+    el.setAttribute(marker, '')
+    const script = document.createElement('script')
+    script.textContent = `(function(){
+      var el = document.querySelector('[${marker}]');
+      if (!el) return;
+      el.removeAttribute('${marker}');
+      if (el._valueTracker) { el._valueTracker.setValue(''); }
+    })();`
+    document.documentElement.appendChild(script)
+    script.remove()
+  } catch {
+    // CSP or other errors — ignore gracefully
+  }
+}
+
 /** Set value on an <input> element and dispatch events for React/Vue. */
 export function setInputValue(el: HTMLInputElement, value: string): void {
+  el.focus()
+
   // Use the native setter to bypass React's read-only value property
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
     HTMLInputElement.prototype,
@@ -15,12 +36,18 @@ export function setInputValue(el: HTMLInputElement, value: string): void {
   } else {
     el.value = value;
   }
+
+  // Reset React's value tracker so React perceives the change
+  resetReactTracker(el)
+
   el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 /** Set value on a <textarea> element and dispatch events. */
 export function setTextareaValue(el: HTMLTextAreaElement, value: string): void {
+  el.focus()
+
   const nativeSetter = Object.getOwnPropertyDescriptor(
     HTMLTextAreaElement.prototype,
     'value',
@@ -30,19 +57,32 @@ export function setTextareaValue(el: HTMLTextAreaElement, value: string): void {
   } else {
     el.value = value;
   }
+
+  // Reset React's value tracker so React perceives the change
+  resetReactTracker(el)
+
   el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 /** Set value on a <select> element and dispatch change event. */
 export function setSelectValue(el: HTMLSelectElement, value: string): void {
+  el.focus()
   el.value = value;
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 /** Set text content on a contenteditable element and dispatch input event. */
 export function setContentEditable(el: HTMLElement, value: string): void {
-  el.textContent = value;
+  el.focus()
+
+  // Use innerHTML for HTML content (e.g. blog comments with <a> links)
+  if (/<[a-z][\s\S]*>/i.test(value)) {
+    el.innerHTML = value;
+  } else {
+    el.textContent = value;
+  }
+
   el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
 }
 

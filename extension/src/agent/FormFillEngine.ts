@@ -17,6 +17,48 @@ import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
 const ANALYZE_TIMEOUT_MS = 10_000
 const FILL_TIMEOUT_MS = 10_000
 
+/**
+ * Normalize a string for fuzzy comparison: lowercase, remove separators.
+ */
+function normalizeKey(key: string): string {
+	return key.toLowerCase().replace(/[-_\s]/g, '')
+}
+
+/**
+ * Try to fuzzy-match an LLM key to a form field.
+ * Compares against canonical_id, name, id, label, placeholder, inferred_purpose.
+ */
+function fuzzyMatchField(
+	llmKey: string,
+	fields: FormAnalysisResult['fields'],
+	usedCanonicalIds: Set<string>,
+): FormAnalysisResult['fields'][number] | null {
+	const key = normalizeKey(llmKey)
+
+	for (const field of fields) {
+		if (usedCanonicalIds.has(field.canonical_id)) continue
+
+		const identifiers = [
+			field.canonical_id,
+			field.name,
+			field.id,
+			field.label,
+			field.placeholder,
+			field.inferred_purpose,
+		]
+
+		for (const id of identifiers) {
+			if (!id) continue
+			const norm = normalizeKey(id)
+			if (norm === key || norm.includes(key) || key.includes(norm)) {
+				return field
+			}
+		}
+	}
+
+	return null
+}
+
 export interface FormFillEngineCallbacks {
 	onStatusChange: (status: FillEngineStatus) => void
 	onError: (error: Error) => void
@@ -160,7 +202,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		})
 
 		// Map canonical_ids to selectors for content script
-		const fieldsToFill = analysis.fields
+		let fieldsToFill = analysis.fields
 			.filter((f) => fieldValues[f.canonical_id] !== undefined && fieldValues[f.canonical_id] !== '')
 			.map((f) => ({
 				canonical_id: f.canonical_id,
@@ -168,7 +210,42 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 				selector: f.selector,
 			}))
 
+		// Fallback: fuzzy match LLM keys to field identifiers when exact match fails
+		if (fieldsToFill.length === 0 && valueCount > 0) {
+			const usedCanonicalIds = new Set<string>()
+			fieldsToFill = []
+
+			for (const [llmKey, llmValue] of Object.entries(fieldValues)) {
+				if (typeof llmValue !== 'string' || llmValue === '') continue
+				const matched = fuzzyMatchField(llmKey, analysis.fields, usedCanonicalIds)
+				if (matched) {
+					usedCanonicalIds.add(matched.canonical_id)
+					fieldsToFill.push({
+						canonical_id: matched.canonical_id,
+						value: llmValue,
+						selector: matched.selector,
+					})
+				}
+			}
+
+			if (fieldsToFill.length > 0) {
+				log('info', 'llm', `模糊匹配成功: ${fieldsToFill.length} 个字段`, {
+					matchedFields: fieldsToFill.map(f => f.canonical_id),
+				})
+			}
+		}
+
 		if (fieldsToFill.length === 0) {
+			if (valueCount > 0) {
+				// LLM returned values but none matched any field — treat as error
+				log('error', 'llm', `LLM 返回了 ${valueCount} 个值但无法匹配任何字段`, {
+					llmKeys: Object.keys(fieldValues),
+					expectedIds: analysis.fields.map(f => f.canonical_id),
+				})
+				onStatusChange('error')
+				onError(new Error(`LLM 返回的 ${valueCount} 个字段值无法匹配页面表单字段`))
+				return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM field key mismatch — no fields matched.' }
+			}
 			log('warning', 'llm', 'LLM 未返回任何字段值')
 			onStatusChange('done')
 			return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM returned no field values.' }

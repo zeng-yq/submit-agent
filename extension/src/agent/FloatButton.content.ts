@@ -344,19 +344,51 @@ function removeButton() {
 	mainBtn = null
 }
 
+/**
+ * Send a message to the background with automatic retry when the service worker
+ * is waking up from suspension (MV3).
+ */
+function sendMessageWithRetry(
+	message: { type: string; action: string },
+	maxRetries = 2,
+	delayMs = 500,
+): Promise<unknown> {
+	return new Promise((resolve, reject) => {
+		function attempt(retriesLeft: number) {
+			chrome.runtime.sendMessage(message, (response) => {
+				if (chrome.runtime.lastError) {
+					if (retriesLeft > 0) {
+						setTimeout(() => attempt(retriesLeft - 1), delayMs)
+					} else {
+						reject(chrome.runtime.lastError)
+					}
+				} else {
+					resolve(response)
+				}
+			})
+		}
+		attempt(maxRetries)
+	})
+}
+
 function handleMainClick() {
 	if (currentState === 'loading') return
 
 	setState('loading')
 	if (mainBtn) mainBtn.classList.add('loading')
 
-	chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'start' }, (response) => {
-		if (mainBtn) mainBtn.classList.remove('loading')
-		if (chrome.runtime.lastError || !response?.ok) {
+	sendMessageWithRetry({ type: 'FLOAT_FILL', action: 'start' })
+		.then((response: any) => {
+			if (mainBtn) mainBtn.classList.remove('loading')
+			if (!response?.ok) {
+				setState('error')
+			}
+			// On success, stay in loading state until the agent sends progress/done/error
+		})
+		.catch(() => {
+			if (mainBtn) mainBtn.classList.remove('loading')
 			setState('error')
-		}
-		// On success, stay in loading state until the agent sends progress/done/error
-	})
+		})
 }
 
 function updateButtonState(state: ButtonState) {

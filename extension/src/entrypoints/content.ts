@@ -76,9 +76,15 @@ function injectPageClick(el: HTMLElement): void {
 }
 
 async function expandLazyCommentForms(doc: Document): Promise<void> {
-  // Selectors for comment textareas that commonly trigger field expansion
+  // Selectors for comment inputs that commonly trigger field expansion.
+  // Includes both <textarea> and contenteditable divs (wpDiscuz newer versions
+  // use contenteditable instead of textarea for the comment input).
   const TRIGGERS = [
-    // wpDiscuz
+    // wpDiscuz — contenteditable variants (newer versions)
+    '#wpdcom .wpd-field-textarea [contenteditable="true"]',
+    '.wpdiscuz-textarea-wrap [contenteditable="true"]',
+    '.wpd-comm .wpd-field-textarea [contenteditable="true"]',
+    // wpDiscuz — textarea variants (older versions)
     '#wpdcom textarea',
     '.wpdiscuz-textarea-wrap textarea',
     '#wc_comment',

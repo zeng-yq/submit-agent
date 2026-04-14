@@ -52,6 +52,8 @@ export default function App() {
 	} = useBacklinkAgent()
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 	const [pendingUnmatchedUrl, setPendingUnmatchedUrl] = useState<string | null>(null)
+	const dashboardRunningRef = useRef(false)
+	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
 	// Run float-fill: match current tab to a site and start submission
 	const floatFillRunningRef = useRef(false)
@@ -141,6 +143,15 @@ export default function App() {
 	// Start a single site submission directly from dashboard
 	const handleStartSite = useCallback(async (site: SiteData) => {
 		if (!activeProduct) return
+		if (dashboardRunningRef.current) return
+		dashboardRunningRef.current = true
+
+		// Clear any pending reset timer from a previous submission
+		if (resetTimerRef.current) {
+			clearTimeout(resetTimerRef.current)
+			resetTimerRef.current = null
+		}
+
 		reset()
 		setCurrentEngineSite(site)
 
@@ -156,10 +167,13 @@ export default function App() {
 			await markFailed(site.name, activeProduct.id, msg)
 		}
 
-		setTimeout(() => {
+		resetTimerRef.current = setTimeout(() => {
 			setCurrentEngineSite(null)
 			reset()
+			resetTimerRef.current = null
 		}, 3000)
+
+		dashboardRunningRef.current = false
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
 
 	// Confirm submission for an unmatched page
