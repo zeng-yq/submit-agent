@@ -90,27 +90,16 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 ## 操作概览
 
-### 独立操作
+所有操作均为**独立操作**，可在不同时间、不同会话中分别执行。它们共享数据文件，但运行时互不依赖。
 
-**PRODUCT** — 添加产品。用户提供产品 URL，自动提取页面信息并写入 `products.json`。
-→ 详见 `references/workflow-product.md`
+| 操作 | 说明 | 数据来源 | 详见 |
+|------|------|---------|------|
+| **PRODUCT** | 添加产品，提取页面信息 | 用户提供 URL → `products.json` | `references/workflow-product.md` |
+| **IMPORT** | 导入外链候选数据 | 用户提供的 Semrush 数据 → `backlinks.json` | `references/workflow-import.md` |
+| **ANALYZE** | 批量分析可发布性 | `backlinks.json` 中的 pending 条目 | `references/workflow-analyze.md` |
+| **SUBMIT** | 对可发布站点执行表单提交 | `backlinks.json` 可发布条目 + `products.json` | `references/workflow-submit.md` |
 
-### 外链工作流
-
-```
-IMPORT ──→ ANALYZE ──→ SUBMIT
-```
-
-**IMPORT** — 导入外链候选数据到 `backlinks.json`
-→ 详见 `references/workflow-import.md`
-
-**ANALYZE** — 批量分析可发布性，判断每个候选是否可操作
-→ 详见 `references/workflow-analyze.md`
-
-**SUBMIT** — 对可发布站点执行表单填写和提交
-→ 详见 `references/workflow-submit.md`
-
-每个阶段按需读取对应的参考文件，不需要提前全部加载。
+典型使用顺序为 IMPORT → ANALYZE → SUBMIT，但不必在同一会话中完成。每个操作按需读取对应的参考文件，不需要提前全部加载。
 
 ---
 
