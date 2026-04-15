@@ -66,6 +66,7 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 | 需要提取页面正文供分析 | **page-extractor.mjs** | 提取纯文本 + 评论信号 |
 | 需要兼容 React/Vue 填表 | **form-filler.js** | 原生 setter + _valueTracker + execCommand |
 | 需要辅助信息（产品页面、元数据） | **curl / Jina** | 快速获取，无需 CDP |
+| 需要从产品页面提取信息 | **product-generator.mjs** | 提取 meta、标题、正文，自动生成产品记录 |
 | 需要同步到 Google Sheets | **sheets-sync.mjs** | 上传/下载，自动备份回滚 |
 
 CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
@@ -88,7 +89,14 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 ---
 
-## 外链工作流概览
+## 操作概览
+
+### 独立操作
+
+**PRODUCT** — 添加产品。用户提供产品 URL，自动提取页面信息并写入 `products.json`。
+→ 详见 `references/workflow-product.md`
+
+### 外链工作流
 
 ```
 IMPORT ──→ ANALYZE ──→ SUBMIT ──→ SYNC
@@ -229,6 +237,7 @@ IMPORT ──→ ANALYZE ──→ SUBMIT ──→ SYNC
 | `references/cdp-proxy-api.md` | 需要 CDP API 详细参考时 |
 | `references/data-formats.md` | 操作数据文件前，了解字段格式 |
 | `references/publishability-rules.md` | 分析阶段，判断可发布性 |
+| `references/workflow-product.md` | 添加产品时 |
 | `references/workflow-import.md` | 进入导入阶段时 |
 | `references/workflow-analyze.md` | 进入分析阶段时 |
 | `references/workflow-submit.md` | 进入提交阶段时 |

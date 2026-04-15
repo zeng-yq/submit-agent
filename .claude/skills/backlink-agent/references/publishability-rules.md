@@ -1,6 +1,6 @@
 # 可发布性判定规则
 
-> 文件路径：`${CLAUDE_SKILL_DIR}/references/publishability-rules.md`
+> 文件路径：`${SKILL_DIR}/references/publishability-rules.md`
 
 ---
 

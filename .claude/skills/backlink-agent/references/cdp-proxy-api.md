@@ -1,6 +1,6 @@
 # CDP Proxy API 参考
 
-> 文件路径：`${CLAUDE_SKILL_DIR}/references/cdp-proxy-api.md`
+> 文件路径：`${SKILL_DIR}/references/cdp-proxy-api.md`
 
 CDP Proxy 运行在 `http://localhost:3457`，提供以下 HTTP 端点操控浏览器。
 所有需要操作浏览器的端点都会自动连接 Chrome 并管理 session。

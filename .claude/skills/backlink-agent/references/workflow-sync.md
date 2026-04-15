@@ -1,6 +1,6 @@
 # 同步流程参考
 
-> 文件路径：`${CLAUDE_SKILL_DIR}/references/workflow-sync.md`
+> 文件路径：`${SKILL_DIR}/references/workflow-sync.md`
 
 ---
 
@@ -16,9 +16,9 @@
 ### 上传（本地 → Sheet）
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/sheets-sync.mjs" upload \
-  --config "${CLAUDE_SKILL_DIR}/data/sync-config.json" \
-  --data "${CLAUDE_SKILL_DIR}/data"
+node "${SKILL_DIR}/scripts/sheets-sync.mjs" upload \
+  --config "${SKILL_DIR}/data/sync-config.json" \
+  --data "${SKILL_DIR}/data"
 ```
 
 上传前自动备份现有 Sheet 数据，失败时自动回滚。
@@ -26,9 +26,9 @@ node "${CLAUDE_SKILL_DIR}/scripts/sheets-sync.mjs" upload \
 ### 下载（Sheet → 本地）
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/sheets-sync.mjs" download \
-  --config "${CLAUDE_SKILL_DIR}/data/sync-config.json" \
-  --data "${CLAUDE_SKILL_DIR}/data"
+node "${SKILL_DIR}/scripts/sheets-sync.mjs" download \
+  --config "${SKILL_DIR}/data/sync-config.json" \
+  --data "${SKILL_DIR}/data"
 ```
 
 ### 同步的 4 个 Tab
@@ -39,4 +39,4 @@ products / submissions / sites / backlinks
 
 ## 2. 相关参考
 
-- 数据格式规范：`${CLAUDE_SKILL_DIR}/references/data-formats.md`
+- 数据格式规范：`${SKILL_DIR}/references/data-formats.md`

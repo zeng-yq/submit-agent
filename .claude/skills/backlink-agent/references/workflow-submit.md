@@ -1,6 +1,6 @@
 # 提交流程参考
 
-> 文件路径：`${CLAUDE_SKILL_DIR}/references/workflow-submit.md`
+> 文件路径：`${SKILL_DIR}/references/workflow-submit.md`
 
 ---
 
@@ -39,14 +39,14 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 # 步骤 2: 执行填写脚本
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/form-filler.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/form-filler.js")"
 ```
 
 ---
 
 ## 3. 站点经验查询与更新
 
-提交前读取 `${CLAUDE_SKILL_DIR}/data/site-experience.json`，查找目标域名。
+提交前读取 `${SKILL_DIR}/data/site-experience.json`，查找目标域名。
 
 ### 有经验
 
@@ -114,7 +114,7 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-comment-form.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/detect-comment-form.js")"
 ```
 
 ### detect-antispam.js
@@ -124,7 +124,7 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-antispam.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/detect-antispam.js")"
 ```
 
 ### form-analyzer.js
@@ -134,7 +134,7 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/form-analyzer.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/form-analyzer.js")"
 ```
 
 ### honeypot-detector.js
@@ -144,7 +144,7 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/honeypot-detector.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/honeypot-detector.js")"
 ```
 
 ### form-filler.js
@@ -161,7 +161,7 @@ CDP 页面上下文可直接访问 jQuery。
 
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/comment-expander.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/comment-expander.js")"
 ```
 
 ### page-extractor.mjs
@@ -170,12 +170,12 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 输出 JSON：title、textContent（截断 8000 字符）、commentSignals、url。
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
+node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
 ```
 
 ---
 
 ## 6. 相关参考
 
-- 数据格式规范：`${CLAUDE_SKILL_DIR}/references/data-formats.md`
-- CDP Proxy API：`${CLAUDE_SKILL_DIR}/references/cdp-proxy-api.md`
+- 数据格式规范：`${SKILL_DIR}/references/data-formats.md`
+- CDP Proxy API：`${SKILL_DIR}/references/cdp-proxy-api.md`

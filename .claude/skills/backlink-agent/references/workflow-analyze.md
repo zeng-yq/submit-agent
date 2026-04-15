@@ -1,6 +1,6 @@
 # 分析流程参考
 
-> 文件路径：`${CLAUDE_SKILL_DIR}/references/workflow-analyze.md`
+> 文件路径：`${SKILL_DIR}/references/workflow-analyze.md`
 
 ---
 
@@ -10,7 +10,7 @@
 
 ### 步骤 1：域名去重检查
 
-读取 `${CLAUDE_SKILL_DIR}/data/sites.json`，如果该记录的 `domain` 已存在于站点库中，直接将 status 更新为 `skipped`，跳过后续步骤。
+读取 `${SKILL_DIR}/data/sites.json`，如果该记录的 `domain` 已存在于站点库中，直接将 status 更新为 `skipped`，跳过后续步骤。
 
 ### 步骤 2：打开页面
 
@@ -35,11 +35,11 @@ curl -s "http://localhost:3457/info?target=<targetId>"
 ```bash
 # 评论表单检测
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-comment-form.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/detect-comment-form.js")"
 
 # 反垃圾系统检测
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-antispam.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/detect-antispam.js")"
 ```
 
 ### 步骤 5：快速判定
@@ -63,7 +63,7 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 1. 执行页面内容提取脚本：
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
+node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
 ```
 
 2. 将提取结果（title、textContent、commentSignals）与步骤 4 的检测结果一起交给 Claude 分析
@@ -154,5 +154,5 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 
 ## 4. 相关参考
 
-- 可发布性判定规则：`${CLAUDE_SKILL_DIR}/references/publishability-rules.md`
-- 数据格式规范：`${CLAUDE_SKILL_DIR}/references/data-formats.md`
+- 可发布性判定规则：`${SKILL_DIR}/references/publishability-rules.md`
+- 数据格式规范：`${SKILL_DIR}/references/data-formats.md`

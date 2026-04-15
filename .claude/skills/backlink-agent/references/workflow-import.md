@@ -1,6 +1,6 @@
 # 导入流程参考
 
-> 文件路径：`${CLAUDE_SKILL_DIR}/references/workflow-import.md`
+> 文件路径：`${SKILL_DIR}/references/workflow-import.md`
 
 ---
 
@@ -10,36 +10,11 @@
 
 ### 步骤 1：读取产品列表
 
-使用 Read 工具读取 `${CLAUDE_SKILL_DIR}/data/products.json`。
+使用 Read 工具读取 `${SKILL_DIR}/data/products.json`。
 
 ### 步骤 2：处理空列表
 
-如果文件为空数组 `[]`，提示用户创建产品：
-
-> 未找到产品资料。请提供以下信息来创建产品：
->
-> - **name** — 产品名称
-> - **url** — 产品官网
-> - **tagline** — 一句话简介
-> - **shortDesc** — 简短描述（100字以内）
-> - **longDesc** — 详细描述（300字以内）
-> - **categories** — 分类标签（如 SaaS、Productivity）
-> - **anchorTexts** — 外链锚文本列表（3-5个）
-> - **logoUrl** — Logo 图片地址
-> - **socialLinks** — 社交媒体链接
-> - **founderName** — 创始人姓名
-> - **founderEmail** — 创始人邮箱
-
-用户信息收集完毕后，生成产品记录并写入 `products.json`。
-
-也可以通过产品资料生成脚本自动提取：
-
-```bash
-node "${CLAUDE_SKILL_DIR}/scripts/product-generator.mjs" <product-url>
-```
-
-脚本输出 JSON 包含 title、metaDescription、ogTitle、ogDescription、headings、bodyText。
-Claude 基于提取结果生成产品记录（name、tagline、shortDesc、longDesc、categories、anchorTexts），写入 `products.json`。
+如果文件为空数组 `[]`，引导用户先添加产品（参见 `references/workflow-product.md`），添加完成后再继续导入流程。
 
 ### 步骤 3：多产品选择
 
@@ -64,12 +39,12 @@ Claude 基于提取结果生成产品记录（name、tagline、shortDesc、longD
 1. 运行 CSV 导入脚本：
 
 ```bash
-node "${CLAUDE_SKILL_DIR}/scripts/import-csv.mjs" <csv-file-path> "${CLAUDE_SKILL_DIR}/data/backlinks.json"
+node "${SKILL_DIR}/scripts/import-csv.mjs" <csv-file-path> "${SKILL_DIR}/data/backlinks.json"
 ```
 
 2. 脚本输出 JSON，包含 `imported`（新增数量）、`skipped`（重复跳过数量）、`records`（新记录数组）
 3. 读取脚本输出的 JSON
-4. 读取现有 `${CLAUDE_SKILL_DIR}/data/backlinks.json`
+4. 读取现有 `${SKILL_DIR}/data/backlinks.json`
 5. 将新记录合并到现有数组末尾
 6. 使用 Write 工具写回 `backlinks.json`
 
