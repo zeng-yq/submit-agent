@@ -136,7 +136,7 @@ export default defineContentScript({
 			async main() {
 				console.debug('[Submit Agent] Content script loaded on', window.location.href)
 				const enabled = await getFloatButtonEnabled()
-				initFloatButton(enabled)
+				await initFloatButton(enabled)
 
 				// Listen for form analysis and fill commands from sidepanel
 				chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

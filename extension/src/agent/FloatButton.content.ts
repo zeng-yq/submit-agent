@@ -1,3 +1,5 @@
+import { loadSites, matchCurrentPage } from '@/lib/sites'
+
 /**
  * FloatButton.content.ts
  * Floating button with three-state toggle for semi-auto form submission.
@@ -36,6 +38,7 @@ let mainBtn: HTMLButtonElement | null = null
 let currentState: ButtonState = 'idle'
 let currentSubmissionState: SubmissionState = 'not_started'
 let userEnabled = true
+let isKnownSite = false
 
 function setState(state: ButtonState) {
 	if (!mainBtn) return
@@ -69,6 +72,7 @@ function positionIndicator() {
 }
 
 function setSubmissionState(state: SubmissionState) {
+	if (!isKnownSite) return
 	currentSubmissionState = state
 
 	if (!shadow) return
@@ -277,28 +281,33 @@ function createButton() {
 	const container = document.createElement('div')
 	container.className = 'container'
 
-	// Status switch
-	const statusSwitch = document.createElement('div')
-	statusSwitch.className = 'status-switch'
+	// Status switch (only for known sites)
+	if (isKnownSite) {
+		const statusSwitch = document.createElement('div')
+		statusSwitch.className = 'status-switch'
 
-	// Sliding indicator (pill background)
-	const indicator = document.createElement('div')
-	indicator.id = 'status-indicator'
+		// Sliding indicator (pill background)
+		const indicator = document.createElement('div')
+		indicator.id = 'status-indicator'
 
-	for (const seg of STATUS_SEGMENTS) {
-		const segment = document.createElement('div')
-		segment.className = `status-segment${seg.state === currentSubmissionState ? ' active' : ''}`
-		segment.setAttribute('data-state', seg.state)
-		segment.style.setProperty('--active-color', seg.activeColor)
-		segment.textContent = seg.label
-		segment.addEventListener('click', () => setSubmissionState(seg.state))
-		statusSwitch.appendChild(segment)
+		for (const seg of STATUS_SEGMENTS) {
+			const segment = document.createElement('div')
+			segment.className = `status-segment${seg.state === currentSubmissionState ? ' active' : ''}`
+			segment.setAttribute('data-state', seg.state)
+			segment.style.setProperty('--active-color', seg.activeColor)
+			segment.textContent = seg.label
+			segment.addEventListener('click', () => setSubmissionState(seg.state))
+			statusSwitch.appendChild(segment)
+		}
+		statusSwitch.appendChild(indicator)
+
+		// Separator
+		const separator = document.createElement('div')
+		separator.className = 'separator'
+
+		container.appendChild(statusSwitch)
+		container.appendChild(separator)
 	}
-	statusSwitch.appendChild(indicator)
-
-	// Separator
-	const separator = document.createElement('div')
-	separator.className = 'separator'
 
 	// Action button
 	const btnWrap = document.createElement('div')
@@ -324,8 +333,6 @@ function createButton() {
 		chrome.runtime.sendMessage({ type: 'FLOAT_BUTTON_TOGGLE', enabled: false }).catch(() => {})
 	})
 
-	container.appendChild(statusSwitch)
-	container.appendChild(separator)
 	container.appendChild(mainBtn)
 	container.appendChild(closeBtn)
 
@@ -406,8 +413,16 @@ function checkAndToggleButton() {
 	}
 }
 
-export function initFloatButton(enabled: boolean) {
+export async function initFloatButton(enabled: boolean) {
 	userEnabled = enabled
+
+	// 判断当前页面是否在资源库中
+	try {
+		const sites = await loadSites()
+		isKnownSite = matchCurrentPage(sites, window.location.href) !== undefined
+	} catch {
+		isKnownSite = false
+	}
 
 	chrome.runtime.onMessage.addListener((message) => {
 		if (message.type === 'FLOAT_BUTTON_TOGGLE') {
