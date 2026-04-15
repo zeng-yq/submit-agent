@@ -82,10 +82,10 @@ async function main() {
   try {
     // 1. 创建新标签页
     const tabResult = await createTab(productUrl);
-    if (tabResult.error || !tabResult.id) {
+    if (tabResult.error || !tabResult.targetId) {
       throw new Error(tabResult.error || '创建标签页失败，未返回 target ID');
     }
-    target = tabResult.id;
+    target = tabResult.targetId;
 
     // 2. 等待页面加载完成
     await waitForPageLoad(target);

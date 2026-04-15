@@ -26,5 +26,19 @@
     "socialLinks": {},
     "founderName": "",
     "founderEmail": ""
+  },
+  {
+    "id": "prod-003",
+    "name": "BottleneckChecker",
+    "url": "https://bottleneck-checker.com/",
+    "tagline": "Analyze CPU, GPU, RAM, and storage bottlenecks in your PC build with a data-driven calculator — get actionable upgrade paths in seconds.",
+    "shortDesc": "Free online PC bottleneck calculator that analyzes CPU, GPU, RAM, storage, and cooling to identify performance bottlenecks. Uses real-world benchmarks from 10,000+ configurations. Supports gaming, video editing, streaming, and 3D rendering use cases at 1080p, 1440p, and 4K.",
+    "longDesc": "BottleneckChecker is a comprehensive PC bottleneck calculator that goes beyond simple CPU-GPU pairing. It analyzes the full system — including RAM capacity and speed, storage type, cooling adequacy, and monitor resolution — against a database of 10,000+ real-world benchmark results. The tool provides purpose-specific analysis for gaming, video editing, 3D rendering, and streaming, adjusting performance weighting based on your actual use case. Results include a bottleneck percentage, system health score, component utilization estimates, and specific upgrade recommendations with expected performance gains and cost-benefit analysis. Updated weekly with new hardware releases and benchmarks. Free, no signup required, fully responsive for mobile use.",
+    "categories": ["Hardware", "Online Tool", "PC Builder", "Gaming"],
+    "anchorTexts": ["BottleneckChecker", "BottleneckChecker tool", "PC bottleneck calculator", "bottleneck checker", "best bottleneck calculator", "CPU GPU bottleneck test"],
+    "logoUrl": "https://bottleneck-checker.com/favicon.svg",
+    "socialLinks": {},
+    "founderName": "",
+    "founderEmail": ""
   }
 ]
