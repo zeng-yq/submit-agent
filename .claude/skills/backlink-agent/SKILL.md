@@ -184,49 +184,80 @@ node "${SKILL_DIR}/scripts/import-csv.mjs" <csv-file-path> "${SKILL_DIR}/data/ba
 
 对每条待分析记录执行以下步骤：
 
-**步骤 1：打开页面**
+**步骤 1：域名去重检查**
+
+读取 `${SKILL_DIR}/data/sites.json`，如果该记录的 `domain` 已存在于站点库中，直接将 status 更新为 `skipped`，跳过后续步骤。
+
+**步骤 2：打开页面**
 
 ```bash
-# 创建新后台 tab 并加载页面
 curl -s "http://localhost:3457/new?url=<sourceUrl>"
 # 返回 {"targetId":"xxx"}，记录此 ID
 ```
 
-**步骤 2：确认页面加载**
+**步骤 3：确认页面加载**
 
 ```bash
-# 检查页面信息
 curl -s "http://localhost:3457/info?target=<targetId>"
-# 确认 readyState 为 "complete"
+# 确认 ready 为 "complete"
 ```
 
-如果 readyState 不是 `complete`，等待最多 30 秒。超时则标记该条为 `error` 并跳过。
+如果 ready 不是 `complete`，等待最多 30 秒。超时则标记该条为 `error` 并跳过。
 
-**步骤 3：执行评论表单检测**
+**步骤 4：结构化检测**
+
+分别执行评论表单检测和反垃圾系统检测：
 
 ```bash
-# 使用评论表单检测脚本
+# 评论表单检测
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
   -d "$(cat "${SKILL_DIR}/scripts/detect-comment-form.js")"
-```
 
-**步骤 4：执行反垃圾系统检测**
-
-```bash
-# 使用反垃圾系统检测脚本
+# 反垃圾系统检测
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
   -d "$(cat "${SKILL_DIR}/scripts/detect-antispam.js")"
 ```
 
-**步骤 5：综合判定**
+**步骤 5：快速判定**
 
-根据第 7 节的判定规则，结合评论表单检测结果和反垃圾系统检测结果，判定可发布性。
+基于步骤 4 的结构化检测结果，尝试快速判定：
 
-**步骤 6：写回数据**
+- **直接判定为 `not_publishable`**：
+  - 存在 `bypassable: false` 的反垃圾系统（CleanTalk、hCaptcha、Jetpack）
+  - 存在 `bypassable: 'depends_on_config'` 的反垃圾系统（保守策略）
+  - `commentSystem` 为 `none` 且 `hasTextarea` 为 `false` 且 `hasCommentForm` 为 `false`
 
-将分析结果写入该条记录的 `analysis` 字段，更新 `status`。使用 Write 工具写回 `backlinks.json`。
+- **直接判定为 `publishable`**：
+  - `commentSystem` 为 `native` 且 `hasTextarea` 为 `true` 且 `hasUnbypassable` 为 `false`
 
-**步骤 7：关闭 tab**
+如果快速判定结果明确，跳过步骤 6，直接进入步骤 7。
+
+**步骤 6：Claude 综合判定（仅对快速判定无法明确的情况）**
+
+当评论系统为 Disqus/Facebook/Commento 等第三方系统，或评论信号模糊时，需要 Claude 做语义分析：
+
+1. 执行页面内容提取脚本：
+
+```bash
+node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
+```
+
+2. 将提取结果（title、textContent、commentSignals）与步骤 4 的检测结果一起交给 Claude 分析
+3. Claude 根据 `publishability-rules.md` 中的规则，综合判断可发布性
+4. 输出判定结果：`{ status, category, reason }`
+
+**需要 Claude 判定的典型场景：**
+- 评论系统为 `disqus` / `facebook` / `commento`（第三方系统，需判断是否可操作）
+- 存在 `bypassable: 'depends_on_config'` 的反垃圾（需具体分析）
+- `commentSystem` 为 `none` 但 `hasTextarea` 为 `true`（textarea 用途不明确）
+
+**步骤 7：写回数据**
+
+将分析结果写入该条记录的 `analysis` 字段（格式见 `references/publishability-rules.md` 7.3 节），更新 `status`。使用 Write 工具写回 `backlinks.json`。
+
+如果判定为 `publishable`，同时创建站点记录写入 `sites.json`。
+
+**步骤 8：关闭 tab**
 
 ```bash
 curl -s "http://localhost:3457/close?target=<targetId>"
