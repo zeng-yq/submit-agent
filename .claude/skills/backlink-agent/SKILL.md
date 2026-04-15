@@ -44,274 +44,33 @@ node "${CLAUDE_SKILL_DIR}/scripts/check-deps.mjs"
 
 所有数据以 JSON 格式存储在 `${CLAUDE_SKILL_DIR}/data/` 目录下。
 
-### 2.1 文件清单
-
-| 文件 | 路径 | 用途 |
-|------|------|------|
-| 产品资料 | `${CLAUDE_SKILL_DIR}/data/products.json` | 存储要推广的产品信息（名称、描述、锚文本等） |
-| 外链候选 | `${CLAUDE_SKILL_DIR}/data/backlinks.json` | 外链候选站点列表，每条包含来源 URL、分析状态、检测结果 |
-| 站点库 | `${CLAUDE_SKILL_DIR}/data/sites.json` | 已确认可发布的站点，作为外链建设的最终目标库 |
-| 提交记录 | `${CLAUDE_SKILL_DIR}/data/submissions.json` | 提交历史记录（预留字段，暂未使用） |
-
-### 2.2 数据格式
-
-**products.json** — 产品资料列表：
-```json
-[
-  {
-    "id": "prod-001",
-    "name": "产品名称",
-    "url": "https://example.com",
-    "tagline": "一句话简介",
-    "shortDesc": "简短描述（100字以内）",
-    "longDesc": "详细描述（300字以内）",
-    "categories": ["SaaS", "Productivity"],
-    "anchorTexts": ["产品名", "产品名 review", "best 产品名 alternative"],
-    "logoUrl": "https://example.com/logo.png",
-    "socialLinks": { "twitter": "...", "linkedin": "..." },
-    "founderName": "创始人姓名",
-    "founderEmail": "founder@example.com"
-  }
-]
-```
-
-**backlinks.json** — 外链候选列表：
-```json
-[
-  {
-    "id": "bl-1714000000-abc123",
-    "sourceUrl": "https://example.com/page",
-    "sourceTitle": "页面标题",
-    "domain": "example.com",
-    "pageAscore": 45,
-    "status": "pending",
-    "analysis": null,
-    "addedAt": "2025-01-01T00:00:00Z"
-  }
-]
-```
-
-状态值：`pending`（待分析） | `publishable`（可发布） | `not_publishable`（不可发布） | `skipped`（已跳过） | `error`（分析出错）
-
-**sites.json** — 站点库：
-```json
-[
-  {
-    "id": "site-001",
-    "domain": "example.com",
-    "url": "https://example.com/guest-post",
-    "category": "blog_comment",
-    "commentSystem": "native",
-    "antispam": [],
-    "relAttribute": "dofollow",
-    "productId": "prod-001",
-    "addedAt": "2025-01-01T00:00:00Z"
-  }
-]
-```
-
-**submissions.json** — 提交记录（预留）：
-```json
-[]
-```
+操作数据前必须先读取格式规范了解各字段的含义和结构：
+`${CLAUDE_SKILL_DIR}/references/data-formats.md`
 
 ---
 
 ## 3. CDP Proxy API
 
-CDP Proxy 运行在 `http://localhost:3457`，提供以下 HTTP 端点操控浏览器。
-所有需要操作浏览器的端点都会自动连接 Chrome 并管理 session。
-
-### 3.1 健康检查
-
-**GET /health**
-
-检查 Proxy 是否就绪、是否已连接 Chrome。
-
-```bash
-curl -s http://localhost:3457/health
-# {"status":"ok","connected":true,"sessions":2,"chromePort":9222}
-```
-
-### 3.2 列出所有 Tab
-
-**GET /targets**
-
-列出 Chrome 中所有页面 tab。
-
-```bash
-curl -s http://localhost:3457/targets
-# [{"targetId":"ABC123","type":"page","title":"Google","url":"https://google.com"}]
-```
-
-### 3.3 创建新后台 Tab
-
-**GET /new?url=**
-
-创建新的后台 tab（不切换焦点），自动等待页面加载完成。
-
-```bash
-curl -s "http://localhost:3457/new?url=https://example.com"
-# {"targetId":"DEF456"}
-```
-
-- 参数 `url` 可选，默认 `about:blank`
-- 返回的 `targetId` 用于后续所有操作
-
-### 3.4 关闭 Tab
-
-**GET /close?target=**
-
-关闭指定 tab。
-
-```bash
-curl -s "http://localhost:3457/close?target=DEF456"
-# {"success":true}
-```
-
-### 3.5 导航
-
-**GET /navigate?target=&url=**
-
-在指定 tab 中导航到新 URL，自动等待页面加载完成。
-
-```bash
-curl -s "http://localhost:3457/navigate?target=DEF456&url=https://example.com/contact"
-# {"frameId":"...","loaderId":"..."}
-```
-
-### 3.6 后退
-
-**GET /back?target=**
-
-在指定 tab 中执行浏览器后退操作，自动等待加载。
-
-```bash
-curl -s "http://localhost:3457/back?target=DEF456"
-# {"ok":true}
-```
-
-### 3.7 获取页面信息
-
-**GET /info?target=**
-
-获取页面标题、URL 和加载状态。
-
-```bash
-curl -s "http://localhost:3457/info?target=DEF456"
-# {"title":"Example","url":"https://example.com","ready":"complete"}
-```
-
-### 3.8 执行 JavaScript
-
-**POST /eval?target=**
-
-在页面中执行 JavaScript 表达式，body 为要执行的代码。
-
-```bash
-curl -s -X POST "http://localhost:3457/eval?target=DEF456" -d 'document.querySelectorAll("a").length'
-# {"value":42}
-```
-
-- 支持 `awaitPromise: true`，可执行异步表达式
-- 返回 `{ value: ... }` 或 `{ error: "..." }`
-
-### 3.9 获取页面纯文本
-
-**GET /page-text?target=**
-
-提取页面 body 的纯文本内容。
-
-```bash
-curl -s "http://localhost:3457/page-text?target=DEF456"
-# {"text":"页面文本内容...","length":1234}
-```
-
-### 3.10 文件上传
-
-**POST /setFiles?target=**
-
-直接给 file input 设置本地文件路径，绕过文件对话框。body 为 JSON。
-
-```bash
-curl -s -X POST "http://localhost:3457/setFiles?target=DEF456" \
-  -d '{"selector":"input[type=file]","files":["/path/to/image.png"]}'
-# {"success":true,"files":1}
-```
-
-- 用于需要上传图片或附件的场景（如产品 Logo、截图）
-- 直接通过 CDP `DOM.setFileInputFiles` 设置文件，无需用户手动选择
-
-### 3.11 点击元素
-
-**POST /click?target=**
-
-通过 JS 点击页面元素，body 为 CSS 选择器。
-
-```bash
-curl -s -X POST "http://localhost:3457/click?target=DEF456" -d '#submit-button'
-# {"clicked":true,"tag":"BUTTON","text":"Submit"}
-```
-
-### 3.12 真实鼠标点击
-
-**POST /clickAt?target=**
-
-通过 CDP 模拟真实鼠标事件点击元素（可绕过反自动化检测），body 为 CSS 选择器。
-
-```bash
-curl -s -X POST "http://localhost:3457/clickAt?target=DEF456" -d 'button.cta'
-# {"clicked":true,"x":350,"y":280,"tag":"BUTTON","text":"Get Started"}
-```
-
-- 先通过 JS 定位元素坐标，再通过 CDP `Input.dispatchMouseEvent` 发送真实鼠标事件
-- 适用于需要用户手势才能触发的场景（如文件对话框）
-
-### 3.13 滚动页面
-
-**GET /scroll?target=&y=&direction=**
-
-滚动页面，支持方向控制。
-
-```bash
-# 向下滚动 3000px
-curl -s "http://localhost:3457/scroll?target=DEF456&y=3000&direction=down"
-# {"value":"scrolled down 3000px"}
-
-# 滚动到页面顶部
-curl -s "http://localhost:3457/scroll?target=DEF456&direction=top"
-# {"value":"scrolled to top"}
-
-# 滚动到页面底部
-curl -s "http://localhost:3457/scroll?target=DEF456&direction=bottom"
-# {"value":"scrolled to bottom"}
-
-# 向上滚动
-curl -s "http://localhost:3457/scroll?target=DEF456&y=1000&direction=up"
-# {"value":"scrolled up 1000px"}
-```
-
-- `y`：滚动像素数，默认 3000
-- `direction`：`down`（默认）| `up` | `top` | `bottom`
-- 滚动后自动等待 800ms（触发懒加载）
-
-### 3.14 截图
-
-**GET /screenshot?target=&file=&format=**
-
-截取页面截图。
-
-```bash
-# 保存到文件
-curl -s "http://localhost:3457/screenshot?target=DEF456&file=/tmp/screenshot.png"
-# {"saved":"/tmp/screenshot.png"}
-
-# 直接返回图片二进制
-curl -s -o screenshot.png "http://localhost:3457/screenshot?target=DEF456"
-```
-
-- `file`：保存路径，省略则直接返回图片数据
-- `format`：`png`（默认）| `jpeg`，jpeg 默认 quality 80
+CDP Proxy 运行在 `http://localhost:3457`，提供 HTTP 端点操控浏览器。
+完整 API 文档（15 个端点的 curl 示例和返回值说明）：
+`${CLAUDE_SKILL_DIR}/references/cdp-proxy-api.md`
+
+### 常用端点速查
+
+| 端点 | 用途 |
+|------|------|
+| GET /health | 健康检查 |
+| GET /targets | 列出所有 Tab |
+| GET /new?url= | 创建后台 Tab |
+| GET /close?target= | 关闭 Tab |
+| GET /navigate?target=&url= | 导航 |
+| POST /eval?target= | 执行 JS |
+| GET /page-text?target= | 获取页面文本 |
+| POST /setFiles?target= | 文件上传 |
+| POST /click?target= | 点击元素 |
+| POST /clickAt?target= | 真实鼠标点击 |
+| GET /scroll?target=&y=&direction= | 滚动页面 |
+| GET /screenshot?target=&file= | 截图 |
 
 ---
 
@@ -440,15 +199,17 @@ curl -s "http://localhost:3457/info?target=<targetId>"
 **步骤 3：执行评论表单检测**
 
 ```bash
-# 使用第 5 节的评论表单检测脚本
-curl -s -X POST "http://localhost:3457/eval?target=<targetId>" -d '<评论表单检测脚本>'
+# 使用评论表单检测脚本
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-comment-form.js")"
 ```
 
 **步骤 4：执行反垃圾系统检测**
 
 ```bash
-# 使用第 6 节的反垃圾系统检测脚本
-curl -s -X POST "http://localhost:3457/eval?target=<targetId>" -d '<反垃圾系统检测脚本>'
+# 使用反垃圾系统检测脚本
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-antispam.js")"
 ```
 
 **步骤 5：综合判定**
@@ -528,274 +289,40 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 
 ## 5. 评论表单检测脚本
 
-以下 JavaScript IIFE 通过 CDP Proxy 的 `/eval` 端点在目标页面执行，检测页面是否包含评论表单及相关信号。
+脚本路径：`${CLAUDE_SKILL_DIR}/scripts/detect-comment-form.js`
 
-```javascript
-(() => {
-  // --- 基础检测 ---
-  const textareas = document.querySelectorAll('textarea');
-  const hasTextarea = textareas.length > 0;
-  const textareaNames = Array.from(textareas).map(t => (t.name || t.id || t.placeholder || '').toLowerCase());
+通过 CDP Proxy 的 `/eval` 端点在目标页面执行，检测页面是否包含评论表单及相关信号。
+返回 JSON 格式的检测结果，包含 hasTextarea、hasUrlField、hasAuthorField、hasEmailField、hasCommentForm、isWordPress、commentSystem 等字段。
 
-  // URL 字段检测
-  const urlInputs = document.querySelectorAll('input[type="url"], input[name*="url" i], input[name*="website" i], input[name*="link" i]');
-  const hasUrlField = urlInputs.length > 0;
-
-  // 作者字段检测
-  const authorInputs = document.querySelectorAll('input[name*="author" i], input[name*="name" i], input[name*="user" i], input[name*="nick" i]');
-  const hasAuthorField = authorInputs.length > 0;
-
-  // 邮箱字段检测
-  const emailInputs = document.querySelectorAll('input[type="email"], input[name*="email" i], input[name*="mail" i]');
-  const hasEmailField = emailInputs.length > 0;
-
-  // --- 表单检测 ---
-  const forms = document.querySelectorAll('form');
-  const formActions = Array.from(forms).map(f => (f.action || f.id || '').toLowerCase());
-
-  // 查找包含 textarea 或 comment 相关的表单
-  const commentForms = Array.from(forms).filter(form => {
-    const html = form.innerHTML.toLowerCase();
-    return html.includes('comment') || form.querySelector('textarea') !== null;
-  });
-  const hasCommentForm = commentForms.length > 0;
-
-  // --- WordPress 检测 ---
-  const wpMeta = document.querySelector('meta[name="generator"][content*="WordPress"]');
-  const wpBody = document.body.className.includes('wordpress') || document.body.id === 'wordpress';
-  const wpContent = document.querySelector('.wp-comments') || document.querySelector('#comments') || document.querySelector('.comment-respond');
-  const isWordPress = !!(wpMeta || wpBody || wpContent);
-
-  // --- 评论系统检测 ---
-  let commentSystem = 'none';
-
-  // Disqus
-  if (document.querySelector('#disqus_thread') || document.querySelector('.disqus-thread') ||
-      document.querySelector('[data-disqus-identifier]') || document.querySelector('script[src*="disqus"]')) {
-    commentSystem = 'disqus';
-  }
-  // Facebook Comments
-  else if (document.querySelector('.fb-comments') || document.querySelector('[class*="fb-comments"]') ||
-           document.querySelector('script[src*="facebook"]')) {
-    commentSystem = 'facebook';
-  }
-  // Commento
-  else if (document.querySelector('#commento') || document.querySelector('.commento') ||
-           document.querySelector('script[src*="commento"]')) {
-    commentSystem = 'commento';
-  }
-  // 原生评论
-  else if (hasCommentForm || hasTextarea) {
-    commentSystem = 'native';
-  }
-
-  return {
-    hasTextarea,
-    textareaNames: textareaNames.slice(0, 10),
-    hasUrlField,
-    hasAuthorField,
-    hasEmailField,
-    hasCommentForm,
-    formActions: formActions.slice(0, 10),
-    isWordPress,
-    commentSystem
-  };
-})()
-```
-
-### 使用方式
-
+使用方式：
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d '(() => { ... })()' \
-  | jq .
+  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-comment-form.js")"
 ```
-
-将脚本内容作为 POST body 发送，返回 JSON 格式的检测结果。
 
 ---
 
 ## 6. 反垃圾系统检测脚本
 
-以下 JavaScript IIFE 检测页面使用的反垃圾（anti-spam）系统。
+脚本路径：`${CLAUDE_SKILL_DIR}/scripts/detect-antispam.js`
 
-```javascript
-(() => {
-  const detected = [];
+通过 CDP Proxy 的 `/eval` 端点在目标页面执行，检测页面使用的反垃圾（anti-spam）系统。
+返回 JSON 格式的检测结果，包含 detected 数组（每项有 name、bypassable、evidence）、hasBypassable、hasUnbypassable、count。
 
-  // --- Akismet ---
-  // WordPress 默认反垃圾，检查加载的脚本和隐藏字段
-  const akismetScript = document.querySelector('script[src*="akismet"]');
-  const akismetInput = document.querySelector('input[name*="akismet" i]');
-  const akismetComment = document.querySelector('#akismet_comment_nonce') ||
-                         document.querySelector('input[name="akismet_comment_nonce"]');
-  if (akismetScript || akismetInput || akismetComment) {
-    detected.push({
-      name: 'akismet',
-      bypassable: true,
-      evidence: akismetScript ? 'script' : (akismetInput ? 'input' : 'nonce_field')
-    });
-  }
-
-  // --- Anti-spam Bee ---
-  // WordPress 插件，生成隐藏的 honeypot 字段
-  const asbInput = document.querySelector('input[name*="antispam_bee" i]') ||
-                   document.querySelector('.antispam-group') ||
-                   document.querySelector('input[data-is-spam]');
-  const asbScript = document.querySelector('script[src*="antispam"]') &&
-                    !document.querySelector('script[src*="akismet"]');
-  if (asbInput || asbScript) {
-    detected.push({
-      name: 'antispam_bee',
-      bypassable: true,
-      evidence: asbInput ? 'honeypot_field' : 'script'
-    });
-  }
-
-  // --- WP Anti-Spam (原 Growmap Anti-Spambot) ---
-  // 在评论表单中添加必填的隐藏 checkbox
-  const wpasCheckbox = document.querySelector('input[name="mg-gasp-checkbox" i]') ||
-                       document.querySelector('input[id*="gasp" i]') ||
-                       document.querySelector('.gasp-checkbox');
-  const wpasScript = document.querySelector('script[src*="gasp"]') ||
-                     Array.from(document.querySelectorAll('script')).some(s => s.textContent.includes('gasp'));
-  if (wpasCheckbox) {
-    detected.push({
-      name: 'wpantispam',
-      bypassable: 'depends_on_config',
-      evidence: 'checkbox_field',
-      note: '需要确认该 checkbox 是否可被 JS 自动勾选'
-    });
-  }
-
-  // --- CleanTalk ---
-  // 云端反垃圾服务，使用 JS 指纹采集
-  const cleantalkScript = document.querySelector('script[src*="cleantalk"]') ||
-                          document.querySelector('script[src*="ct_bot_detector"]') ||
-                          document.querySelector('input[name*="ct_checkjs" i]');
-  const cleantalkHidden = document.querySelector('#cleantalk_hidden_field') ||
-                          document.querySelector('input[name="ct_checkjs"]');
-  if (cleantalkScript || cleantalkHidden) {
-    detected.push({
-      name: 'cleantalk',
-      bypassable: false,
-      evidence: cleantalkScript ? 'script' : 'hidden_field',
-      note: '依赖浏览器指纹，难以绕过'
-    });
-  }
-
-  // --- hCaptcha ---
-  // 验证码服务
-  const hcaptchaFrame = document.querySelector('iframe[src*="hcaptcha"]') ||
-                        document.querySelector('.h-captcha') ||
-                        document.querySelector('[data-hcaptcha-widget-id]');
-  const hcaptchaScript = document.querySelector('script[src*="hcaptcha"]');
-  if (hcaptchaFrame || hcaptchaScript) {
-    detected.push({
-      name: 'hcaptcha',
-      bypassable: false,
-      evidence: hcaptchaFrame ? 'iframe' : 'script',
-      note: '需要人工解决验证码或使用第三方服务'
-    });
-  }
-
-  // --- Jetpack Protect / Jetpack Comment Form ---
-  // Jetpack 的反垃圾模块
-  const jetpackComment = document.querySelector('.jetpack-comment-form') ||
-                         document.querySelector('input[name*="jetpack" i]') ||
-                         document.querySelector('script[src*="jetpack"]');
-  const jetpackProtect = document.querySelector('.jp-jetpack-contact-form') ||
-                         document.querySelector('[data-jetpack-protect]');
-  if (jetpackComment || jetpackProtect) {
-    detected.push({
-      name: 'jetpack',
-      bypassable: false,
-      evidence: jetpackComment ? 'comment_form' : 'protect',
-      note: 'Jetpack 反垃圾依赖后端 token，无法前端绕过'
-    });
-  }
-
-  return {
-    detected,
-    hasBypassable: detected.some(d => d.bypassable === true),
-    hasUnbypassable: detected.some(d => d.bypassable === false),
-    count: detected.length
-  };
-})()
-```
-
-### 使用方式
-
+使用方式：
 ```bash
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d '(() => { ... })()' \
-  | jq .
+  -d "$(cat "${CLAUDE_SKILL_DIR}/scripts/detect-antispam.js")"
 ```
 
 ---
 
 ## 7. 可发布性判定规则
 
-### 7.1 判定优先级
+完整的判定优先级表、站点分类规则和 analysis 字段格式：
+`${CLAUDE_SKILL_DIR}/references/publishability-rules.md`
 
-按以下优先级依次判断，命中即停止：
-
-| 优先级 | 条件 | 判定结果 | 说明 |
-|--------|------|---------|------|
-| 1 | 存在不可绕过的反垃圾系统（bypassable: false） | `not_publishable` | CleanTalk、hCaptcha、Jetpack 等 |
-| 2 | 存在 `bypassable: 'depends_on_config'` 且无法确认可绕过 | `not_publishable` | 保守策略 |
-| 3 | 评论系统为 `none` 且无任何评论表单信号 | `not_publishable` | 页面不支持评论 |
-| 4 | 存在评论表单信号（textarea / commentForm / commentSystem != 'none'） | `publishable` | 可尝试发布评论 |
-| 5 | 域名已在 `sites.json` 中存在 | `skipped` | 已入库，无需重复 |
-| 6 | 页面无法访问（超时 / 404 / 500） | `error` | 网络或服务器问题 |
-
-### 7.2 站点分类规则
-
-对判定为 `publishable` 的站点进行分类：
-
-| 优先级 | 特征 | 分类 | 说明 |
-|--------|------|------|------|
-| 1 | WordPress + 有评论表单 | `blog_comment` | 最常见的博客评论场景 |
-| 2 | 有评论表单 + 非论坛 | `blog_comment` | 通用博客评论 |
-| 3 | 有 profile/homepage 字段 + 有注册入口 | `profile` | 个人资料外链 |
-| 4 | 有 submit/product/tool 入口 | `directory` | 目录提交类 |
-| 5 | 检测到 phpBB / Discuz / XenForo | `forum` | 论坛签名/帖子外链 |
-| 6 | 有 "write for us" / "contributor" / "guest post" 入口 | `guest_post` | 客座文章投稿 |
-| 7 | 有 bio/about/link-in-bio 字段（如 linktree、about.me 类） | `short_link` | 个人简介/短链外链 |
-| 8 | 无法确定 | `blog_comment` | 默认分类 |
-
-### 7.3 analysis 字段格式
-
-分析结果写入 `analysis` 字段，格式如下：
-
-```json
-{
-  "commentForm": {
-    "hasTextarea": true,
-    "textareaNames": ["comment"],
-    "hasUrlField": true,
-    "hasAuthorField": true,
-    "hasEmailField": true,
-    "hasCommentForm": true,
-    "isWordPress": true,
-    "commentSystem": "native"
-  },
-  "antispam": {
-    "detected": [
-      { "name": "akismet", "bypassable": true, "evidence": "script" }
-    ],
-    "hasBypassable": true,
-    "hasUnbypassable": false,
-    "count": 1
-  },
-  "judgment": {
-    "status": "publishable",
-    "category": "blog_comment",
-    "reason": "WordPress 站点，原生评论表单，Akismet 可绕过"
-  },
-  "analyzedAt": "2025-01-01T00:00:00Z"
-}
-```
+判定前必须先读取上述文件了解规则细节。
 
 ---
 
