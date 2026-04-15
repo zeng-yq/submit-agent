@@ -117,17 +117,32 @@ export default function App() {
 		})
 	}, [activeProduct, sites.length, runFloatFill])
 
-	// Listen for float-fill trigger from content script via background
+	// Listen for float-fill trigger and status updates from content script via background
 	useEffect(() => {
 		const handler = (message: any) => {
-			if (message.type !== 'FLOAT_FILL') return
-			if (message.action === 'start') {
+			if (message.type === 'FLOAT_FILL' && message.action === 'start') {
 				runFloatFill()
+				return
+			}
+			if (message.type === 'STATUS_UPDATE') {
+				if (!activeProduct) return
+				const { status, tabUrl } = message.payload ?? {}
+				if (!status || !tabUrl) return
+				const submittable = filterSubmittable(sites)
+				const matched = matchCurrentPage(submittable, tabUrl)
+				if (!matched) return
+				if (status === 'not_started') {
+					resetSubmission(matched.name)
+				} else if (status === 'submitted') {
+					markSubmitted(matched.name, activeProduct.id)
+				} else if (status === 'failed') {
+					markFailed(matched.name, activeProduct.id)
+				}
 			}
 		}
 		chrome.runtime.onMessage.addListener(handler)
 		return () => chrome.runtime.onMessage.removeListener(handler)
-	}, [runFloatFill])
+	}, [runFloatFill, activeProduct, sites, markSubmitted, markFailed, resetSubmission])
 
 	useEffect(() => {
 		if (!dropdownOpen) return

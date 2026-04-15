@@ -164,10 +164,13 @@ function handleFloatFill(
 
 function handleStatusUpdate(
 	message: { type: string; payload: unknown },
-	_sender: chrome.runtime.MessageSender
+	sender: chrome.runtime.MessageSender
 ): undefined {
-	// Broadcast status updates from content script to sidepanel
-	chrome.runtime.sendMessage(message).catch(() => {})
+	// Broadcast status updates from content script to sidepanel, with tab URL for site matching
+	chrome.runtime.sendMessage({
+		...message,
+		payload: { ...(message.payload as object), tabUrl: sender.tab?.url },
+	}).catch(() => {})
 	return
 }
 
