@@ -132,6 +132,40 @@ function isCaptchaElement(el: Element): boolean {
   return false;
 }
 
+/** Honeypot-related substrings to check in name/id/class attributes. */
+const HONEYPOT_NAME_SIGNALS = ['honeypot', 'hp_', 'ak_hp', 'trap', 'cloaked'];
+
+/** Check if an element is a honeypot (anti-spam trap) field. */
+export function isHoneypotField(el: Element): boolean {
+  const htmlEl = el as HTMLElement;
+
+  // Rule 1: aria-hidden="true"
+  if (htmlEl.getAttribute('aria-hidden') === 'true') return true;
+
+  // Rule 2: name/id/class contains honeypot-related keywords
+  const name = (htmlEl.getAttribute('name') || '').toLowerCase();
+  const id = (htmlEl.getAttribute('id') || '').toLowerCase();
+  const cls = (htmlEl.getAttribute('class') || '').toLowerCase();
+  const combined = `${name} ${id} ${cls}`;
+  if (HONEYPOT_NAME_SIGNALS.some(s => combined.includes(s))) return true;
+
+  // Rule 3: Label contains only non-alphanumeric characters (e.g. Delta)
+  // We check aria-label and title as cheap label proxies since findLabel requires doc context
+  const ariaLabel = htmlEl.getAttribute('aria-label') || '';
+  const title = htmlEl.getAttribute('title') || '';
+  const cheapLabel = ariaLabel || title;
+  if (cheapLabel && !/[a-zA-Z0-9]/.test(cheapLabel)) return true;
+
+  // Rule 4: tabindex < 0 and no label signals
+  const tabindex = htmlEl.getAttribute('tabindex');
+  if (tabindex !== null && parseInt(tabindex, 10) < 0 && !ariaLabel && !title && !htmlEl.id) return true;
+
+  // Rule 5: autocomplete="off" and no label and non-standard name
+  if (htmlEl.getAttribute('autocomplete') === 'off' && !ariaLabel && !title && !htmlEl.id) return true;
+
+  return false;
+}
+
 /** Types of input elements to skip. */
 const SKIP_INPUT_TYPES = new Set([
   'hidden',
@@ -164,6 +198,9 @@ export function isFormField(el: Element): boolean {
 
   // Check for CAPTCHA first
   if (isCaptchaElement(el)) return false;
+
+  // Check for honeypot (anti-spam trap) fields
+  if (isHoneypotField(el)) return false;
 
   // Skip elements that are visually hidden via CSS
   if (!isVisible(el)) return false;
