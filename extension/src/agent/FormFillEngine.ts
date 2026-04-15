@@ -201,6 +201,13 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		}
 		await sendToTab(tabId, annotateMsg, 5000).catch(() => {})
 
+		// Scroll to the first annotated field so the user can see the form
+		await sendToTab(tabId, {
+			type: 'FLOAT_FILL',
+			action: 'scroll-to-first',
+			payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
+		}, 5000).catch(() => {})
+
 		// Step 2: Build prompt and call LLM
 		const productContext = buildProductContext(product)
 		let systemPrompt: string

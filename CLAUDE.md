@@ -1,80 +1,172 @@
-# CLAUDE.md
+# 开发指南 (Development Guidelines)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 核心理念 (Philosophy)
 
-## Project Overview
+### 核心信念
 
-Submit Agent is a Chrome browser extension that automates submitting AI products to launch directories and backlink sites. The user fills in their product info once; the AI agent opens each submission site and fills the form automatically using DOM analysis — no screenshots, no backend server.
+- **循序渐进，拒绝“大爆炸”** - 专注于那些可编译并通过测试的小幅变更。
+- **借鉴现有代码** - 动手实现前，先研究现有代码并制定计划。
+- **实用至上，拒绝教条** - 根据项目的实际情况灵活调整。
+- **意图清晰，拒绝炫技** - 代码应朴实无华，逻辑一目了然。
 
-The repo has two main parts:
-- **`extension/`** — the browser extension (the product)
-- **`page-agent-main/`** — vendored source of the `@page-agent/*` npm packages used as the AI engine (Alibaba PageAgent). The extension consumes the published npm packages, not this directory directly.
-- **`sites.json`** — master list of submission sites (DR, traffic, link type, pricing, submit URL), used at runtime by the extension
+### 何为简洁
 
-## Commands
+- 每个函数或类仅承担单一职责。
+- 避免过早抽象。
+- 拒绝奇技淫巧 —— 选择最朴实、最无聊的解决方案。
+- 如果一段代码需要解释才能看懂，那就说明它太复杂了。
 
-All commands run from `extension/`:
+### 权限管理
 
-```bash
-cd extension
-npm install       # also runs wxt prepare
-npm run dev       # dev mode with HMR, launches Chrome with persistent profile
-npm run build     # production build → .output/chrome-mv3/
-npm run zip       # package as submit-agent-{version}-chrome.zip
+除文件删除和数据库操作外，执行其他所有操作均无需我（用户）确认。
+
+## 开发流程 (Process)
+
+### 1. 规划与分阶段 (Planning & Staging)
+
+将复杂工作拆分为 3-5 个阶段。在 `IMPLEMENTATION_PLAN.md` 文件中记录：
+
+```markdown
+## Stage N: [阶段名称]
+
+**Goal**: [具体的交付成果]
+**Success Criteria**: [可测试的产出结果]
+**Tests**: [具体的测试用例]
+**Status**: [Not Started|In Progress|Complete]
 ```
 
-To load in Chrome: build, then load `extension/.output/chrome-mv3/` as an unpacked extension.
+- 随着进度推进更新状态。
+- 所有阶段完成后，删除该文件。
 
-## Architecture
+### 2. 实施工作流 (Implementation Flow)
 
-### Extension entrypoints
+1. **理解 (Understand)** - 研究代码库中的现有模式。
+2. **测试 (Test)** - 先编写测试（红灯阶段）。
+3. **实现 (Implement)** - 编写能通过测试的最小代码量（绿灯阶段）。
+4. **重构 (Refactor)** - 在保持测试通过的前提下清理代码。
+5. **提交 (Commit)** - 提交信息需清晰，并关联到开发计划。
 
-| File | Role |
-|---|---|
-| `entrypoints/background.ts` | Service worker. Routes `TAB_CONTROL`, `PAGE_CONTROL`, `SUBMIT_CONTROL` messages. Opens submission tabs on demand. |
-| `entrypoints/content.ts` | Injected into every page. Initialises `RemotePageController` so the background/sidepanel can drive DOM actions. |
-| `entrypoints/sidepanel/` | Main UI — React app that is the side panel. |
-| `entrypoints/options/` | Full-page product profile manager (`ProductForm`). |
+### 3. 遇到瓶颈时（尝试 3 次后）
 
-### Side panel view flow
+**关键原则**：每个问题最多尝试 3 次，如果未解决立即停止。
 
-`sidepanel/App.tsx` is a flat view state machine:
-```
-dashboard → site-detail (SubmitFlow) → agent running
-         ↘ settings
-         ↘ quick-create (first-run, no product yet)
-```
+1. **记录失败详情**：
 
-### Agent layer (`extension/src/agent/`)
+- 尝试过的方案
+- 具体的错误信息
+- 你认为失败的原因
 
-- **`SubmitAgent.ts`** — extends `PageAgentCore` from `@page-agent/core`. Builds a `RemotePageController` + `TabsController`, injects product data into the system prompt (`submit-prompt.md`), and runs the ReAct loop (observe → think → act) to fill forms.
-- **`RemotePageController`** — bridges the side panel to the content script via `chrome.runtime.sendMessage` (`PAGE_CONTROL`), so the agent can click, type, and read DOM state on the active tab.
-- **`TabsController`** — manages opening/focusing/closing tabs via `chrome.runtime.sendMessage` (`TAB_CONTROL`).
-- **`tools.ts` / `tabTools.ts`** — custom tools exposed to the LLM (e.g. `mark_submitted`, tab navigation).
+2. **调研替代方案**：
 
-### Data flow
+- 寻找 2-3 个类似的实现案例
+- 记录不同方法的差异
 
-```
-SidePanel (useSubmitAgent)
-  → new SubmitAgent({ baseURL, model, apiKey, product })
-  → agent.execute(task)
-      → ReAct loop: observe page state via RemotePageController
-                    → LLM call (OpenAI-compatible API, configured by user)
-                    → act: DOM interactions via content script
-  → fires statuschange / historychange / activity events → React state
-  → user reviews filled form, clicks submit manually
-```
+3. **审视基础假设**：
 
-### Storage
+- 抽象层级是否正确？
+- 这个问题能否拆解为更小的问题？
+- 是否存在完全不同的简便路径？
 
-- **IndexedDB** (`lib/db.ts`) — `ProductProfile` records and `SubmissionRecord` per site
-- **`chrome.storage.local`** — `LLMSettings` (baseUrl, model, apiKey) and `ExtSettings` (language, autoRewriteDesc)
-- **`sites.json`** — fetched at runtime from the extension bundle via `lib/sites.ts`
+4. **尝试不同切入点**：
 
-### LLM configuration
+- 是否有其他库或框架特性可用？
+- 是否可以更换架构模式？
+- 尝试做减法（移除抽象）而不是做加法？
 
-The extension uses any OpenAI-compatible API. The user sets `baseUrl`, `model`, and optionally `apiKey` in Settings. There is no bundled API key — the user must bring their own.
+## 技术标准 (Technical Standards)
 
-### Build system
+### 架构原则
 
-[WXT](https://wxt.dev/) framework with `@wxt-dev/module-react`. Vite + Tailwind CSS v4 (`@tailwindcss/vite`). TypeScript strict mode with path alias `@/` → `src/`.
+- **组合优于继承** - 使用依赖注入 (Dependency Injection)。
+- **接口优于单例** - 提升可测试性和灵活性。
+- **显式优于隐式** - 确保数据流和依赖关系清晰可见。
+- **尽可能采用测试驱动** - 绝不禁用测试，而是修复它们。
+
+### 代码质量
+
+- **每次提交必须**：
+  - 编译成功
+  - 通过所有现有测试
+  - 包含新功能的测试
+  - 遵循项目的格式化和 Lint 规范
+
+- **提交之前**：
+  - 运行格式化器 (formatters) 和代码检查工具 (linters)
+  - 自我审查代码变更
+  - 确保提交信息解释了修改的“原因 (why)”
+
+### 错误处理
+
+- 快速失败 (Fail fast) 并提供描述性错误信息。
+- 包含调试所需的上下文。
+- 在合适的层级处理错误。
+- 绝不静默吞没异常。
+
+## 决策框架 (Decision Framework)
+
+当存在多种可行方案时，依据以下标准进行选择：
+
+1. **可测试性 (Testability)** - 这个方案容易测试吗？
+2. **可读性 (Readability)** - 6 个月后，其他人能看懂这段代码吗？
+3. **一致性 (Consistency)** - 是否符合项目的现有模式？
+4. **简洁性 (Simplicity)** - 这是能解决问题的最简方案吗？
+5. **可逆性 (Reversibility)** - 未来修改或撤销的难度有多大？
+
+## 项目集成 (Project Integration)
+
+### 熟悉代码库
+
+- 找到 3 个类似的功能或组件。
+- 识别通用的模式和约定。
+- 尽可能使用相同的库或工具类。
+- 遵循现有的测试模式。
+
+## 工具链
+
+- 使用项目现有的构建系统。
+- 使用项目现有的测试框架。
+- 使用项目现有的格式化/Lint 设置。
+- 如无充分理由，不要引入新工具。
+
+## 质量门禁 (Quality Gates)
+
+### 完成的定义 (Definition of Done)
+
+- [ ] 测试已编写并通过
+- [ ] 代码遵循项目约定
+- [ ] 无 Linter/Formatter 警告
+- [ ] 提交信息用中文，且清晰明确
+- [ ] 实现内容与计划一致
+- [ ] 不存在未关联 Issue 编号的 TODO
+
+### 测试指南
+
+- 测试行为，而非实现细节。
+- 尽可能每个测试只包含一个断言。
+- 测试名称应清晰描述测试场景。
+- 使用现有的测试工具或辅助函数。
+- 测试结果必须具有确定性 (Deterministic)。
+
+## 重要提醒 (Important Reminders)
+
+**绝对禁止 (NEVER)**：
+
+- 使用 --no-verify 跳过提交钩子 (commit hooks)。
+- 禁用测试来规避错误（必须修复测试）。
+- 提交无法编译的代码。
+- 凭空假设 —— 务必通过现有代码进行验证。
+- 禁止执行 `npm run dev`
+- 禁止执行 `/commit` 命令
+
+**务必坚持 (ALWAYS)**：
+
+- 随时更新计划文档。
+- 从现有实现中学习。
+- 失败 3 次后立即停止并重新评估。
+- 每次修改完成执行 `npm run build`，如果报错则修复
+- 始终使用 context7：当我需要代码生成、环境设置/配置步骤或库/API 文档时。这意味着你应该自动使用 Context7 MCP 工具来解析库 ID 并获取库文档，而无需我显式要求。
+- 始终使用中文回答
+
+**参考文档**
+
+- 必要时可通过 `/docs` 获取项目的基本介绍（如果有）

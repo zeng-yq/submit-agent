@@ -130,106 +130,117 @@ async function expandLazyCommentForms(doc: Document): Promise<void> {
 }
 
 export default defineContentScript({
-		matches: ['<all_urls>'],
-		runAt: 'document_end',
+			matches: ['<all_urls>'],
+			runAt: 'document_end',
 
-		async main() {
-			console.debug('[Submit Agent] Content script loaded on', window.location.href)
-			const enabled = await getFloatButtonEnabled()
-			initFloatButton(enabled)
+			async main() {
+				console.debug('[Submit Agent] Content script loaded on', window.location.href)
+				const enabled = await getFloatButtonEnabled()
+				initFloatButton(enabled)
 
-			// Listen for form analysis and fill commands from sidepanel
-			chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-				if (message.type !== 'FLOAT_FILL') return
+				// Listen for form analysis and fill commands from sidepanel
+				chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+					if (message.type !== 'FLOAT_FILL') return
 
-				switch (message.action) {
-					case 'analyze': {
-						const siteType = message.payload?.siteType as string | undefined
+					switch (message.action) {
+						case 'analyze': {
+							const siteType = message.payload?.siteType as string | undefined
 
-						;(async () => {
-							try {
-								// Wait for dynamic form fields to appear (SPA support)
-								await waitForFormFields()
-
-								// Expand lazy-loaded comment forms (wpDiscuz etc.)
-								// before scanning so hidden fields become visible
-								await expandLazyCommentForms(document)
-
-								const analysis = analyzeForms(document)
-
-								if (siteType === 'blog_comment') {
-									const pageContent = extractPageContent(document)
-									sendResponse({ ok: true, analysis, pageContent })
-								} else {
-									sendResponse({ ok: true, analysis })
-								}
-							} catch (err) {
-								sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
-							}
-						})()
-
-						return true // keep message channel open for async response
-					}
-					case 'fill': {
-						const fields = message.payload?.fields as Array<{
-							canonical_id: string
-							value: string
-							selector: string
-						}>
-						if (!fields) {
-							sendResponse({ ok: false, error: 'No fields provided' })
-							return
-						}
-
-						;(async () => {
-							let filled = 0
-							let failed = 0
-
-							for (const field of fields) {
+							;(async () => {
 								try {
-									const el = document.querySelector(field.selector)
-									if (el) {
-										const ok = await fillAndVerify(el as HTMLElement, field.value)
-										if (ok) {
-											filled++
+									// Wait for dynamic form fields to appear (SPA support)
+									await waitForFormFields()
+
+									// Expand lazy-loaded comment forms (wpDiscuz etc.)
+									// before scanning so hidden fields become visible
+									await expandLazyCommentForms(document)
+
+									const analysis = analyzeForms(document)
+
+									if (siteType === 'blog_comment') {
+										const pageContent = extractPageContent(document)
+										sendResponse({ ok: true, analysis, pageContent })
+									} else {
+										sendResponse({ ok: true, analysis })
+									}
+								} catch (err) {
+									sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
+								}
+							})()
+
+							return true // keep message channel open for async response
+						}
+						case 'fill': {
+							const fields = message.payload?.fields as Array<{
+								canonical_id: string
+								value: string
+								selector: string
+							}>
+							if (!fields) {
+								sendResponse({ ok: false, error: 'No fields provided' })
+								return
+							}
+
+							;(async () => {
+								let filled = 0
+								let failed = 0
+
+								for (const field of fields) {
+									try {
+										const el = document.querySelector(field.selector)
+										if (el) {
+											const ok = await fillAndVerify(el as HTMLElement, field.value)
+											if (ok) {
+												filled++
+											} else {
+												failed++
+											}
 										} else {
 											failed++
 										}
-									} else {
+									} catch {
 										failed++
 									}
-								} catch {
-									failed++
+								}
+
+								sendResponse({ ok: true, filled, failed })
+							})()
+
+							return true // keep message channel open for async response
+						}
+						case 'annotate': {
+							const fields = message.payload?.fields as Array<{ selector: string }> | undefined
+							if (fields) {
+								annotateFields(fields)
+							}
+							sendResponse({ ok: true })
+							return
+						}
+						case 'scroll-to-first': {
+							const fields = message.payload?.fields as Array<{ selector: string }> | undefined
+							if (fields && fields.length > 0) {
+								const firstEl = document.querySelector(fields[0].selector)
+								if (firstEl) {
+									;(firstEl as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
 								}
 							}
-
-							sendResponse({ ok: true, filled, failed })
-						})()
-
-						return true // keep message channel open for async response
-					}
-					case 'annotate': {
-						const fields = message.payload?.fields as Array<{ selector: string }> | undefined
-						if (fields) {
-							annotateFields(fields)
+							sendResponse({ ok: true })
+							return
 						}
-						sendResponse({ ok: true })
-						return
-					}
-					case 'annotate-active': {
-						const index = message.payload?.index as number | undefined
-						if (typeof index === 'number') {
-							annotateActive(index)
+						case 'annotate-active': {
+							const index = message.payload?.index as number | undefined
+							if (typeof index === 'number') {
+								annotateActive(index)
+							}
+							sendResponse({ ok: true })
+							return
 						}
-						sendResponse({ ok: true })
-						return
+						case 'annotate-clear': {
+							clearAnnotations()
+							sendResponse({ ok: true })
+							return
+						}
 					}
-					case 'annotate-clear': {
-						clearAnnotations()
-						sendResponse({ ok: true })
-						return
-					}
-				}
-			})
-		},
-	})
+				})
+			},
+		})
