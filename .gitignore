@@ -4,6 +4,5 @@
 extension/.env
 extension/dist
 .cursor
-.claude
 .superpowers
 .playwright-mcp
