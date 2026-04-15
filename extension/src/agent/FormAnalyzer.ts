@@ -144,8 +144,12 @@ function findLabel(doc: Document, el: HTMLElement): string {
   let prev = el.previousElementSibling;
   while (prev) {
     if (prev.tagName === 'LABEL') {
-      const text = prev.textContent?.trim();
-      if (text) return text;
+      // Skip labels that have a for attribute pointing to a different element
+      const labelFor = prev.getAttribute('for');
+      if (!labelFor || labelFor === el.id) {
+        const text = prev.textContent?.trim();
+        if (text) return text;
+      }
     }
     prev = prev.previousElementSibling;
   }
@@ -160,6 +164,11 @@ function findLabel(doc: Document, el: HTMLElement): string {
     for (let i = elIndex - 1; i >= 0; i--) {
       const sibling = children[i];
       if (labelTags.has(sibling.tagName)) {
+        // Skip <label> elements that have a for attribute pointing to a different element
+        if (sibling.tagName === 'LABEL') {
+          const labelFor = sibling.getAttribute('for');
+          if (labelFor && labelFor !== el.id) continue;
+        }
         const text = sibling.textContent?.trim();
         if (text) return text;
       }
@@ -387,6 +396,72 @@ function formatFieldLine(f: FormField): string {
 }
 
 /**
+ * Remove honeypot-suspect duplicate fields: same label but different type.
+ * Within each form group, keeps the more "standard" field and removes the other.
+ */
+function deduplicateFields(fields: FormField[]): FormField[] {
+  const labelKey = (f: FormField) => (f.label || f.inferred_purpose || '').toLowerCase().trim();
+
+  // Group by form_index (undefined fields share one group)
+  const groups = new Map<number | undefined, FormField[]>();
+  for (const f of fields) {
+    const key = f.form_index;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(f);
+  }
+
+  const kept: FormField[] = [];
+
+  for (const [, groupFields] of groups) {
+    // Track which fields to remove
+    const removeSet = new Set<string>();
+
+    // Build label → fields map
+    const byLabel = new Map<string, FormField[]>();
+    for (const f of groupFields) {
+      const key = labelKey(f);
+      if (!key) continue;
+      if (!byLabel.has(key)) byLabel.set(key, []);
+      byLabel.get(key)!.push(f);
+    }
+
+    for (const [, sameLabelFields] of byLabel) {
+      if (sameLabelFields.length < 2) continue;
+
+      // Sort: prefer input over textarea, specific type over text, has-label over no-label
+      // Higher score = more likely to be the real field
+      const score = (f: FormField): number => {
+        let s = 0;
+        if (f.tagName === 'input') s += 10;
+        if (f.type === 'textarea') s += 5;
+        // Prefer specific types (url, email, tel) over generic text
+        if (['url', 'email', 'tel'].includes(f.type)) s += 8;
+        // Prefer fields that have a real label
+        if (f.label) s += 3;
+        return s;
+      };
+
+      sameLabelFields.sort((a, b) => score(b) - score(a));
+      // Keep the highest-scored, remove the rest
+      for (let i = 1; i < sameLabelFields.length; i++) {
+        removeSet.add(sameLabelFields[i].canonical_id);
+        console.debug(
+          `[SubmitAgent] Honeypot suspect removed: ${sameLabelFields[i].canonical_id}` +
+          ` (type=${sameLabelFields[i].type}, label="${sameLabelFields[i].label}")` +
+          ` — duplicate of ${sameLabelFields[0].canonical_id} (type=${sameLabelFields[0].type})`
+        );
+      }
+    }
+
+    for (const f of groupFields) {
+      if (!removeSet.has(f.canonical_id)) kept.push(f);
+    }
+  }
+
+  return kept;
+}
+
+/**
  * Analyze all forms on the page and extract structured field metadata.
  */
 export function analyzeForms(doc: Document): FormAnalysisResult {
@@ -515,7 +590,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
   }
 
   return {
-    fields,
+    fields: deduplicateFields(fields),
     forms: formGroups,
     page_info: extractPageInfo(doc),
   };

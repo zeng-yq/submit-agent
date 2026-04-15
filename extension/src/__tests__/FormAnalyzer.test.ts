@@ -532,6 +532,59 @@ describe('FormAnalyzer', () => {
     const result = analyzeForms(doc);
     expect(result.fields[0].form_index).toBeUndefined();
   });
+
+  it('removes duplicate textarea when same label as input (honeypot pattern)', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <label for="comment">Comment</label>
+        <textarea id="comment" name="comment"></textarea>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="author">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email">
+        <label for="url">Website</label>
+        <input type="url" id="url" name="url">
+        <textarea name="url" aria-label="Website"></textarea>
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    // Should have 4 fields: comment, name, email, url (the duplicate textarea "Website" removed)
+    expect(result.fields).toHaveLength(4);
+    expect(result.fields.some(f => f.type === 'textarea' && f.label === 'Website')).toBe(false);
+    expect(result.fields.some(f => f.type === 'url' && f.label === 'Website')).toBe(true);
+  });
+
+  it('preserves all fields when no duplicates exist', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email">
+        <label for="msg">Message</label>
+        <textarea id="msg" name="message"></textarea>
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(3);
+  });
+
+  it('removes second field when both have same type and same label', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <form>
+        <label for="name1">Name</label>
+        <input type="text" id="name1" name="name">
+        <label for="name2">Name</label>
+        <input type="text" id="name2" name="name_copy">
+      </form>
+    `;
+    const result = analyzeForms(doc);
+    expect(result.fields).toHaveLength(1);
+    expect(result.fields[0].id).toBe('name1');
+  });
 });
 
 describe('inferFieldPurpose', () => {
