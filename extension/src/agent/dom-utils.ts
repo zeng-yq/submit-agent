@@ -42,6 +42,7 @@ export function setInputValue(el: HTMLInputElement, value: string): void {
 
   el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new Event('blur', { bubbles: true }));
 }
 
 /** Set value on a <textarea> element and dispatch events. */
@@ -63,6 +64,7 @@ export function setTextareaValue(el: HTMLTextAreaElement, value: string): void {
 
   el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new Event('blur', { bubbles: true }));
 }
 
 /** Set value on a <select> element and dispatch change event. */

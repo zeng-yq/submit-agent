@@ -235,3 +235,65 @@ describe('waitForFormFields', () => {
     expect(Date.now() - start).toBeGreaterThanOrEqual(150);
   });
 });
+
+describe('setInputValue', () => {
+  let setInputValue: typeof import('@/agent/dom-utils').setInputValue;
+
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/dom-utils');
+    setInputValue = mod.setInputValue;
+  });
+
+  it('sets value and dispatches input+change+blur events', () => {
+    const doc = dom.window.document;
+    doc.body.innerHTML = '<input type="text" name="q" id="q">';
+    const input = doc.querySelector('#q') as HTMLInputElement;
+
+    const events: string[] = [];
+    input.addEventListener('input', () => events.push('input'));
+    input.addEventListener('change', () => events.push('change'));
+    input.addEventListener('blur', () => events.push('blur'));
+
+    setInputValue(input, 'hello');
+
+    expect(input.value).toBe('hello');
+    expect(events).toContain('input');
+    expect(events).toContain('change');
+    expect(events).toContain('blur');
+  });
+});
+
+describe('setTextareaValue', () => {
+  let setTextareaValue: typeof import('@/agent/dom-utils').setTextareaValue;
+
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/dom-utils');
+    setTextareaValue = mod.setTextareaValue;
+  });
+
+  it('sets value and dispatches input+change+blur events', () => {
+    const doc = dom.window.document;
+    doc.body.innerHTML = '<textarea name="c" id="c"></textarea>';
+    const ta = doc.querySelector('#c') as HTMLTextAreaElement;
+
+    const events: string[] = [];
+    ta.addEventListener('input', () => events.push('input'));
+    ta.addEventListener('change', () => events.push('change'));
+    ta.addEventListener('blur', () => events.push('blur'));
+
+    setTextareaValue(ta, 'hello world');
+
+    expect(ta.value).toBe('hello world');
+    expect(events).toContain('input');
+    expect(events).toContain('change');
+    expect(events).toContain('blur');
+  });
+});
