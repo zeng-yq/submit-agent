@@ -84,23 +84,8 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 				</div>
 			</div>
 
-			{/* Right: status badge + submit + delete */}
+			{/* Right: submit + reset + delete */}
 			<div className="shrink-0 flex items-center gap-1">
-				<div className="flex flex-col items-end gap-1">
-					{labelKey && (
-						<button
-							type="button"
-							className="text-[9px] text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
-							onClick={(e) => {
-								e.stopPropagation()
-								onResetStatus?.(site.name)
-							}}
-							title="点击重置状态"
-						>
-							{labelKey}
-						</button>
-					)}
-				</div>
 				{onSelect && hasSubmitUrl && (
 					<button
 						type="button"
@@ -122,6 +107,19 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 							? <Loader2 className="w-3.5 h-3.5 animate-spin" />
 							: <Play className="w-3.5 h-3.5" />
 						}
+					</button>
+				)}
+				{labelKey && onResetStatus && (
+					<button
+						type="button"
+						className="p-1 rounded text-muted-foreground/50 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+						onClick={(e) => {
+							e.stopPropagation()
+							onResetStatus(site.name)
+						}}
+						title={`点击重置状态（${labelKey}）`}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
 					</button>
 				)}
 				{onDelete && (
