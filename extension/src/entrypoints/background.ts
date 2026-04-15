@@ -1,4 +1,5 @@
 import { setFloatButtonEnabled } from '@/lib/storage'
+import { loadSites, matchCurrentPage } from '@/lib/sites'
 
 export default defineBackground(() => {
 	console.log('[Submit Agent] Background service worker started')
@@ -16,6 +17,8 @@ export default defineBackground(() => {
 			return handleFloatFill(message, sender, sendResponse)
 		} else if (message.type === 'STATUS_UPDATE') {
 			return handleStatusUpdate(message, sender)
+		} else if (message.type === 'CHECK_SITE_MATCH') {
+			return handleCheckSiteMatch(message, sendResponse)
 		} else {
 			sendResponse({ error: 'Unknown message type' })
 			return
@@ -158,6 +161,16 @@ function handleFloatFill(
 	// Broadcast to sidepanel
 	chrome.runtime.sendMessage(message).catch(() => {})
 
+	// Forward to content script tab (chrome.runtime.sendMessage doesn't reach content scripts)
+	if (!tabId) {
+		chrome.storage.session.get('floatFillTabId').then((res) => {
+			const targetTabId = res.floatFillTabId as number | undefined
+			if (targetTabId) {
+				chrome.tabs.sendMessage(targetTabId, message).catch(() => {})
+			}
+		}).catch(() => {})
+	}
+
 	sendResponse({ ok: true })
 	return true
 }
@@ -189,5 +202,27 @@ function handleFloatButtonToggle(
 		})
 		sendResponse({ ok: true })
 	})
+	return true
+}
+
+function handleCheckSiteMatch(
+	message: { type: string; payload: { url: string } },
+	sendResponse: (response: unknown) => void
+): true {
+	const url = message.payload?.url
+	if (!url) {
+		sendResponse({ isKnownSite: false })
+		return true
+	}
+
+	loadSites()
+		.then((sites) => {
+			const matched = matchCurrentPage(sites, url)
+			sendResponse({ isKnownSite: matched !== undefined })
+		})
+		.catch(() => {
+			sendResponse({ isKnownSite: false })
+		})
+
 	return true
 }

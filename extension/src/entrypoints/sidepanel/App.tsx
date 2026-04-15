@@ -76,6 +76,7 @@ export default function App() {
 				const submittable = filterSubmittable(sites)
 				const matched = matchCurrentPage(submittable, tabUrl)
 				if (matched) {
+					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
 					reset()
 					setCurrentEngineSite(matched)
 					try {
@@ -95,8 +96,8 @@ export default function App() {
 						}, 3000)
 					}
 				} else {
+					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
 					setPendingUnmatchedUrl(tabUrl)
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'confirm' }).catch(() => {})
 				}
 			} catch (err) {
 				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
@@ -217,6 +218,7 @@ export default function App() {
 			dr: null,
 		}
 		setPendingUnmatchedUrl(null)
+		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
 		reset()
 		setCurrentEngineSite(virtualSite)
 		try {

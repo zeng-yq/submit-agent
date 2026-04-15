@@ -1,4 +1,3 @@
-import { loadSites, matchCurrentPage } from '@/lib/sites'
 
 /**
  * FloatButton.content.ts
@@ -49,6 +48,7 @@ function setState(state: ButtonState) {
 	mainBtn.style.boxShadow = config.shadow
 	mainBtn.setAttribute('data-icon', config.icon)
 	mainBtn.disabled = state === 'loading'
+	mainBtn.classList.toggle('loading', state === 'loading')
 }
 
 function positionIndicator() {
@@ -381,25 +381,18 @@ function sendMessageWithRetry(
 function handleMainClick() {
 	if (currentState === 'loading') return
 
-	setState('loading')
-	if (mainBtn) mainBtn.classList.add('loading')
-
 	sendMessageWithRetry({ type: 'FLOAT_FILL', action: 'start' })
 		.then((response: any) => {
-			if (mainBtn) mainBtn.classList.remove('loading')
 			if (!response?.ok) {
 				setState('error')
 			}
-			// On success, stay in loading state until the agent sends progress/done/error
 		})
 		.catch(() => {
-			if (mainBtn) mainBtn.classList.remove('loading')
 			setState('error')
 		})
 }
 
 function updateButtonState(state: ButtonState) {
-	if (mainBtn) mainBtn.classList.remove('loading')
 	setState(state)
 }
 
@@ -416,10 +409,14 @@ function checkAndToggleButton() {
 export async function initFloatButton(enabled: boolean) {
 	userEnabled = enabled
 
-	// 判断当前页面是否在资源库中
+	// 通过 background 判断当前页面是否在资源库中
+	//（content script 无法访问扩展的 IndexedDB，必须委托给 background）
 	try {
-		const sites = await loadSites()
-		isKnownSite = matchCurrentPage(sites, window.location.href) !== undefined
+		const response = await chrome.runtime.sendMessage({
+			type: 'CHECK_SITE_MATCH',
+			payload: { url: window.location.href },
+		})
+		isKnownSite = response?.isKnownSite === true
 	} catch {
 		isKnownSite = false
 	}
