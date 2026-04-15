@@ -65,3 +65,26 @@ describe('isHoneypotField', () => {
     expect(isHoneypotField(el('<input autocomplete="off" aria-label="Website" name="x">'))).toBe(false);
   });
 });
+
+describe('isVisible', () => {
+  let isVisible: typeof import('@/agent/dom-utils').isVisible;
+
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/dom-utils');
+    isVisible = mod.isVisible;
+  });
+
+  function el(html: string): Element {
+    const doc = dom.window.document;
+    doc.body.innerHTML = html;
+    return doc.body.firstElementChild!;
+  }
+
+  it('returns true for normally visible element', () => {
+    expect(isVisible(el('<input name="x">'))).toBe(true);
+  });
+});

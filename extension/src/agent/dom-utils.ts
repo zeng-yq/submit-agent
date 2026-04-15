@@ -183,6 +183,23 @@ export function isVisible(el: Element): boolean {
   if (style.display === 'none') return false;
   if (style.visibility === 'hidden') return false;
   if (parseFloat(style.opacity) === 0) return false;
+
+  // Off-screen positioning: absolute/fixed with coordinate far outside viewport
+  const position = style.position;
+  if (position === 'absolute' || position === 'fixed') {
+    const coords = ['left', 'top', 'right', 'bottom'] as const;
+    for (const prop of coords) {
+      const val = parseFloat(style[prop]);
+      if (!isNaN(val) && val < -500) return false;
+    }
+  }
+
+  // CSS clipping: clip or clip-path that hides the element
+  const clip = style.clip;
+  if (clip && clip !== 'auto' && /^(rect|inset)\s*\(.*0.*,\s*0.*,\s*0.*,\s*0/i.test(clip)) return false;
+  const clipPath = style.clipPath;
+  if (clipPath && clipPath !== 'none' && /inset\s*\(\s*100%\s*\)/.test(clipPath)) return false;
+
   // Dimension check only in real browsers (JSDOM has no layout engine,
   // so offsetWidth/Height are always 0 — use body as a canary)
   const body = htmlEl.ownerDocument.body;
