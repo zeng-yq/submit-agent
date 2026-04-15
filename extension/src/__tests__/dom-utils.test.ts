@@ -64,6 +64,34 @@ describe('isHoneypotField', () => {
   it('does not flag autocomplete="off" when element has aria-label', () => {
     expect(isHoneypotField(el('<input autocomplete="off" aria-label="Website" name="x">'))).toBe(false);
   });
+
+  it('detects name matching _wpcf7 prefix (Contact Form 7)', () => {
+    expect(isHoneypotField(el('<input name="_wpcf7_version" value="">'))).toBe(true);
+  });
+
+  it('detects name containing "nospam"', () => {
+    expect(isHoneypotField(el('<input name="nospam_check" value="">'))).toBe(true);
+  });
+
+  it('detects name containing "antispam"', () => {
+    expect(isHoneypotField(el('<input name="antispam_field" value="">'))).toBe(true);
+  });
+
+  it('detects name containing "wpbruiser"', () => {
+    expect(isHoneypotField(el('<input name="wpbruiser_token" value="">'))).toBe(true);
+  });
+
+  it('detects name containing "gotcha"', () => {
+    expect(isHoneypotField(el('<input name="gotcha_verify" value="">'))).toBe(true);
+  });
+
+  it('detects id with 32+ hex chars (random hash)', () => {
+    expect(isHoneypotField(el('<input id="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4" name="x">'))).toBe(true);
+  });
+
+  it('does not flag short normal names', () => {
+    expect(isHoneypotField(el('<input name="website" type="url">'))).toBe(false);
+  });
 });
 
 describe('isVisible', () => {

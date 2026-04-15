@@ -132,8 +132,22 @@ function isCaptchaElement(el: Element): boolean {
   return false;
 }
 
-/** Honeypot-related substrings to check in name/id/class attributes. */
-const HONEYPOT_NAME_SIGNALS = ['honeypot', 'hp_', 'ak_hp', 'trap', 'cloaked'];
+/** Regex patterns that indicate a honeypot (anti-spam trap) field. */
+const HONEYPOT_NAME_PATTERNS: RegExp[] = [
+  /honeypot/i,
+  /hp_/i,
+  /ak_hp/i,
+  /trap/i,
+  /cloaked/i,
+  /^_wpcf7/i,         // Contact Form 7 internal fields
+  /nospam/i,
+  /no.?spam/i,
+  /antispam/i,
+  /anti.?bot/i,
+  /wpbruiser/i,
+  /gotcha/i,
+  /[a-f0-9]{32,}/i, // Random hash-named hidden fields (32+ hex chars)
+];
 
 /** Check if an element is a honeypot (anti-spam trap) field. */
 export function isHoneypotField(el: Element): boolean {
@@ -147,7 +161,7 @@ export function isHoneypotField(el: Element): boolean {
   const id = (htmlEl.getAttribute('id') || '').toLowerCase();
   const cls = (htmlEl.getAttribute('class') || '').toLowerCase();
   const combined = `${name} ${id} ${cls}`;
-  if (HONEYPOT_NAME_SIGNALS.some(s => combined.includes(s))) return true;
+  if (HONEYPOT_NAME_PATTERNS.some(p => p.test(combined))) return true;
 
   // Rule 3: Label contains only non-alphanumeric characters (e.g. Delta)
   // We check aria-label and title as cheap label proxies since findLabel requires doc context
