@@ -18,7 +18,7 @@ interface DashboardProps {
 	activeSiteName: string | null
 }
 
-type Tab = 'all' | 'done' | 'failed'
+type Tab = 'all' | 'done' | 'failed' | 'log'
 
 const DONE_STATUSES: SubmissionStatus[] = ['submitted', 'approved', 'skipped']
 
@@ -36,7 +36,6 @@ export function Dashboard({
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
-	const [showLog, setShowLog] = useState(false)
 
 	const submittableSites = useMemo(
 		() => sites.filter((s) => !!s.submit_url),
@@ -88,7 +87,7 @@ export function Dashboard({
 
 	useEffect(() => {
 		if (isEngineActive) {
-			setShowLog(true)
+			setTab('log')
 		}
 	}, [isEngineActive])
 
@@ -129,9 +128,9 @@ export function Dashboard({
 				))}
 				<button
 					type="button"
-					onClick={() => setShowLog((v) => !v)}
+					onClick={() => setTab('log')}
 					className={`ml-auto px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-						showLog
+						tab === 'log'
 							? 'bg-primary text-primary-foreground'
 							: 'bg-muted hover:bg-muted/80 text-foreground'
 					}`}
@@ -140,7 +139,7 @@ export function Dashboard({
 				</button>
 			</div>
 
-			{showLog ? (
+			{tab === 'log' ? (
 				<ActivityLog
 					logs={engineLogs}
 					onClear={onClearEngineLogs}

@@ -171,6 +171,21 @@ export default function App() {
 		setCurrentEngineSite(site)
 
 		try {
+			// Open a new tab for the submission page and store the tab ID
+			if (site.submit_url) {
+				const response = await chrome.runtime.sendMessage({
+					type: 'SUBMIT_CONTROL',
+					action: 'open_submit_page',
+					payload: site.submit_url,
+				})
+				if (response?.ok && response.tabId) {
+					await chrome.storage.session.set({
+						floatFillTabId: response.tabId,
+						floatFillPending: true,
+					})
+				}
+			}
+
 			const result = await startSubmission(site)
 			if (result.failed === 0 && result.filled > 0) {
 				await markSubmitted(site.name, activeProduct.id)
