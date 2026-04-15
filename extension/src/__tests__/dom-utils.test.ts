@@ -150,4 +150,25 @@ describe('isVisible', () => {
   it('returns true for normally visible element', () => {
     expect(isVisible(el('<input name="x">'))).toBe(true);
   });
+
+  it('returns false when parent has display:none (inline style)', () => {
+    const doc = dom.window.document;
+    doc.body.innerHTML = '<div style="display:none"><input name="x"></div>';
+    const input = doc.body.querySelector('input')!;
+    expect(isVisible(input)).toBe(false);
+  });
+
+  it('returns false for element with font-size: 0 (inline style)', () => {
+    const doc = dom.window.document;
+    doc.body.innerHTML = '<input name="x" style="font-size: 0">';
+    const input = doc.body.querySelector('input')!;
+    expect(isVisible(input)).toBe(false);
+  });
+
+  it('returns false for element with max-height: 0 (inline style)', () => {
+    const doc = dom.window.document;
+    doc.body.innerHTML = '<input name="x" style="max-height: 0">';
+    const input = doc.body.querySelector('input')!;
+    expect(isVisible(input)).toBe(false);
+  });
 });

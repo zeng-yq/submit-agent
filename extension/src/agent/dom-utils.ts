@@ -220,6 +220,14 @@ export function isVisible(el: Element): boolean {
   if (style.visibility === 'hidden') return false;
   if (parseFloat(style.opacity) === 0) return false;
 
+  // Ancestor traversal: check if any parent is hidden
+  let parent = htmlEl.parentElement;
+  while (parent && parent !== htmlEl.ownerDocument.body) {
+    const ps = parent.ownerDocument.defaultView?.getComputedStyle(parent);
+    if (ps && (ps.display === 'none' || ps.visibility === 'hidden')) return false;
+    parent = parent.parentElement;
+  }
+
   // Off-screen positioning: absolute/fixed with coordinate far outside viewport
   const position = style.position;
   if (position === 'absolute' || position === 'fixed') {
@@ -234,7 +242,17 @@ export function isVisible(el: Element): boolean {
   const clip = style.clip;
   if (clip && clip !== 'auto' && /^(rect|inset)\s*\(.*0.*,\s*0.*,\s*0.*,\s*0/i.test(clip)) return false;
   const clipPath = style.clipPath;
-  if (clipPath && clipPath !== 'none' && /inset\s*\(\s*100%\s*\)/.test(clipPath)) return false;
+  if (clipPath && clipPath !== 'none') {
+    if (/inset\s*\(\s*100%\s*\)/.test(clipPath)) return false;
+    if (/inset\s*\(\s*50%\s*\)/.test(clipPath)) return false;
+    if (/polygon\s*\(\s*0\s+0\s*\)/.test(clipPath)) return false;
+  }
+
+  // Visual hiding via font-size: 0
+  if (parseFloat(style.fontSize) === 0) return false;
+
+  // Visual hiding via max-height/max-width: 0 (CSS transition trick)
+  if (parseFloat(style.maxHeight) === 0 || parseFloat(style.maxWidth) === 0) return false;
 
   // Dimension check only in real browsers (JSDOM has no layout engine,
   // so offsetWidth/Height are always 0 — use body as a canary)
