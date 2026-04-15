@@ -322,6 +322,100 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 - 按反垃圾系统类型分组，推荐处理优先级
 - 标注可直接操作的站点（无反垃圾 + 原生评论表单）
 
+### 4.6 表单提交
+
+对已确认可发布的站点执行实际的表单填写和提交。
+
+#### 目录提交流程
+
+1. 通过 `/new` 打开目标站点的 `submitUrl`
+2. 等待页面加载完成（`/info` 确认 ready 为 complete）
+3. 调用 `form-analyzer.js` 注入分析表单结构
+4. 调用 `honeypot-detector.js` 注入检测蜜罐字段
+5. Claude 分析字段 + 活跃产品信息，生成字段映射
+6. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
+7. `/screenshot` 截图确认 → 展示给用户
+8. 用户确认后通过 `/click` 点击提交按钮
+9. 记录到 `data/submissions.json`
+10. `/close` 关闭 tab
+
+#### 博客评论流程
+
+1. 通过 `/new` 打开目标页面
+2. 调用 `comment-expander.js` 注入展开评论区域
+3. 等待 ~1 秒让 DOM 更新
+4. 调用 `form-analyzer.js` 注入分析评论表单
+5. 调用 `page-extractor.mjs` 提取页面内容
+6. Claude 阅读页面内容，生成相关评论（80-300 字符）
+7. 决定链接放置策略（URL 字段 > name 字段 > 正文 HTML）
+8. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
+9. `/screenshot` 截图确认 → 用户确认 → 提交
+10. 记录到 `data/submissions.json`
+11. `/close` 关闭 tab
+
+**form-filler.js 调用方式：**
+
+由于 form-filler.js 需要接收参数，使用两步注入：
+
+```bash
+# 步骤 1: 设置填写数据
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "window.__FILL_DATA__ = { fields: { 'field_0': 'value1', 'field_1': 'value2' } }"
+
+# 步骤 2: 执行填写脚本
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "$(cat "${SKILL_DIR}/scripts/form-filler.js")"
+```
+
+### 4.7 提交记录管理
+
+查看和统计提交历史。
+
+- 所有提交记录存储在 `data/submissions.json`
+- 按状态筛选：`submitted` / `failed` / `skipped`
+- 按产品筛选：`productId`
+- 统计总提交数、成功率、失败原因分布
+
+### 4.8 Google Sheets 同步
+
+将本地 JSON 数据与 Google Sheet 双向同步。
+
+**前置条件：**
+1. 配置 `data/sync-config.json` 中的服务账号密钥和 Sheet URL
+2. 将 Sheet 分享给服务账号的邮箱地址
+
+**上传（本地 → Sheet）：**
+
+```bash
+node "${SKILL_DIR}/scripts/sheets-sync.mjs" upload \
+  --config "${SKILL_DIR}/data/sync-config.json" \
+  --data "${SKILL_DIR}/data"
+```
+
+上传前自动备份现有 Sheet 数据，失败时自动回滚。
+
+**下载（Sheet → 本地）：**
+
+```bash
+node "${SKILL_DIR}/scripts/sheets-sync.mjs" download \
+  --config "${SKILL_DIR}/data/sync-config.json" \
+  --data "${SKILL_DIR}/data"
+```
+
+**同步的 4 个 Tab：** products / submissions / sites / backlinks
+
+### 4.9 产品资料生成
+
+输入产品官网 URL，自动提取页面信息，由 Claude 生成完整产品资料。
+
+```bash
+node "${SKILL_DIR}/scripts/product-generator.mjs" <product-url>
+```
+
+脚本输出 JSON 包含 title、metaDescription、ogTitle、ogDescription、headings、bodyText。
+
+Claude 基于提取结果生成产品记录（name、tagline、shortDesc、longDesc、categories、anchorTexts），写入 `products.json`。
+
 ---
 
 ## 5. 评论表单检测脚本
@@ -416,6 +510,73 @@ node "${SKILL_DIR}/scripts/import-csv.mjs" <csv-file-path> [backlinks-json-path]
 | Source url | sourceUrl |
 | Source title | sourceTitle |
 | Page ascore | pageAscore |
+
+---
+
+## 6.3 表单分析脚本
+
+脚本路径：`${SKILL_DIR}/scripts/form-analyzer.js`
+
+通过 CDP `/eval` 在目标页面执行，扫描所有表单元素，返回结构化字段描述。
+
+使用方式：
+```bash
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "$(cat "${SKILL_DIR}/scripts/form-analyzer.js")"
+```
+
+返回值包含三个部分：
+- **fields** — 表单字段数组，每项含 canonical_id、name、id、type、label、placeholder、required、maxlength、inferred_purpose、effective_type、selector、tagName、form_index
+- **forms** — 表单分组数组，每项含 form_index、role（search/login/newsletter/unknown）、confidence、filtered
+- **page_info** — 页面信息（title、description、headings、content_preview）
+
+## 6.4 蜜罐检测脚本
+
+脚本路径：`${SKILL_DIR}/scripts/honeypot-detector.js`
+
+检测页面中可疑的蜜罐表单字段，使用 7 维评分系统（aria-hidden、名称模式、空标签、负 tabindex、autocomplete off、隐藏父元素、零字体大小、零最大尺寸）。
+
+返回值：`{ total, suspicious, honeypots, all }`
+
+## 6.5 表单填写脚本
+
+脚本路径：`${SKILL_DIR}/scripts/form-filler.js`
+
+接收字段映射数据，逐字段填写表单。兼容 React/Vue 受控组件（原生 setter + `_valueTracker` 重置 + `execCommand` 回退）。
+
+使用方式（两步注入）：
+```bash
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "window.__FILL_DATA__ = { fields: { 'field_0': 'value' } }"
+curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
+  -d "$(cat "${SKILL_DIR}/scripts/form-filler.js")"
+```
+
+返回值：`{ success, total, results: [{ canonical_id, status, filled, verified }] }`
+
+## 6.6 评论展开脚本
+
+脚本路径：`${SKILL_DIR}/scripts/comment-expander.js`
+
+检测并展开懒加载的评论表单区域（支持 wpDiscuz、WordPress 默认评论等）。CDP 页面上下文直接访问 jQuery。
+
+返回值：`{ found, triggerSelector, clicked, unhid, hint }`
+
+## 6.7 Google Sheets 同步脚本
+
+脚本路径：`${SKILL_DIR}/scripts/sheets-sync.mjs`
+
+Google Sheets 双向同步。支持 4 个 Tab 的分块上传/下载，自动备份回滚。
+
+使用方式见 4.8 节。
+
+## 6.8 产品信息提取脚本
+
+脚本路径：`${SKILL_DIR}/scripts/product-generator.mjs`
+
+通过 CDP Proxy 打开产品页面，提取 meta 信息和正文内容。
+
+使用方式见 4.9 节。
 
 ---
 
