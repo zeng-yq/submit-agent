@@ -13,7 +13,7 @@
 5. Claude 分析字段 + 活跃产品信息，生成字段映射
 6. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
 7. 用户确认后通过 `/click` 点击提交按钮
-8. 记录到 `data/submissions.json`
+8. 将结果写入 `${SKILL_DIR}/data/submissions.json`（subagent 自行写入）
 9. `/close` 关闭 tab
 
 ## 2. 博客评论流程
@@ -27,7 +27,7 @@
 7. 决定链接放置策略（URL 字段 > name 字段 > 正文 HTML）
 8. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
 9. 用户确认后提交
-10. 记录到 `data/submissions.json`
+10. 将结果写入 `${SKILL_DIR}/data/submissions.json`（subagent 自行写入）
 11. `/close` 关闭 tab
 
 **form-filler.js 调用方式（两步注入）：**
@@ -94,18 +94,59 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ---
 
-## 4. 提交记录管理
+## 4. 提交记录写入
+
+提交完成后，subagent **自行写入**结果到 `${SKILL_DIR}/data/submissions.json`，不由主 agent 代写。
+
+### 写入流程
+
+1. 读取现有 `submissions.json`（文件不存在则初始化为 `[]`）
+2. 生成提交记录，追加到数组末尾
+3. 写回文件
+
+### 记录格式
+
+```json
+{
+  "id": "sub-{timestamp}-{random4hex}",
+  "siteName": "domain.com",
+  "siteUrl": "https://domain.com/submit",
+  "productId": "prod-001",
+  "status": "submitted | failed | skipped",
+  "submittedAt": "2025-01-01T00:00:00Z",
+  "result": "提交成功，等待审核",
+  "fields": { "name": "产品名", "email": "founder@example.com" }
+}
+```
+
+### 站点经验写入
+
+如提交过程中发现了新的站点经验（或已有经验需要更新），subagent 同样自行写入 `${SKILL_DIR}/data/site-experience.json`。
+
+### 返回给主 agent
+
+写入完成后，subagent 只返回一行摘要：
+
+```
+{domain} | 成功/失败 | 一句话说明
+```
+
+主 agent 不需要完整的过程细节，只用于调度和进度追踪。
+
+---
+
+## 5. 提交记录查询
 
 查看和统计提交历史。
 
-- 所有提交记录存储在 `data/submissions.json`
+- 所有提交记录存储在 `${SKILL_DIR}/data/submissions.json`
 - 按状态筛选：`submitted` / `failed` / `skipped`
 - 按产品筛选：`productId`
 - 统计总提交数、成功率、失败原因分布
 
 ---
 
-## 5. 注入脚本参考
+## 6. 注入脚本参考
 
 ### detect-comment-form.js
 
@@ -175,7 +216,7 @@ node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
 
 ---
 
-## 6. 相关参考
+## 7. 相关参考
 
 - 数据格式规范：`${SKILL_DIR}/references/data-formats.md`
 - CDP Proxy API：`${SKILL_DIR}/references/cdp-proxy-api.md`

@@ -119,34 +119,70 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 ---
 
-## 并行提交策略
+## 串行提交策略
 
-当有 **3+ 个可提交站点**时，启动并行提交模式。
+每次由 **1 个 subagent** 处理 **1 个站点**，完成后由主 agent 调度下一个。主 agent 只做轻量调度，不承载业务数据。
 
-### 规则
+### 设计原则
 
-- **最多 3 个并行 agent**（避免 Chrome 资源耗尽）
-- 每个 agent 各自创建独立标签页（`/new`），通过 `targetId` 识别
-- 标签页是天然隔离的，不存在竞态条件
-- 分析阶段**不并行**（需要 Claude 深度判断）
+- **主 agent 是调度器**：只持有待提交域名列表和每个域名的简短状态，不读取/传递业务数据
+- **Subagent 自给自足**：自行读取数据文件、操控浏览器、写入结果
+- **返回最小摘要**：subagent 只向主 agent 返回一行结果，不回传完整过程
 
-### 子 Agent prompt 模板
+### 调度循环
 
 ```
-在 {domain} 提交产品 {productName}。
+主 Agent                          Subagent
+  │                                  │
+  │  1. 读取 backlinks.json          │
+  │     筛选可提交条目                │
+  │                                  │
+  │── 派发: domain + productId ──→   │
+  │                                  │  2. 自行读取 products.json
+  │                                  │  3. 自行读取 site-experience.json
+  │                                  │  4. 创建 tab，执行提交
+  │                                  │  5. 自行写入 submissions.json
+  │                                  │  6. 自行更新 site-experience.json
+  │                                  │  7. 关闭 tab
+  │←── 返回: 简短摘要 ──────────────│
+  │                                  │
+  │  8. 更新内部状态，                │
+  │     派发下一个站点                │
+  │                                  │
+  │  ... 重复直到全部完成 ...         │
+```
 
-站点信息：{从 sites.json 提取的站点数据}
-产品信息：{从 products.json 提取的产品数据}
-站点经验：{从 site-experience.json 提取的经验，如有}
+### Subagent prompt 模板
+
+```
+在 {domain} 提交产品 {productId}。
+
+数据文件路径：${SKILL_DIR}/data/
+- 自行读取 products.json 获取产品信息
+- 自行读取 site-experience.json 获取站点经验（如有）
+- 自行读取 sites.json 获取站点详情（如有）
 
 要求：
 - 必须加载 backlink-agent skill 并遵循指引
-- 将结果汇报给主 agent
+- 完成后自行将结果写入 ${SKILL_DIR}/data/submissions.json
+- 如有新的站点经验，自行写入 ${SKILL_DIR}/data/site-experience.json
+- 完成后自行关闭创建的 tab
+- 返回简短摘要：域名 + 成功/失败 + 一句话说明
+
+返回格式：
+{domain} | 成功/失败 | 一句话说明
 ```
 
-### 结果收集
+### 主 Agent 职责
 
-每个子 agent 完成后**汇报结果给主 agent**，由主 agent 统一写入 `submissions.json`。
+1. 从 `backlinks.json` 筛选可提交条目（`status: "publishable"`）
+2. 逐个派发 subagent，传递 `domain` 和 `productId`
+3. 接收 subagent 返回的简短摘要，记录进度
+4. 全部完成后向用户汇报汇总结果
+
+### 上下文控制
+
+每次调度循环中，主 agent 上下文只增加一行摘要（约 50 tokens），无论提交多少站点，上下文增长为 O(n) 且系数极小。
 
 ---
 
