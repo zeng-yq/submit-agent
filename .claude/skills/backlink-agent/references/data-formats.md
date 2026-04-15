@@ -123,7 +123,6 @@
     "status": "submitted",
     "submittedAt": "2025-01-01T00:00:00Z",
     "result": "提交成功，等待审核",
-    "screenshotPath": "screenshots/example-com-2025-01-01.png",
     "fields": { "name": "产品名", "email": "founder@example.com" }
   }
 ]
@@ -138,7 +137,6 @@
 | `status` | string | 是 | `submitted` \| `failed` \| `skipped` |
 | `submittedAt` | string | 是 | ISO 8601 时间戳 |
 | `result` | string | 否 | 提交结果描述 |
-| `screenshotPath` | string | 否 | 截图文件路径 |
 | `fields` | object | 否 | 填写的字段键值对 |
 
 **sync-config.json** — Google Sheets 同步配置：

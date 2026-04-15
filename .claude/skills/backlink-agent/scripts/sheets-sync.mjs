@@ -33,7 +33,7 @@ const SHEET_DEFS = {
     tabName: 'submissions',
     columns: [
       'id', 'siteName', 'siteUrl', 'productId', 'status',
-      'screenshotPath', 'fields', 'submittedAt', 'result',
+      'fields', 'submittedAt', 'result',
       'createdAt', 'updatedAt',
     ],
     jsonFields: new Set(['fields']),

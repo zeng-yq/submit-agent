@@ -45,7 +45,7 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 
 **③ 验证调整** — 每一步的结果都是证据。表单分析结果与预期不符？调整填充策略。提交后页面报错？分析错误原因并重试或回退。不在同一个失败的方法上反复尝试。
 
-**④ 确认完成** — 对照原始目标检查：提交是否成功？记录是否写入？截图是否保存？
+**④ 确认完成** — 对照原始目标检查：提交是否成功？记录是否写入？
 
 ### 最小侵入原则
 
@@ -85,7 +85,6 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 | POST /click?target= | JS 点击（el.click()） |
 | POST /clickAt?target= | CDP 真实鼠标点击 |
 | GET /scroll?target=&y=&direction= | 滚动（含懒加载等待） |
-| GET /screenshot?target=&file= | 截图 |
 
 ---
 
@@ -149,7 +148,6 @@ IMPORT ──→ ANALYZE ──→ SUBMIT ──→ SYNC
 
 要求：
 - 必须加载 backlink-agent skill 并遵循指引
-- 提交完成后截图确认
 - 将结果汇报给主 agent
 ```
 

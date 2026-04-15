@@ -12,10 +12,9 @@
 4. 调用 `honeypot-detector.js` 注入检测蜜罐字段
 5. Claude 分析字段 + 活跃产品信息，生成字段映射
 6. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
-7. `/screenshot` 截图确认 → 展示给用户
-8. 用户确认后通过 `/click` 点击提交按钮
-9. 记录到 `data/submissions.json`
-10. `/close` 关闭 tab
+7. 用户确认后通过 `/click` 点击提交按钮
+8. 记录到 `data/submissions.json`
+9. `/close` 关闭 tab
 
 ## 2. 博客评论流程
 
@@ -27,7 +26,7 @@
 6. Claude 阅读页面内容，生成相关评论（80-300 字符）
 7. 决定链接放置策略（URL 字段 > name 字段 > 正文 HTML）
 8. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
-9. `/screenshot` 截图确认 → 用户确认 → 提交
+9. 用户确认后提交
 10. 记录到 `data/submissions.json`
 11. `/close` 关闭 tab
 

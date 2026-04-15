@@ -499,23 +499,6 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ value: resp.result?.result?.value }));
     }
 
-    // GET /screenshot?target=xxx&file=/tmp/x.png - 截图
-    else if (pathname === '/screenshot') {
-      const sid = await ensureSession(q.target);
-      const format = q.format || 'png';
-      const resp = await sendCDP('Page.captureScreenshot', {
-        format,
-        quality: format === 'jpeg' ? 80 : undefined,
-      }, sid);
-      if (q.file) {
-        fs.writeFileSync(q.file, Buffer.from(resp.result.data, 'base64'));
-        res.end(JSON.stringify({ saved: q.file }));
-      } else {
-        res.setHeader('Content-Type', 'image/' + format);
-        res.end(Buffer.from(resp.result.data, 'base64'));
-      }
-    }
-
     // GET /info?target=xxx - 获取页面信息
     else if (pathname === '/info') {
       const sid = await ensureSession(q.target);
@@ -555,7 +538,6 @@ const server = http.createServer(async (req, res) => {
           '/clickAt?target=': 'POST body=CSS选择器 - CDP 真实鼠标点击',
           '/setFiles?target=': 'POST body=JSON - 文件上传',
           '/scroll?target=&y=&direction=': 'GET - 滚动页面',
-          '/screenshot?target=&file=': 'GET - 截图',
         },
       }));
     }

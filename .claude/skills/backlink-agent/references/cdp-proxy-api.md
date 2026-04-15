@@ -124,7 +124,7 @@ curl -s -X POST "http://localhost:3457/setFiles?target=DEF456" \
 # {"success":true,"files":1}
 ```
 
-- 用于需要上传图片或附件的场景（如产品 Logo、截图）
+- 用于需要上传图片或附件的场景（如产品 Logo）
 - 直接通过 CDP `DOM.setFileInputFiles` 设置文件，无需用户手动选择
 
 ### 3.11 点击元素
@@ -179,21 +179,3 @@ curl -s "http://localhost:3457/scroll?target=DEF456&y=1000&direction=up"
 - `y`：滚动像素数，默认 3000
 - `direction`：`down`（默认）| `up` | `top` | `bottom`
 - 滚动后自动等待 800ms（触发懒加载）
-
-### 3.14 截图
-
-**GET /screenshot?target=&file=&format=**
-
-截取页面截图。
-
-```bash
-# 保存到文件
-curl -s "http://localhost:3457/screenshot?target=DEF456&file=/tmp/screenshot.png"
-# {"saved":"/tmp/screenshot.png"}
-
-# 直接返回图片二进制
-curl -s -o screenshot.png "http://localhost:3457/screenshot?target=DEF456"
-```
-
-- `file`：保存路径，省略则直接返回图片数据
-- `format`：`png`（默认）| `jpeg`，jpeg 默认 quality 80
