@@ -354,6 +354,71 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ---
 
+## 6.1 页面内容提取脚本
+
+脚本路径：`${SKILL_DIR}/scripts/page-extractor.mjs`
+
+通过 CDP Proxy 在目标页面提取 HTML，转换为纯文本并检测评论信号。用于 Claude 综合判定时的语义分析输入。
+
+**使用方式：**
+```bash
+node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
+```
+
+**输出格式：**
+```json
+{
+  "title": "页面标题",
+  "textContent": "页面纯文本内容（截断到 8000 字符）",
+  "commentSignals": {
+    "found": true,
+    "details": "textarea with comment context; URL/Website input field"
+  },
+  "url": "https://example.com/page"
+}
+```
+
+**功能说明：**
+- 通过 CDP Proxy `/eval` 端点获取 `document.documentElement.outerHTML`
+- 去除 script/style/nav/footer 标签，提取纯文本
+- 解码 HTML 实体（`&nbsp;`、`&amp;` 等）
+- 文本截断到 8000 字符，超出部分标记 `[truncated]`
+- 检测评论信号：textarea 上下文、comment form id/class、URL/Website input、comments section
+
+---
+
+## 6.2 CSV 导入脚本
+
+脚本路径：`${SKILL_DIR}/scripts/import-csv.mjs`
+
+解析 Semrush 导出的 CSV 文件，按 sourceUrl 去重，输出标准格式的 JSON 记录。
+
+**使用方式：**
+```bash
+node "${SKILL_DIR}/scripts/import-csv.mjs" <csv-file-path> [backlinks-json-path]
+```
+
+- `csv-file-path`：Semrush 导出的 CSV 文件路径（必填）
+- `backlinks-json-path`：现有 `backlinks.json` 路径，用于去重（选填）
+
+**输出格式：**
+```json
+{
+  "imported": 50,
+  "skipped": 12,
+  "records": [...]
+}
+```
+
+**字段映射：**
+| Semrush 字段 | 系统字段 |
+|-------------|---------|
+| Source url | sourceUrl |
+| Source title | sourceTitle |
+| Page ascore | pageAscore |
+
+---
+
 ## 7. 可发布性判定规则
 
 完整的判定优先级表、站点分类规则和 analysis 字段格式：
