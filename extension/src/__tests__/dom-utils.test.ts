@@ -172,3 +172,32 @@ describe('isVisible', () => {
     expect(isVisible(input)).toBe(false);
   });
 });
+
+describe('waitForFormFields', () => {
+  let waitForFormFields: typeof import('@/agent/dom-utils').waitForFormFields;
+
+  beforeEach(async () => {
+    // Clear the global jsdom document body so tests don't leak into each other
+    document.body.innerHTML = '';
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/dom-utils');
+    waitForFormFields = mod.waitForFormFields;
+  });
+
+  it('returns immediately when form fields already exist', async () => {
+    document.body.innerHTML = '<input type="text" name="q">';
+    const start = Date.now();
+    await waitForFormFields(2000);
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it('times out when no form fields appear', async () => {
+    document.body.innerHTML = '';
+    const start = Date.now();
+    await waitForFormFields(200);
+    expect(Date.now() - start).toBeGreaterThanOrEqual(150);
+  });
+});

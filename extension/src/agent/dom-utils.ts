@@ -106,6 +106,51 @@ export function waitForRAF(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
+/** Check if the document has any form fields. */
+function hasFormFields(doc: Document): boolean {
+  return doc.querySelectorAll('input[type="text"], input[type="email"], input[type="url"], input[type="tel"], input[type="search"], input:not([type]), textarea, select').length > 0;
+}
+
+/**
+ * Wait for form fields to appear on the page.
+ * Returns immediately if fields already exist, otherwise uses MutationObserver
+ * with a timeout fallback. Designed for SPA pages where forms load dynamically.
+ */
+export async function waitForFormFields(timeoutMs = 5000): Promise<void> {
+  const doc = window.document;
+
+  // 1. Already have form fields
+  if (hasFormFields(doc)) return;
+
+  // 2. Wait for page to fully load
+  if (doc.readyState !== 'complete') {
+    await new Promise<void>(r => {
+      const handler = () => { r(); };
+      doc.addEventListener('readystatechange', handler, { once: true });
+      window.addEventListener('load', handler, { once: true });
+    });
+    if (hasFormFields(doc)) return;
+  }
+
+  // 3. MutationObserver for dynamically added fields
+  await new Promise<void>((resolve) => {
+    const timeout = setTimeout(resolve, timeoutMs);
+
+    const observer = new MutationObserver(() => {
+      if (hasFormFields(doc)) {
+        clearTimeout(timeout);
+        observer.disconnect();
+        resolve();
+      }
+    });
+
+    observer.observe(doc.body, { childList: true, subtree: true });
+  });
+
+  // 4. Extra macro task for framework rendering
+  await new Promise(r => setTimeout(r, 100));
+}
+
 /** CAPTCHA-related selectors to skip. */
 const CAPTCHA_SELECTORS = [
   '[name*="captcha"]',

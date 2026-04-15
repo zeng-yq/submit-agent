@@ -2,7 +2,7 @@ import { initFloatButton } from '@/agent/FloatButton.content'
 import { getFloatButtonEnabled } from '@/lib/storage'
 import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
-import { fillField, isVisible } from '@/agent/dom-utils'
+import { fillField, isVisible, waitForFormFields } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
 
 /**
@@ -147,10 +147,8 @@ export default defineContentScript({
 					const siteType = message.payload?.siteType as string | undefined
 
 					;(async () => {
-						// Wait briefly for SPA hydration if title is empty
-						if (!document.title) {
-							await new Promise(r => setTimeout(r, 500))
-						}
+							// Wait for dynamic form fields to appear (SPA support)
+							await waitForFormFields()
 
 						// Expand lazy-loaded comment forms (wpDiscuz etc.)
 						// before scanning so hidden fields become visible
