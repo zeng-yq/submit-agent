@@ -149,35 +149,57 @@ const HONEYPOT_NAME_PATTERNS: RegExp[] = [
   /[a-f0-9]{32,}/i, // Random hash-named hidden fields (32+ hex chars)
 ];
 
-/** Check if an element is a honeypot (anti-spam trap) field. */
-export function isHoneypotField(el: Element): boolean {
+/** Score an element's likelihood of being a honeypot field. Returns 0–100+. */
+export function honeypotScore(el: Element): number {
   const htmlEl = el as HTMLElement;
+  let score = 0;
 
-  // Rule 1: aria-hidden="true"
-  if (htmlEl.getAttribute('aria-hidden') === 'true') return true;
+  // Signal: aria-hidden="true"
+  if (htmlEl.getAttribute('aria-hidden') === 'true') score += 80;
 
-  // Rule 2: name/id/class contains honeypot-related keywords
+  // Signal: name/id/class matches honeypot patterns
   const name = (htmlEl.getAttribute('name') || '').toLowerCase();
   const id = (htmlEl.getAttribute('id') || '').toLowerCase();
   const cls = (htmlEl.getAttribute('class') || '').toLowerCase();
   const combined = `${name} ${id} ${cls}`;
-  if (HONEYPOT_NAME_PATTERNS.some(p => p.test(combined))) return true;
+  if (HONEYPOT_NAME_PATTERNS.some(p => p.test(combined))) score += 60;
 
-  // Rule 3: Label contains only non-alphanumeric characters (e.g. Delta)
-  // We check aria-label and title as cheap label proxies since findLabel requires doc context
+  // Signal: label contains only non-alphanumeric characters
   const ariaLabel = htmlEl.getAttribute('aria-label') || '';
   const title = htmlEl.getAttribute('title') || '';
   const cheapLabel = ariaLabel || title;
-  if (cheapLabel && !/[a-zA-Z0-9]/.test(cheapLabel)) return true;
+  if (cheapLabel && !/[a-zA-Z0-9]/.test(cheapLabel)) score += 40;
 
-  // Rule 4: tabindex < 0 and no label signals
+  // Signal: tabindex < 0 and no label signals
   const tabindex = htmlEl.getAttribute('tabindex');
-  if (tabindex !== null && parseInt(tabindex, 10) < 0 && !ariaLabel && !title && !htmlEl.id) return true;
+  if (tabindex !== null && parseInt(tabindex, 10) < 0 && !ariaLabel && !title && !htmlEl.id) score += 50;
 
-  // Rule 5: autocomplete="off" and no label and non-standard name
-  if (htmlEl.getAttribute('autocomplete') === 'off' && !ariaLabel && !title && !htmlEl.id) return true;
+  // Signal: autocomplete="off" and no label and non-standard name
+  if (htmlEl.getAttribute('autocomplete') === 'off' && !ariaLabel && !title && !htmlEl.id) score += 50;
 
-  return false;
+  // Signal: parent element hidden
+  let parent = htmlEl.parentElement;
+  while (parent && parent !== htmlEl.ownerDocument.body) {
+    const ps = parent.ownerDocument.defaultView?.getComputedStyle(parent);
+    if (ps) {
+      if (ps.display === 'none' || ps.visibility === 'hidden') { score += 50; break; }
+    }
+    parent = parent.parentElement;
+  }
+
+  // Signal: font-size: 0 (visual hiding)
+  const style = htmlEl.ownerDocument.defaultView?.getComputedStyle(htmlEl);
+  if (style && parseFloat(style.fontSize) === 0) score += 60;
+
+  // Signal: max-height or max-width: 0 (CSS transition hiding)
+  if (style && (parseFloat(style.maxHeight) === 0 || parseFloat(style.maxWidth) === 0)) score += 50;
+
+  return score;
+}
+
+/** Check if an element is a honeypot (anti-spam trap) field. Threshold: score >= 50. */
+export function isHoneypotField(el: Element): boolean {
+  return honeypotScore(el) >= 50;
 }
 
 /** Types of input elements to skip. */

@@ -94,6 +94,41 @@ describe('isHoneypotField', () => {
   });
 });
 
+describe('honeypotScore', () => {
+  let honeypotScore: typeof import('@/agent/dom-utils').honeypotScore;
+
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/dom-utils');
+    honeypotScore = mod.honeypotScore;
+  });
+
+  function el(html: string): Element {
+    const doc = dom.window.document;
+    doc.body.innerHTML = html;
+    return doc.body.firstElementChild!;
+  }
+
+  it('returns 0 for a normal visible field', () => {
+    expect(honeypotScore(el('<input name="website" type="url">'))).toBe(0);
+  });
+
+  it('returns high score (>=80) for aria-hidden="true"', () => {
+    expect(honeypotScore(el('<input aria-hidden="true" name="x">'))).toBeGreaterThanOrEqual(80);
+  });
+
+  it('returns score >= 50 for name matching honeypot pattern', () => {
+    expect(honeypotScore(el('<input name="honeypot_field" value="">'))).toBeGreaterThanOrEqual(50);
+  });
+
+  it('returns score < 50 for normal field with autocomplete="off" and aria-label', () => {
+    expect(honeypotScore(el('<input autocomplete="off" aria-label="Website" name="x">'))).toBeLessThan(50);
+  });
+});
+
 describe('isVisible', () => {
   let isVisible: typeof import('@/agent/dom-utils').isVisible;
 
