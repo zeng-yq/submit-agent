@@ -22,5 +22,12 @@ export function buildProductContext(product: ProductProfile): string {
 		`**Categories:** ${product.categories.join(', ')}`,
 	]
 
+	if (product.founderName) {
+		lines.push('', `**Founder Name:** ${product.founderName}`)
+	}
+	if (product.founderEmail) {
+		lines.push(`**Founder Email:** ${product.founderEmail}`)
+	}
+
 	return lines.join('\n')
 }

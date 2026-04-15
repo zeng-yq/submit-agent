@@ -5,6 +5,8 @@
 
 import type { LLMSettings } from '@/lib/types'
 
+const LLM_TIMEOUT_MS = 60_000
+
 export interface CallLLMOptions {
 	config: LLMSettings
 	systemPrompt: string
@@ -17,6 +19,7 @@ export interface CallLLMOptions {
 
 /**
  * Call an OpenAI-compatible LLM endpoint.
+ * Includes a 60-second automatic timeout (combined with any external AbortSignal).
  */
 export async function callLLM(options: CallLLMOptions): Promise<string> {
 	const {
@@ -49,15 +52,28 @@ export async function callLLM(options: CallLLMOptions): Promise<string> {
 		body.response_format = { type: 'json_object' }
 	}
 
-	const response = await fetch(endpoint, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-		},
-		body: JSON.stringify(body),
-		signal,
-	})
+	// Combine external signal with automatic timeout
+	const timeoutController = new AbortController()
+	const timeoutId = setTimeout(() => timeoutController.abort(), LLM_TIMEOUT_MS)
+
+	const combinedSignal = signal
+		? AbortSignal.any([signal, timeoutController.signal])
+		: timeoutController.signal
+
+	let response: Response
+	try {
+		response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+			},
+			body: JSON.stringify(body),
+			signal: combinedSignal,
+		})
+	} finally {
+		clearTimeout(timeoutId)
+	}
 
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => '')
@@ -91,8 +107,16 @@ function fixUnquotedKeys(json: string): string {
 }
 
 /**
+ * Remove trailing commas before } or ] — common LLM output issue.
+ * e.g. {"field_0": "value",} → {"field_0": "value"}
+ */
+function removeTrailingCommas(json: string): string {
+	return json.replace(/,\s*([}\]])/g, '$1')
+}
+
+/**
  * Parse JSON from LLM response text.
- * Handles markdown fences, unquoted keys, and extracts first JSON object.
+ * Handles markdown fences, trailing commas, unquoted keys, and extracts first JSON object.
  */
 export function parseLLMJson(raw: string): unknown {
 	let cleaned = raw.trim()
@@ -116,9 +140,9 @@ export function parseLLMJson(raw: string): unknown {
 		throw new Error(`无法从 LLM 响应中解析 JSON: ${raw.slice(0, 200)}`)
 	}
 
-	// Try fixing unquoted keys (common LLM output issue)
+	// Try fixing trailing commas + unquoted keys (common LLM output issues)
 	try {
-		return JSON.parse(fixUnquotedKeys(objectMatch[0]))
+		return JSON.parse(fixUnquotedKeys(removeTrailingCommas(objectMatch[0])))
 	} catch {
 		// Last resort: try the original extracted block as-is
 		try {

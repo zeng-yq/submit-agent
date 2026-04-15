@@ -283,7 +283,9 @@ export function classifyForm(formEl: HTMLFormElement, formIndex: number): FormGr
   }
 
   // --- Login detection ---
-  if (hasPassword) {
+  // Only high confidence for password + few fields (typical login form).
+  // Submission/registration forms with many fields + password should not be filtered.
+  if (hasPassword && fieldCount <= 2) {
     return { form_index: formIndex, role: 'login', confidence: 'high', form_id: id, form_action: action, field_count: fieldCount, filtered: true };
   }
   if (action && (action.includes('/login') || action.includes('/signin') || action.includes('/auth'))) {

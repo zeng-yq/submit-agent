@@ -63,7 +63,7 @@ function matchesField(
 	// Token similarity match (threshold > 0.5)
 	for (const id of identifiers) {
 		if (!id) continue
-		if (tokenSimilarity(key, id) > 0.5) return true
+		if (tokenSimilarity(key, id) >= 0.5) return true
 	}
 
 	return false
@@ -182,11 +182,13 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			},
 		})
 
-		if (analysis.fields.length === 0) {
-			log('warning', 'analyze', '页面未发现可填写的表单字段')
-			onStatusChange('done')
-			return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
-		}
+			if (analysis.fields.length === 0) {
+				const msg = '页面未发现可填写的表单字段'
+				log('error', 'analyze', msg)
+				onStatusChange('error')
+				onError(new Error(msg))
+				return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
+			}
 
 		// Notify progress
 		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
@@ -292,9 +294,11 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 				onError(new Error(`LLM 返回的 ${valueCount} 个字段值无法匹配页面表单字段`))
 				return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM field key mismatch — no fields matched.' }
 			}
-			log('warning', 'llm', 'LLM 未返回任何字段值')
-			onStatusChange('done')
-			return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM returned no field values.' }
+				const noValMsg = 'LLM 未返回任何字段值'
+				log('error', 'llm', noValMsg)
+				onStatusChange('error')
+				onError(new Error(noValMsg))
+				return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM returned no field values.' }
 		}
 
 		// Step 4: Fill form — sequential with annotation

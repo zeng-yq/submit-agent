@@ -132,11 +132,14 @@ export async function fillAndVerify(
     // Check element is still in the document
     if (!el.isConnected) return false;
 
-    // Read actual value
-    const actual =
-      (el as HTMLInputElement).value ??
-      el.textContent ??
-      '';
+    // Read actual value — use innerHTML for contenteditable with HTML content
+    // since textContent strips tags and will never match HTML values
+    let actual: string
+    if ((el as HTMLElement).isContentEditable && /<[a-z][\s\S]*>/i.test(value)) {
+      actual = el.innerHTML ?? ''
+    } else {
+      actual = (el as HTMLInputElement).value ?? el.textContent ?? ''
+    }
 
     if (actual.trim() === value.trim()) return true;
   }
