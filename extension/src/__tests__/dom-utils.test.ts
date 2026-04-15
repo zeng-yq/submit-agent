@@ -173,6 +173,40 @@ describe('isVisible', () => {
   });
 });
 
+describe('fillAndVerify', () => {
+  let fillAndVerify: typeof import('@/agent/dom-utils').fillAndVerify;
+
+  beforeEach(async () => {
+    document.body.innerHTML = '';
+    const mod = await import('@/agent/dom-utils');
+    fillAndVerify = mod.fillAndVerify;
+  });
+
+  it('returns true when fill succeeds on input', async () => {
+    document.body.innerHTML = '<input type="text" name="q" id="q">';
+    const input = document.querySelector('#q') as HTMLElement;
+    const result = await fillAndVerify(input, 'hello', 1);
+    expect(result).toBe(true);
+    expect((input as HTMLInputElement).value).toBe('hello');
+  });
+
+  it('returns true when fill succeeds on textarea', async () => {
+    document.body.innerHTML = '<textarea name="comment" id="c"></textarea>';
+    const ta = document.querySelector('#c') as HTMLElement;
+    const result = await fillAndVerify(ta, 'nice comment', 1);
+    expect(result).toBe(true);
+    expect((ta as HTMLTextAreaElement).value).toBe('nice comment');
+  });
+
+  it('returns false when element has been removed', async () => {
+    document.body.innerHTML = '<input type="text" name="q" id="q">';
+    const input = document.querySelector('#q') as HTMLElement;
+    input.remove();
+    const result = await fillAndVerify(input, 'hello', 1);
+    expect(result).toBe(false);
+  });
+});
+
 describe('waitForFormFields', () => {
   let waitForFormFields: typeof import('@/agent/dom-utils').waitForFormFields;
 

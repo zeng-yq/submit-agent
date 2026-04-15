@@ -2,7 +2,7 @@ import { initFloatButton } from '@/agent/FloatButton.content'
 import { getFloatButtonEnabled } from '@/lib/storage'
 import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
-import { fillField, isVisible, waitForFormFields } from '@/agent/dom-utils'
+import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
 
 /**
@@ -177,25 +177,32 @@ export default defineContentScript({
 						return
 					}
 
-					let filled = 0
-					let failed = 0
+					;(async () => {
+						let filled = 0
+						let failed = 0
 
-					for (const field of fields) {
-						try {
-							const el = document.querySelector(field.selector)
-							if (el) {
-								fillField(el as HTMLElement, field.value)
-								filled++
-							} else {
+						for (const field of fields) {
+							try {
+								const el = document.querySelector(field.selector)
+								if (el) {
+									const ok = await fillAndVerify(el as HTMLElement, field.value)
+									if (ok) {
+										filled++
+									} else {
+										failed++
+									}
+								} else {
+									failed++
+								}
+							} catch {
 								failed++
 							}
-						} catch {
-							failed++
 						}
-					}
 
-					sendResponse({ ok: true, filled, failed })
-					return
+						sendResponse({ ok: true, filled, failed })
+					})()
+
+					return true // keep message channel open for async response
 				}
 				case 'annotate': {
 					const fields = message.payload?.fields as Array<{ selector: string }> | undefined

@@ -101,6 +101,47 @@ export function fillField(el: HTMLElement, value: string): void {
   }
 }
 
+/**
+ * Fill a form field and verify the value was actually written.
+ * Retries with execCommand fallback if verification fails.
+ * Returns true if the value was successfully written.
+ */
+export async function fillAndVerify(
+  el: HTMLElement,
+  value: string,
+  retries = 2,
+): Promise<boolean> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt === 0) {
+      fillField(el, value);
+    } else {
+      // Retry: use execCommand as fallback for framework-managed inputs
+      el.focus();
+      if ((el as HTMLInputElement).select) {
+        (el as HTMLInputElement).select();
+      }
+      document.execCommand('selectAll', false);
+      document.execCommand('insertText', false, value);
+    }
+
+    // Wait for framework to process
+    await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
+
+    // Check element is still in the document
+    if (!el.isConnected) return false;
+
+    // Read actual value
+    const actual =
+      (el as HTMLInputElement).value ??
+      el.textContent ??
+      '';
+
+    if (actual.trim() === value.trim()) return true;
+  }
+
+  return false;
+}
+
 /** Wait for the next animation frame. */
 export function waitForRAF(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
