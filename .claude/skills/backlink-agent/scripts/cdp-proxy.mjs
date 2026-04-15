@@ -62,7 +62,7 @@ async function discoverChromePort() {
   for (const p of possiblePaths) {
     try {
       const content = fs.readFileSync(p, 'utf-8').trim();
-      const lines = content.split('\n');
+      const lines = content.split(/\r?\n/);
       const port = parseInt(lines[0]);
       if (port > 0 && port < 65536) {
         const ok = await checkPort(port);

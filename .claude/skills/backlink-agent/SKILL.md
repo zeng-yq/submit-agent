@@ -67,7 +67,6 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 | 需要兼容 React/Vue 填表 | **form-filler.js** | 原生 setter + _valueTracker + execCommand |
 | 需要辅助信息（产品页面、元数据） | **curl / Jina** | 快速获取，无需 CDP |
 | 需要从产品页面提取信息 | **product-generator.mjs** | 提取 meta、标题、正文，自动生成产品记录 |
-| 需要同步到 Google Sheets | **sheets-sync.mjs** | 上传/下载，自动备份回滚 |
 
 CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
@@ -99,7 +98,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 ### 外链工作流
 
 ```
-IMPORT ──→ ANALYZE ──→ SUBMIT ──→ SYNC
+IMPORT ──→ ANALYZE ──→ SUBMIT
 ```
 
 **IMPORT** — 导入外链候选数据到 `backlinks.json`
@@ -110,9 +109,6 @@ IMPORT ──→ ANALYZE ──→ SUBMIT ──→ SYNC
 
 **SUBMIT** — 对可发布站点执行表单填写和提交
 → 详见 `references/workflow-submit.md`
-
-**SYNC** — 将本地数据同步到 Google Sheets
-→ 详见 `references/workflow-sync.md`
 
 每个阶段按需读取对应的参考文件，不需要提前全部加载。
 
@@ -241,4 +237,3 @@ IMPORT ──→ ANALYZE ──→ SUBMIT ──→ SYNC
 | `references/workflow-import.md` | 进入导入阶段时 |
 | `references/workflow-analyze.md` | 进入分析阶段时 |
 | `references/workflow-submit.md` | 进入提交阶段时 |
-| `references/workflow-sync.md` | 进入同步阶段时 |
