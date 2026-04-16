@@ -81,7 +81,9 @@ let imported = 0
 let skipped = 0
 
 const batchInsert = db.transaction((rows) => {
-  for (const row of rows) {
+  const baseTs = Date.now()
+  for (let idx = 0; idx < rows.length; idx++) {
+    const row = rows[idx]
     const sourceUrl = row['Source url']?.trim()
     if (!sourceUrl) continue
 
@@ -94,8 +96,7 @@ const batchInsert = db.transaction((rows) => {
     }
 
     const now = new Date().toISOString()
-    const randomHex = Math.random().toString(16).slice(2, 6)
-    const id = `bl-${Date.now()}-${randomHex}`
+    const id = `bl-${baseTs}-${idx.toString(16).padStart(4, '0')}`
 
     const result = insertStmt.run(
       id,

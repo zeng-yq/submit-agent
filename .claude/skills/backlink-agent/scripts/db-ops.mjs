@@ -271,6 +271,9 @@ if (process.argv[1] === __filename) {
           siteExperience: ops._db.prepare('SELECT COUNT(*) as count FROM site_experience').get().count,
         }
         break
+      case 'add-product':
+        result = ops.addProduct(JSON.parse(arg))
+        break
       case 'update-backlink':
         ops.updateBacklinkStatus(arg, process.argv[4], process.argv[5] ? JSON.parse(process.argv[5]) : undefined)
         result = { ok: true }
@@ -289,7 +292,7 @@ if (process.argv[1] === __filename) {
         break
       default:
         console.error(`未知命令: ${command}`)
-        console.error('用法: node db-ops.mjs <products|product|backlinks|site|sites|submissions|experience|stats|update-backlink|add-publishable|add-submission|upsert-experience> [arg]')
+        console.error('用法: node db-ops.mjs <products|product|add-product|backlinks|site|sites|submissions|experience|stats|update-backlink|add-publishable|add-submission|upsert-experience> [arg]')
         process.exit(1)
     }
     console.log(JSON.stringify(result, null, 2))
