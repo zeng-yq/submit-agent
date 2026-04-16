@@ -172,7 +172,14 @@ export function createOps(db) {
     listProducts: () => listAll(db, 'products'),
 
     addBacklinks: (r) => addBacklinks(db, r),
-    getBacklinksByStatus: (s) => listAll(db, 'backlinks', { status: s }),
+    getBacklinksByStatus: (s, limit) => {
+      const where = 'status = ?'
+      const sql = limit
+        ? `SELECT * FROM backlinks WHERE ${where} ORDER BY rowid LIMIT ?`
+        : `SELECT * FROM backlinks WHERE ${where} ORDER BY rowid`
+      const params = limit ? [s, limit] : [s]
+      return db.prepare(sql).all(...params).map(r => toCamel('backlinks', r))
+    },
     updateBacklinkStatus: (id, s, a) => updateBacklinkStatus(db, id, s, a),
 
     addSite: (s) => insert(db, 'sites', s),
@@ -212,9 +219,12 @@ if (process.argv[1] === __filename) {
       case 'product':
         result = ops.getProduct(arg)
         break
-      case 'backlinks':
-        result = ops.getBacklinksByStatus(arg || 'pending')
+      case 'backlinks': {
+        const status = arg || 'pending'
+        const limit = process.argv[4] ? parseInt(process.argv[4], 10) : undefined
+        result = ops.getBacklinksByStatus(status, limit)
         break
+      }
       case 'site':
         result = ops.getSiteByDomain(arg)
         break
