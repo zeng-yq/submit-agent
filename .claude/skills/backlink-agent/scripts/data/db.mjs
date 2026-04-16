@@ -2,90 +2,171 @@ import Database from 'better-sqlite3'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
-const SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS products (
-  id           TEXT PRIMARY KEY,
-  name         TEXT NOT NULL UNIQUE,
-  url          TEXT NOT NULL,
-  tagline      TEXT NOT NULL DEFAULT '',
-  short_desc   TEXT NOT NULL DEFAULT '',
-  long_desc    TEXT NOT NULL DEFAULT '',
-  categories   TEXT NOT NULL DEFAULT '[]',
-  anchor_texts TEXT NOT NULL DEFAULT '[]',
-  logo_url     TEXT NOT NULL DEFAULT '',
-  social_links TEXT NOT NULL DEFAULT '{}',
-  founder_name  TEXT NOT NULL DEFAULT '',
-  founder_email TEXT NOT NULL DEFAULT '',
-  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
-);
+// --- 声明式 Schema 定义 ---
+// 每个表的字段、约束、索引都通过配置对象声明。
+// 新增表只需在此处添加配置，即可自动获得建表 SQL 和 CRUD 支持。
 
-CREATE TABLE IF NOT EXISTS backlinks (
-  id           TEXT PRIMARY KEY,
-  source_url   TEXT NOT NULL,
-  source_title TEXT NOT NULL DEFAULT '',
-  domain       TEXT NOT NULL,
-  page_ascore  INTEGER,
-  status       TEXT NOT NULL DEFAULT 'pending'
-               CHECK(status IN ('pending','publishable','not_publishable','skipped','error')),
-  analysis     TEXT,
-  added_at     TEXT NOT NULL DEFAULT (datetime('now'))
-);
+export const TABLES = {
+  products: {
+    columns: {
+      id:            { type: 'TEXT', pk: true },
+      name:          { type: 'TEXT', notNull: true, unique: true },
+      url:           { type: 'TEXT', notNull: true },
+      tagline:       { type: 'TEXT', notNull: true, default: "''" },
+      short_desc:    { type: 'TEXT', notNull: true, default: "''" },
+      long_desc:     { type: 'TEXT', notNull: true, default: "''" },
+      categories:    { type: 'TEXT', notNull: true, default: "'[]'", json: true },
+      anchor_texts:  { type: 'TEXT', notNull: true, default: "'[]'", json: true },
+      logo_url:      { type: 'TEXT', default: "''" },
+      social_links:  { type: 'TEXT', default: "'{}'", json: true },
+      founder_name:  { type: 'TEXT', default: "''" },
+      founder_email: { type: 'TEXT', default: "''" },
+      created_at:    { type: 'TEXT', notNull: true, default: "datetime('now')" },
+    },
+  },
+  backlinks: {
+    columns: {
+      id:           { type: 'TEXT', pk: true },
+      source_url:   { type: 'TEXT', notNull: true, unique: true },
+      source_title: { type: 'TEXT', default: "''" },
+      domain:       { type: 'TEXT', notNull: true },
+      page_ascore:  { type: 'INTEGER' },
+      status:       { type: 'TEXT', notNull: true, default: "'pending'", check: "'pending','publishable','not_publishable','skipped','error'" },
+      analysis:     { type: 'TEXT', json: true },
+      added_at:     { type: 'TEXT', notNull: true, default: "datetime('now')" },
+    },
+    indexes: [
+      { name: 'idx_backlinks_status', columns: ['status'] },
+      { name: 'idx_backlinks_domain', columns: ['domain'] },
+    ],
+  },
+  sites: {
+    columns: {
+      id:              { type: 'TEXT', pk: true },
+      domain:          { type: 'TEXT', notNull: true },
+      url:             { type: 'TEXT', notNull: true },
+      submit_url:      { type: 'TEXT', default: "''" },
+      category:        { type: 'TEXT', default: "''" },
+      comment_system:  { type: 'TEXT', default: "''" },
+      antispam:        { type: 'TEXT', default: "'[]'", json: true },
+      rel_attribute:   { type: 'TEXT', default: "''" },
+      product_id:      { type: 'TEXT', notNull: true, default: "''", fk: 'products(id)' },
+      pricing:         { type: 'TEXT', default: "'free'" },
+      monthly_traffic: { type: 'TEXT', default: "''" },
+      lang:            { type: 'TEXT', default: "'en'" },
+      dr:              { type: 'INTEGER' },
+      notes:           { type: 'TEXT', default: "''" },
+      added_at:        { type: 'TEXT', notNull: true, default: "datetime('now')" },
+    },
+    indexes: [
+      { name: 'idx_sites_domain', columns: ['domain'] },
+      { name: 'idx_sites_product_id', columns: ['product_id'] },
+    ],
+  },
+  submissions: {
+    columns: {
+      id:           { type: 'TEXT', pk: true },
+      site_name:    { type: 'TEXT', notNull: true },
+      site_url:     { type: 'TEXT', notNull: true },
+      product_id:   { type: 'TEXT', notNull: true, fk: 'products(id)' },
+      status:       { type: 'TEXT', notNull: true, default: "'submitted'", check: "'submitted','failed','skipped'" },
+      submitted_at: { type: 'TEXT', notNull: true, default: "datetime('now')" },
+      result:       { type: 'TEXT', default: "''" },
+      fields:       { type: 'TEXT', default: "'{}'", json: true },
+    },
+    indexes: [
+      { name: 'idx_submissions_product_id', columns: ['product_id'] },
+      { name: 'idx_submissions_status', columns: ['status'] },
+    ],
+  },
+  site_experience: {
+    columns: {
+      domain:               { type: 'TEXT', pk: true },
+      aliases:              { type: 'TEXT', default: "'[]'", json: true },
+      updated:              { type: 'TEXT', notNull: true, default: "datetime('now')" },
+      submit_type:          { type: 'TEXT', default: "''" },
+      form_framework:       { type: 'TEXT', default: "''" },
+      antispam:             { type: 'TEXT', default: "''" },
+      fill_strategy:        { type: 'TEXT', default: "''" },
+      post_submit_behavior: { type: 'TEXT', default: "''" },
+      effective_patterns:   { type: 'TEXT', default: "'[]'", json: true },
+      known_traps:          { type: 'TEXT', default: "'[]'", json: true },
+    },
+  },
+}
 
-CREATE INDEX IF NOT EXISTS idx_backlinks_status ON backlinks(status);
-CREATE INDEX IF NOT EXISTS idx_backlinks_domain ON backlinks(domain);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_backlinks_source_url ON backlinks(source_url);
+// --- Schema → SQL 生成 ---
 
-CREATE TABLE IF NOT EXISTS sites (
-  id              TEXT PRIMARY KEY,
-  domain          TEXT NOT NULL,
-  url             TEXT NOT NULL,
-  submit_url      TEXT NOT NULL DEFAULT '',
-  category        TEXT NOT NULL DEFAULT '',
-  comment_system  TEXT NOT NULL DEFAULT '',
-  antispam        TEXT NOT NULL DEFAULT '[]',
-  rel_attribute   TEXT NOT NULL DEFAULT '',
-  product_id      TEXT NOT NULL DEFAULT '',
-  pricing         TEXT NOT NULL DEFAULT 'free',
-  monthly_traffic TEXT NOT NULL DEFAULT '',
-  lang            TEXT NOT NULL DEFAULT 'en',
-  dr              INTEGER,
-  notes           TEXT NOT NULL DEFAULT '',
-  added_at        TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (product_id) REFERENCES products(id)
-);
+function buildCreateTableSQL(name, tableDef) {
+  const cols = []
+  const fks = []
+  for (const [colName, colDef] of Object.entries(tableDef.columns)) {
+    let sql = `  ${colName} ${colDef.type}`
+    if (colDef.pk) sql += ' PRIMARY KEY'
+    if (colDef.notNull) sql += ' NOT NULL'
+    if (colDef.unique) sql += ' UNIQUE'
+    if (colDef.default !== undefined) sql += ` DEFAULT (${colDef.default})`
+    if (colDef.check) sql += ` CHECK(${colName} IN (${colDef.check}))`
+    if (colDef.fk) fks.push(`  FOREIGN KEY (${colName}) REFERENCES ${colDef.fk}`)
+    cols.push(sql)
+  }
+  let sql = `CREATE TABLE IF NOT EXISTS ${name} (\n${cols.join(',\n')}`
+  if (fks.length) sql += `,\n${fks.join(',\n')}`
+  sql += '\n)'
+  return sql
+}
 
-CREATE INDEX IF NOT EXISTS idx_sites_domain ON sites(domain);
-CREATE INDEX IF NOT EXISTS idx_sites_product_id ON sites(product_id);
+function buildIndexSQL(name, tableDef) {
+  const sqls = []
+  for (const [colName, colDef] of Object.entries(tableDef.columns)) {
+    if (colDef.unique && !colDef.pk) {
+      sqls.push(`CREATE UNIQUE INDEX IF NOT EXISTS idx_${name}_${colName} ON ${name}(${colName})`)
+    }
+  }
+  for (const idx of (tableDef.indexes || [])) {
+    sqls.push(`CREATE INDEX IF NOT EXISTS ${idx.name} ON ${name}(${idx.columns.join(', ')})`)
+  }
+  return sqls
+}
 
-CREATE TABLE IF NOT EXISTS submissions (
-  id           TEXT PRIMARY KEY,
-  site_name    TEXT NOT NULL,
-  site_url     TEXT NOT NULL,
-  product_id   TEXT NOT NULL,
-  status       TEXT NOT NULL DEFAULT 'submitted'
-               CHECK(status IN ('submitted','failed','skipped')),
-  submitted_at TEXT NOT NULL DEFAULT (datetime('now')),
-  result       TEXT NOT NULL DEFAULT '',
-  fields       TEXT NOT NULL DEFAULT '{}',
-  FOREIGN KEY (product_id) REFERENCES products(id)
-);
+function buildSchemaSQL() {
+  const parts = []
+  for (const [name, tableDef] of Object.entries(TABLES)) {
+    parts.push(buildCreateTableSQL(name, tableDef))
+    for (const idxSQL of buildIndexSQL(name, tableDef)) {
+      parts.push(idxSQL)
+    }
+  }
+  return parts.join(';\n\n') + ';'
+}
 
-CREATE INDEX IF NOT EXISTS idx_submissions_product_id ON submissions(product_id);
-CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
+// --- Schema 元数据查询 API ---
 
-CREATE TABLE IF NOT EXISTS site_experience (
-  domain               TEXT PRIMARY KEY,
-  aliases              TEXT NOT NULL DEFAULT '[]',
-  updated              TEXT NOT NULL DEFAULT (datetime('now')),
-  submit_type          TEXT NOT NULL DEFAULT '',
-  form_framework       TEXT NOT NULL DEFAULT '',
-  antispam             TEXT NOT NULL DEFAULT '',
-  fill_strategy        TEXT NOT NULL DEFAULT '',
-  post_submit_behavior TEXT NOT NULL DEFAULT '',
-  effective_patterns   TEXT NOT NULL DEFAULT '[]',
-  known_traps          TEXT NOT NULL DEFAULT '[]'
-);
-`
+export function getJsonColumns(table) {
+  if (!TABLES[table]) return []
+  return Object.entries(TABLES[table].columns)
+    .filter(([, def]) => def.json)
+    .map(([name]) => name)
+}
+
+export function getPkColumn(table) {
+  if (!TABLES[table]) return null
+  for (const [name, def] of Object.entries(TABLES[table].columns)) {
+    if (def.pk) return name
+  }
+  return null
+}
+
+export function getColumnNames(table) {
+  if (!TABLES[table]) return []
+  return Object.keys(TABLES[table].columns)
+}
+
+export function hasTable(table) {
+  return table in TABLES
+}
+
+// --- 数据库创建 ---
 
 export function createDb(dbPath) {
   const db = new Database(dbPath)
@@ -94,7 +175,7 @@ export function createDb(dbPath) {
     db.pragma('busy_timeout = 5000')
   }
   db.pragma('foreign_keys = ON')
-  db.exec(SCHEMA_SQL)
+  db.exec(buildSchemaSQL())
   return db
 }
 
