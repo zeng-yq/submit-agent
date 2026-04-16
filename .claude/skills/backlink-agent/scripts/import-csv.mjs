@@ -1,130 +1,122 @@
 #!/usr/bin/env node
-// CSV 导入脚本 — 解析 Semrush 导出的 CSV，按去重规则输出 JSON
-// 用法: node import-csv.mjs <csv-file-path> [backlinks-json-path]
+// CSV 导入脚本 — 解析 Semrush 导出的 CSV，去重后直接写入 SQLite
+// 用法: node import-csv.mjs <csv-file-path>
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs'
+import db from './db.mjs'
 
-const csvPath = process.argv[2];
-const backlinksPath = process.argv[3];
+const csvPath = process.argv[2]
 
 if (!csvPath) {
-  console.error('用法: node import-csv.mjs <csv-file-path> [backlinks-json-path]');
-  process.exit(1);
+  console.error('用法: node import-csv.mjs <csv-file-path>')
+  process.exit(1)
 }
 
 // --- CSV 解析器 ---
 
-/** 解析单行 CSV（处理引号包裹字段） */
 function parseCsvLine(line) {
-  const fields = [];
-  let current = '';
-  let inQuotes = false;
+  const fields = []
+  let current = ''
+  let inQuotes = false
 
   for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+    const char = line[i]
     if (inQuotes) {
       if (char === '"') {
         if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++;
+          current += '"'
+          i++
         } else {
-          inQuotes = false;
+          inQuotes = false
         }
       } else {
-        current += char;
+        current += char
       }
     } else {
       if (char === '"') {
-        inQuotes = true;
+        inQuotes = true
       } else if (char === ',') {
-        fields.push(current);
-        current = '';
+        fields.push(current)
+        current = ''
       } else {
-        current += char;
+        current += char
       }
     }
   }
-  fields.push(current);
-  return fields;
+  fields.push(current)
+  return fields
 }
 
-/** 解析 CSV 文本为行数组 */
 function parseCsv(csvText) {
-  const lines = csvText.split(/\r?\n/);
-  if (lines.length < 2) return [];
+  const lines = csvText.split(/\r?\n/)
+  if (lines.length < 2) return []
 
-  const headers = parseCsvLine(lines[0]);
-  const rows = [];
+  const headers = parseCsvLine(lines[0])
+  const rows = []
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const values = parseCsvLine(line);
-    const row = {};
+    const line = lines[i].trim()
+    if (!line) continue
+    const values = parseCsvLine(line)
+    const row = {}
     for (let j = 0; j < headers.length; j++) {
-      row[headers[j]] = values[j] ?? '';
+      row[headers[j]] = values[j] ?? ''
     }
-    rows.push(row);
+    rows.push(row)
   }
-  return rows;
-}
-
-// --- 去重集 ---
-
-/** 从 backlinks.json 加载已有 sourceUrl 集合 */
-function loadExistingUrls() {
-  if (!backlinksPath || !existsSync(backlinksPath)) return new Set();
-  try {
-    const data = JSON.parse(readFileSync(backlinksPath, 'utf-8'));
-    return new Set((Array.isArray(data) ? data : []).map(b => b.sourceUrl));
-  } catch {
-    return new Set();
-  }
+  return rows
 }
 
 // --- 主逻辑 ---
 
-const csvText = readFileSync(csvPath, 'utf-8');
-const rows = parseCsv(csvText);
-const existingUrls = loadExistingUrls();
-const records = [];
-let imported = 0;
-let skipped = 0;
+const csvText = readFileSync(csvPath, 'utf-8')
+const rows = parseCsv(csvText)
 
-for (const row of rows) {
-  const sourceUrl = row['Source url']?.trim();
-  if (!sourceUrl) continue;
+const insertStmt = db.prepare(`
+  INSERT INTO backlinks (id, source_url, source_title, domain, page_ascore, status, analysis, added_at)
+  VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
+  ON CONFLICT(source_url) DO NOTHING
+`)
 
-  if (existingUrls.has(sourceUrl)) {
-    skipped++;
-    continue;
+let imported = 0
+let skipped = 0
+
+const batchInsert = db.transaction((rows) => {
+  for (const row of rows) {
+    const sourceUrl = row['Source url']?.trim()
+    if (!sourceUrl) continue
+
+    const ascore = parseInt(row['Page ascore'] ?? '0', 10)
+    let domain
+    try {
+      domain = new URL(sourceUrl).hostname.replace(/^www\./, '')
+    } catch {
+      domain = sourceUrl
+    }
+
+    const now = new Date().toISOString()
+    const randomHex = Math.random().toString(16).slice(2, 6)
+    const id = `bl-${Date.now()}-${randomHex}`
+
+    const result = insertStmt.run(
+      id,
+      sourceUrl,
+      row['Source title']?.trim() ?? '',
+      domain,
+      isNaN(ascore) ? 0 : ascore,
+      'pending',
+      now,
+    )
+
+    if (result.changes > 0) {
+      imported++
+    } else {
+      skipped++
+    }
   }
+})
 
-  const ascore = parseInt(row['Page ascore'] ?? '0', 10);
-  let domain;
-  try {
-    domain = new URL(sourceUrl).hostname.replace(/^www\./, '');
-  } catch {
-    domain = sourceUrl;
-  }
+batchInsert(rows)
 
-  const now = new Date().toISOString();
-  const randomHex = Math.random().toString(16).slice(2, 6);
-  const id = `bl-${Date.now()}-${randomHex}`;
+console.log(JSON.stringify({ imported, skipped }))
 
-  records.push({
-    id,
-    sourceUrl,
-    sourceTitle: row['Source title']?.trim() ?? '',
-    domain,
-    pageAscore: isNaN(ascore) ? 0 : ascore,
-    status: 'pending',
-    analysis: null,
-    addedAt: now,
-  });
-
-  existingUrls.add(sourceUrl);
-  imported++;
-}
-
-const result = { imported, skipped, records };
-console.log(JSON.stringify(result));
+db.close()
