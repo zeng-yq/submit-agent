@@ -160,6 +160,70 @@ node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience <domain> '<experienceJSO
 
 ---
 
+## 并行分析策略
+
+每次最多 **3 个 subagent** 同时分析不同的外链候选。主 agent 只做轻量调度，不承载业务数据。
+
+### 设计原则
+
+- **主 agent 是调度器**：只持有待分析记录列表和每条的简短状态，不读取/传递业务数据
+- **Subagent 自给自足**：自行通过 `db-ops.mjs` 读取数据、操控浏览器、写入结果
+- **返回最小摘要**：subagent 只向主 agent 返回一行结果，不回传完整过程
+
+### 调度循环
+
+```
+主 Agent (调度器, 滑动窗口 maxSize=3)
+  │
+  │  1. 查询 backlinks 表中 status: "pending" 的记录
+  │  2. 取前 3 条，派发 3 个 subagent（后台运行）
+  │
+  │── subagent-1: {id, domain, sourceUrl} ──→ 打开tab → 检测 → 判定 → 写回 → 关闭tab
+  │── subagent-2: {id, domain, sourceUrl} ──→ ...
+  │── subagent-3: {id, domain, sourceUrl} ──→ ...
+  │
+  │  3. 任一 subagent 返回 → 立即派发下一个 pending 记录
+  │  4. 重复直到所有 pending 记录处理完毕
+  │  5. 生成分析报告
+```
+
+### Subagent prompt 模板
+
+```
+分析外链候选 {id}（{domain}，{sourceUrl}）。
+
+数据操作：
+- 查询站点是否已存在：node "${SKILL_DIR}/scripts/db-ops.mjs site <domain>
+- 更新外链状态：node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> <status> [analysisJSON]
+- 标记可发布+添加站点：node "${SKILL_DIR}/scripts/db-ops.mjs add-publishable <id> '<siteJSON>'
+
+要求：
+- 必须加载 backlink-agent skill 并遵循分析流程指引（workflow-analyze.md）
+- 自行创建 tab 打开页面，分析完成后自行关闭 tab
+- 分析结果必须自行写入数据库
+- 返回简短摘要
+
+返回格式：
+{id} | {domain} | publishable/not_publishable/skipped/error | 一句话说明
+```
+
+### 主 Agent 职责
+
+1. 从 `backlinks` 表筛选待分析条目（`status: "pending"`）
+2. 初始派发最多 3 个 subagent（后台运行），每个传递 `id`、`domain`、`sourceUrl`
+3. 任一 subagent 返回后，检查是否还有 pending 记录，如有则立即派发下一个
+4. 全部完成后向用户汇报汇总结果（报告格式见 `workflow-analyze.md`）
+
+### 并行控制规则
+
+- **最大并发 3**：同时运行的 subagent 不超过 3 个
+- **滑动窗口**：一个完成，立即派发下一个，不等待整批完成
+- **失败不重试**：subagent 标记为 `error` 的记录保持 error，不自动重试
+- **进度报告**：每 5 条完成后向用户报告进度（已完成/总数/成功率）
+- **上下文控制**：主 agent 上下文只增加一行摘要（约 50 tokens）每条记录
+
+---
+
 ## 串行提交策略
 
 每次由 **1 个 subagent** 处理 **1 个站点**，完成后由主 agent 调度下一个。主 agent 只做轻量调度，不承载业务数据。

@@ -91,6 +91,7 @@ export function createDb(dbPath) {
   const db = new Database(dbPath)
   if (dbPath !== ':memory:') {
     db.pragma('journal_mode = WAL')
+    db.pragma('busy_timeout = 5000')
   }
   db.pragma('foreign_keys = ON')
   db.exec(SCHEMA_SQL)
