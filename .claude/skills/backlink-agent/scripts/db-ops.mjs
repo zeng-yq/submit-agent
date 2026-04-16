@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import db from './db.mjs'
 
 // --- 字段映射工具 ---
@@ -216,3 +217,86 @@ export function createOps(db) {
 
 // 默认操作实例（生产环境）
 export default createOps(db)
+
+// --- CLI 入口 ---
+const __filename = fileURLToPath(import.meta.url)
+
+if (process.argv[1] === __filename) {
+  const ops = createOps(db)
+  const command = process.argv[2]
+  const arg = process.argv[3]
+
+  try {
+    let result
+    switch (command) {
+      case 'products':
+        result = ops.listProducts()
+        break
+      case 'product':
+        result = ops.getProduct(arg)
+        break
+      case 'backlinks':
+        result = ops.getBacklinksByStatus(arg || 'pending')
+        break
+      case 'site':
+        result = ops.getSiteByDomain(arg)
+        break
+      case 'sites':
+        result = arg ? ops.listSitesByProductId(arg) : ops._db.prepare('SELECT * FROM sites ORDER BY added_at').all().map(toCamel)
+        break
+      case 'submissions':
+        result = ops.getSubmissionsByProduct(arg)
+        break
+      case 'experience':
+        result = ops.getSiteExperience(arg)
+        break
+      case 'stats':
+        result = {
+          products: ops._db.prepare('SELECT COUNT(*) as count FROM products').get().count,
+          backlinks: {
+            total: ops._db.prepare('SELECT COUNT(*) as count FROM backlinks').get().count,
+            byStatus: Object.fromEntries(
+              ops._db.prepare("SELECT status, COUNT(*) as count FROM backlinks GROUP BY status").all()
+                .map(r => [r.status, r.count])
+            ),
+          },
+          sites: ops._db.prepare('SELECT COUNT(*) as count FROM sites').get().count,
+          submissions: {
+            total: ops._db.prepare('SELECT COUNT(*) as count FROM submissions').get().count,
+            byStatus: Object.fromEntries(
+              ops._db.prepare("SELECT status, COUNT(*) as count FROM submissions GROUP BY status").all()
+                .map(r => [r.status, r.count])
+            ),
+          },
+          siteExperience: ops._db.prepare('SELECT COUNT(*) as count FROM site_experience').get().count,
+        }
+        break
+      case 'update-backlink':
+        ops.updateBacklinkStatus(arg, process.argv[4], process.argv[5] ? JSON.parse(process.argv[5]) : undefined)
+        result = { ok: true }
+        break
+      case 'add-publishable':
+        ops.addPublishableSite(arg, JSON.parse(process.argv[4]))
+        result = { ok: true }
+        break
+      case 'add-submission':
+        ops.addSubmissionWithExperience(JSON.parse(arg), JSON.parse(process.argv[4]))
+        result = { ok: true }
+        break
+      case 'upsert-experience':
+        ops.upsertSiteExperience(arg, JSON.parse(process.argv[4]))
+        result = { ok: true }
+        break
+      default:
+        console.error(`未知命令: ${command}`)
+        console.error('用法: node db-ops.mjs <products|product|backlinks|site|sites|submissions|experience|stats|update-backlink|add-publishable|add-submission|upsert-experience> [arg]')
+        process.exit(1)
+    }
+    console.log(JSON.stringify(result, null, 2))
+  } catch (err) {
+    console.error(JSON.stringify({ error: err.message }))
+    process.exit(1)
+  } finally {
+    db.close()
+  }
+}
