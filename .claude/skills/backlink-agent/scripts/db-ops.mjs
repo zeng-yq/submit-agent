@@ -66,6 +66,150 @@ export function createOps(db) {
       return db.prepare('SELECT * FROM products ORDER BY created_at').all().map(toCamel)
     },
 
+    // === 外链候选 ===
+    addBacklinks(records) {
+      const stmt = db.prepare(`
+        INSERT INTO backlinks (id, source_url, source_title, domain, page_ascore, status, analysis, added_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(source_url) DO NOTHING
+      `)
+      let count = 0
+      for (const r of records) {
+        const result = stmt.run(
+          r.id,
+          r.sourceUrl,
+          r.sourceTitle ?? '',
+          r.domain,
+          r.pageAscore ?? null,
+          r.status ?? 'pending',
+          r.analysis ? JSON.stringify(r.analysis) : null,
+          r.addedAt ?? new Date().toISOString(),
+        )
+        count += result.changes
+      }
+      return count
+    },
+
+    getBacklinksByStatus(status) {
+      return db.prepare('SELECT * FROM backlinks WHERE status = ? ORDER BY added_at')
+        .all(status).map(toCamel)
+    },
+
+    updateBacklinkStatus(id, status, analysis = null) {
+      if (analysis !== null) {
+        db.prepare('UPDATE backlinks SET status = ?, analysis = ? WHERE id = ?')
+          .run(status, JSON.stringify(analysis), id)
+      } else {
+        db.prepare('UPDATE backlinks SET status = ? WHERE id = ?')
+          .run(status, id)
+      }
+    },
+
+    // === 站点 ===
+    addSite(site) {
+      const row = toRow(site)
+      const columns = [
+        'id', 'domain', 'url', 'submit_url', 'category', 'comment_system',
+        'antispam', 'rel_attribute', 'product_id', 'pricing', 'monthly_traffic',
+        'lang', 'dr', 'notes', 'added_at'
+      ]
+      const defaults = {
+        id: undefined, domain: undefined, url: undefined,
+        submit_url: '', category: '', comment_system: '',
+        antispam: '[]', rel_attribute: '', product_id: '',
+        pricing: 'free', monthly_traffic: '',
+        lang: 'en', dr: null, notes: '',
+        added_at: new Date().toISOString(),
+      }
+      const values = columns.map(c => row[c] ?? defaults[c])
+      const placeholders = columns.map(() => '?').join(', ')
+      db.prepare(`INSERT INTO sites (${columns.join(', ')}) VALUES (${placeholders})`).run(...values)
+      return toCamel(db.prepare('SELECT * FROM sites WHERE id = ?').get(site.id))
+    },
+
+    getSiteByDomain(domain) {
+      return toCamel(db.prepare('SELECT * FROM sites WHERE domain = ?').get(domain))
+    },
+
+    listSitesByProductId(productId) {
+      return db.prepare('SELECT * FROM sites WHERE product_id = ? ORDER BY added_at')
+        .all(productId).map(toCamel)
+    },
+
+    // === 提交记录 ===
+    addSubmission(submission) {
+      db.prepare(`
+        INSERT INTO submissions (id, site_name, site_url, product_id, status, submitted_at, result, fields)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        submission.id,
+        submission.siteName,
+        submission.siteUrl,
+        submission.productId,
+        submission.status ?? 'submitted',
+        submission.submittedAt ?? new Date().toISOString(),
+        submission.result ?? '',
+        JSON.stringify(submission.fields ?? {}),
+      )
+      return toCamel(db.prepare('SELECT * FROM submissions WHERE id = ?').get(submission.id))
+    },
+
+    getSubmissionsByProduct(productId) {
+      return db.prepare('SELECT * FROM submissions WHERE product_id = ? ORDER BY submitted_at')
+        .all(productId).map(toCamel)
+    },
+
+    // === 站点经验 ===
+    upsertSiteExperience(domain, experience) {
+      db.prepare(`
+        INSERT INTO site_experience (domain, aliases, updated, submit_type, form_framework, antispam, fill_strategy, post_submit_behavior, effective_patterns, known_traps)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(domain) DO UPDATE SET
+          aliases = excluded.aliases,
+          updated = excluded.updated,
+          submit_type = excluded.submit_type,
+          form_framework = excluded.form_framework,
+          antispam = excluded.antispam,
+          fill_strategy = excluded.fill_strategy,
+          post_submit_behavior = excluded.post_submit_behavior,
+          effective_patterns = excluded.effective_patterns,
+          known_traps = excluded.known_traps
+      `).run(
+        domain,
+        JSON.stringify(experience.aliases ?? []),
+        new Date().toISOString(),
+        experience.submitType ?? '',
+        experience.formFramework ?? '',
+        experience.antispam ?? '',
+        experience.fillStrategy ?? '',
+        experience.postSubmitBehavior ?? '',
+        JSON.stringify(experience.effectivePatterns ?? []),
+        JSON.stringify(experience.knownTraps ?? []),
+      )
+    },
+
+    getSiteExperience(domain) {
+      return toCamel(db.prepare('SELECT * FROM site_experience WHERE domain = ?').get(domain))
+    },
+
+    // === 事务操作 ===
+    addPublishableSite(backlinkId, site) {
+      const tx = db.transaction(() => {
+        this.updateBacklinkStatus(backlinkId, 'publishable')
+        this.addSite(site)
+      })
+      tx()
+    },
+
+    addSubmissionWithExperience(submission, experience) {
+      const domain = submission.siteName
+      const tx = db.transaction(() => {
+        this.addSubmission(submission)
+        this.upsertSiteExperience(domain, experience)
+      })
+      tx()
+    },
+
     _db: db,
   }
 }
