@@ -8,8 +8,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PROXY_SCRIPT = path.join(ROOT, 'scripts', 'cdp-proxy.mjs');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const PROXY_SCRIPT = path.join(ROOT, 'scripts', 'browser', 'cdp-proxy.mjs');
 const PROXY_PORT = Number(process.env.CDP_PROXY_PORT || 3457);
 
 // --- Node.js 版本检查 ---

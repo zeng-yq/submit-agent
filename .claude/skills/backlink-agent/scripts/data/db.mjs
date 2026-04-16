@@ -99,5 +99,5 @@ export function createDb(dbPath) {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DB_PATH = resolve(__dirname, '../data/backlink.db')
+const DB_PATH = resolve(__dirname, '../../data/backlink.db')
 export default createDb(DB_PATH)
