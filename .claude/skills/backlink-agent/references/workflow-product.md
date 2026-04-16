@@ -17,7 +17,7 @@
 运行前置检查，确保 CDP Proxy 可用（`product-generator.mjs` 需要通过浏览器提取页面信息）：
 
 ```bash
-node "${SKILL_DIR}/scripts/check-deps.mjs"
+node "${SKILL_DIR}/scripts/browser/check-deps.mjs"
 ```
 
 ### 步骤 2：提取页面信息
@@ -25,7 +25,7 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 运行产品页面提取脚本：
 
 ```bash
-node "${SKILL_DIR}/scripts/product-generator.mjs" "<product-url>"
+node "${SKILL_DIR}/scripts/browser/product-generator.mjs" "<product-url>"
 ```
 
 脚本输出 JSON 包含以下字段：
@@ -41,13 +41,13 @@ node "${SKILL_DIR}/scripts/product-generator.mjs" "<product-url>"
 
 ### 步骤 3：生成产品记录
 
-基于提取结果，生成符合 `products.json` 格式的产品记录。
+基于提取结果，生成符合数据库 `products` 表结构的产品记录。
 
 **字段映射规则：**
 
 | 产品字段 | 来源 | 说明 |
 |---------|------|------|
-| `id` | 自动生成 | `prod-{现有最大序号+1, 补零到3位}`，如 `prod-001` |
+| `id` | 自动生成 | 先查询 `node "${SKILL_DIR}/scripts/data/db-ops.mjs products"` 获取现有最大产品序号，再生成 `prod-{最大序号+1, 补零到3位}`，如 `prod-001` |
 | `name` | `ogTitle` 或 `title` | 清理站点名后缀等冗余文本 |
 | `url` | 用户提供的 URL | 使用原始输入 |
 | `tagline` | `ogDescription` 或 `metaDescription` | 提炼为一句话 |
@@ -62,10 +62,13 @@ node "${SKILL_DIR}/scripts/product-generator.mjs" "<product-url>"
 
 ### 步骤 4：写入数据
 
-1. 读取 `${SKILL_DIR}/data/products.json`
-2. 检查 `url` 是否已存在（按域名去重），存在则提示用户
-3. 将新产品追加到数组末尾
-4. 使用 Write 工具写回 `products.json`
+使用 `db-ops.mjs` CLI 将产品写入数据库：
+
+```bash
+node "${SKILL_DIR}/scripts/data/db-ops.mjs add-product '<productJSON>'
+```
+
+其中 `productJSON` 包含 Step 3 生成的所有字段：`id`, `name`, `url`, `tagline`, `short_desc`, `long_desc`, `categories`, `anchor_texts`, `logo_url`, `social_links`, `founder_name`, `founder_email`, `created_at`。
 
 ### 步骤 5：汇报结果
 
@@ -76,5 +79,3 @@ node "${SKILL_DIR}/scripts/product-generator.mjs" "<product-url>"
 > - **URL**：xxx
 > - **分类**：xxx
 > - **Tagline**：xxx
->
-> 可选字段（founderName、founderEmail、socialLinks）未填充，如需补充请告知。
