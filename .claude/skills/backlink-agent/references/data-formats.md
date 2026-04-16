@@ -1,153 +1,135 @@
-# 数据文件格式规范
+# 数据存储格式规范
 
 > 文件路径：`${SKILL_DIR}/references/data-formats.md`
 
-所有数据以 JSON 格式存储在 `${SKILL_DIR}/data/` 目录下。
+所有数据以 SQLite 格式存储在 `${SKILL_DIR}/data/backlink.db` 文件中。
 
 ---
 
-### 2.1 文件清单
+### 2.1 数据库概述
 
-| 文件 | 路径 | 用途 |
+- **数据库文件**：`${SKILL_DIR}/data/backlink.db`
+- **访问方式**：通过 CLI 工具 `node "${SKILL_DIR}/scripts/db-ops.mjs <command> [args]"`
+- **数据表**：`products`、`backlinks`、`sites`、`submissions`、`site_experience`
+
+### 2.2 CLI 命令速查
+
+所有命令均通过 Bash 工具执行，输出 JSON 格式。
+
+#### 读取命令
+
+| 命令 | 用途 | 示例 |
 |------|------|------|
-| 产品资料 | `${SKILL_DIR}/data/products.json` | 存储要推广的产品信息（名称、描述、锚文本等） |
-| 外链候选 | `${SKILL_DIR}/data/backlinks.json` | 外链候选站点列表，每条包含来源 URL、分析状态、检测结果 |
-| 站点库 | `${SKILL_DIR}/data/sites.json` | 已确认可发布的站点，作为外链建设的最终目标库 |
-| 提交记录 | `${SKILL_DIR}/data/submissions.json` | 每次外链提交的结果记录 |
-| 同步配置 | `${SKILL_DIR}/data/sync-config.json` | Google Sheets 同步配置 |
+| `products` | 列出所有产品 | `node "${SKILL_DIR}/scripts/db-ops.mjs products` |
+| `product <id>` | 获取指定产品 | `node "${SKILL_DIR}/scripts/db-ops.mjs product prod-001` |
+| `backlinks [status]` | 列出外链候选（默认 pending） | `node "${SKILL_DIR}/scripts/db-ops.mjs backlinks publishable` |
+| `sites [productId]` | 列出站点（可选按产品筛选） | `node "${SKILL_DIR}/scripts/db-ops.mjs sites prod-001` |
+| `site <domain>` | 获取指定域名站点 | `node "${SKILL_DIR}/scripts/db-ops.mjs site example.com` |
+| `submissions <productId>` | 获取指定产品的提交记录 | `node "${SKILL_DIR}/scripts/db-ops.mjs submissions prod-001` |
+| `experience <domain>` | 获取站点经验 | `node "${SKILL_DIR}/scripts/db-ops.mjs experience example.com` |
+| `stats` | 数据库统计概览 | `node "${SKILL_DIR}/scripts/db-ops.mjs stats` |
 
-### 2.2 数据格式
+#### 写入命令
 
-**products.json** — 产品资料列表：
-```json
-[
-  {
-    "id": "prod-001",
-    "name": "产品名称",
-    "url": "https://example.com",
-    "tagline": "一句话简介",
-    "shortDesc": "简短描述（100字以内）",
-    "longDesc": "详细描述（300字以内）",
-    "categories": ["SaaS", "Productivity"],
-    "anchorTexts": ["产品名", "产品名 review", "best 产品名 alternative"],
-    "logoUrl": "https://example.com/logo.png",
-    "socialLinks": { "twitter": "...", "linkedin": "...", "facebook": "..." },
-    "founderName": "创始人姓名",
-    "founderEmail": "founder@example.com"
-  }
-]
-```
+| 命令 | 用途 | 示例 |
+|------|------|------|
+| `update-backlink <id> <status> [analysis]` | 更新外链状态 | `node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink bl-xxx skipped` |
+| `add-publishable <id> <siteJSON>` | 标记可发布并添加站点 | `node "${SKILL_DIR}/scripts/db-ops.mjs add-publishable bl-xxx '{"id":"site-001",...}'` |
+| `add-submission <submissionJSON> <experienceJSON>` | 添加提交记录和经验 | `node "${SKILL_DIR}/scripts/db-ops.mjs add-submission '{"id":"sub-xxx",...}' '{"fillStrategy":"direct",...}'` |
+| `upsert-experience <domain> <experienceJSON>` | 写入/更新站点经验 | `node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience example.com '{"fillStrategy":"direct",...}'` |
 
-| 字段 | 类型 | 必填 | 说明 |
+---
+
+### 2.3 数据表结构
+
+**products** — 产品资料表：
+
+| 列名 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `id` | string | 是 | 唯一标识，格式 `prod-{序号}` |
-| `name` | string | 是 | 产品名称 |
-| `url` | string | 是 | 产品官网 URL |
-| `tagline` | string | 是 | 一句话简介 |
-| `shortDesc` | string | 是 | 简短描述（100字以内） |
-| `longDesc` | string | 是 | 详细描述（300字以内） |
-| `categories` | string[] | 是 | 产品分类标签 |
-| `anchorTexts` | string[] | 是 | 锚文本列表 |
-| `logoUrl` | string | 否 | Logo 图片 URL |
-| `socialLinks` | object | 否 | 社交媒体链接对象 `{ twitter, linkedin, facebook }` |
-| `founderName` | string | 否 | 创始人姓名 |
-| `founderEmail` | string | 否 | 创始人邮箱 |
+| `id` | TEXT | 是 | 唯一标识，格式 `prod-{序号}` |
+| `name` | TEXT | 是 | 产品名称 |
+| `url` | TEXT | 是 | 产品官网 URL |
+| `tagline` | TEXT | 是 | 一句话简介 |
+| `short_desc` | TEXT | 是 | 简短描述（100字以内） |
+| `long_desc` | TEXT | 是 | 详细描述（300字以内） |
+| `categories` | TEXT | 是 | 产品分类标签（JSON 数组字符串） |
+| `anchor_texts` | TEXT | 是 | 锚文本列表（JSON 数组字符串） |
+| `logo_url` | TEXT | 否 | Logo 图片 URL |
+| `social_links` | TEXT | 否 | 社交媒体链接（JSON 对象字符串） |
+| `founder_name` | TEXT | 否 | 创始人姓名 |
+| `founder_email` | TEXT | 否 | 创始人邮箱 |
+| `created_at` | TEXT | 是 | ISO 8601 创建时间 |
 
-**backlinks.json** — 外链候选列表：
-```json
-[
-  {
-    "id": "bl-1714000000-abc123",
-    "sourceUrl": "https://example.com/page",
-    "sourceTitle": "页面标题",
-    "domain": "example.com",
-    "pageAscore": 45,
-    "status": "pending",
-    "analysis": null,
-    "addedAt": "2025-01-01T00:00:00Z"
-  }
-]
-```
+**backlinks** — 外链候选表：
+
+| 列名 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | TEXT | 是 | 唯一标识，格式 `bl-{timestamp}-{random4hex}` |
+| `source_url` | TEXT | 是 | 来源页面 URL（UNIQUE） |
+| `source_title` | TEXT | 否 | 来源页面标题 |
+| `domain` | TEXT | 是 | 站点域名 |
+| `page_ascore` | INTEGER | 否 | 页面权威度评分 |
+| `status` | TEXT | 是 | 状态：`pending` \| `publishable` \| `not_publishable` \| `skipped` \| `error` |
+| `analysis` | TEXT | 否 | 分析结果（JSON 对象字符串） |
+| `added_at` | TEXT | 是 | ISO 8601 添加时间 |
 
 状态值：`pending`（待分析） | `publishable`（可发布） | `not_publishable`（不可发布） | `skipped`（已跳过） | `error`（分析出错）
 
-**sites.json** — 站点库：
-```json
-[
-  {
-    "id": "site-001",
-    "domain": "example.com",
-    "url": "https://example.com/guest-post",
-    "submitUrl": "https://example.com/submit",
-    "category": "blog_comment",
-    "commentSystem": "native",
-    "antispam": [],
-    "relAttribute": "dofollow",
-    "productId": "prod-001",
-    "pricing": "free",
-    "monthlyTraffic": "3.2M",
-    "lang": "en",
-    "dr": 45,
-    "notes": "高质量站点，审核周期约3天",
-    "addedAt": "2025-01-01T00:00:00Z"
-  }
-]
-```
+**sites** — 站点库表：
 
-| 字段 | 类型 | 必填 | 说明 |
+| 列名 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `id` | string | 是 | 唯一标识，格式 `site-{序号}` |
-| `domain` | string | 是 | 站点域名 |
-| `url` | string | 是 | 站点页面 URL |
-| `submitUrl` | string | 否 | 提交页面 URL（可能与 url 不同） |
-| `category` | string | 是 | 站点分类（如 `blog_comment`、`directory`、`guest_post`） |
-| `commentSystem` | string | 否 | 评论系统类型 |
-| `antispam` | string[] | 否 | 反垃圾措施列表 |
-| `relAttribute` | string | 否 | 链接 rel 属性（`dofollow` / `nofollow`） |
-| `productId` | string | 是 | 关联产品 ID |
-| `pricing` | string | 否 | 定价类型 `free` \| `freemium` \| `paid` \| `unknown` |
-| `monthlyTraffic` | string | 否 | 月流量估计（字符串，如 "3.2M"） |
-| `lang` | string | 否 | 站点语言代码（如 "en"） |
-| `dr` | number | 否 | Domain Rating 评分 |
-| `notes` | string | 否 | 备注 |
-| `addedAt` | string | 是 | ISO 8601 添加时间 |
+| `id` | TEXT | 是 | 唯一标识，格式 `site-{序号}` |
+| `domain` | TEXT | 是 | 站点域名 |
+| `url` | TEXT | 是 | 站点页面 URL |
+| `submit_url` | TEXT | 否 | 提交页面 URL（可能与 url 不同） |
+| `category` | TEXT | 是 | 站点分类（如 `blog_comment`、`directory`、`guest_post`） |
+| `comment_system` | TEXT | 否 | 评论系统类型 |
+| `antispam` | TEXT | 否 | 反垃圾措施列表（JSON 数组字符串） |
+| `rel_attribute` | TEXT | 否 | 链接 rel 属性（`dofollow` / `nofollow`） |
+| `product_id` | TEXT | 是 | 关联产品 ID |
+| `pricing` | TEXT | 否 | 定价类型 `free` \| `freemium` \| `paid` \| `unknown` |
+| `monthly_traffic` | TEXT | 否 | 月流量估计（字符串，如 "3.2M"） |
+| `lang` | TEXT | 否 | 站点语言代码（如 "en"） |
+| `dr` | INTEGER | 否 | Domain Rating 评分 |
+| `notes` | TEXT | 否 | 备注 |
+| `added_at` | TEXT | 是 | ISO 8601 添加时间 |
 
-**submissions.json** — 提交记录数组，记录每次外链提交的结果：
-```json
-[
-  {
-    "id": "sub-1714000000-a1b2",
-    "siteName": "example.com",
-    "siteUrl": "https://example.com/submit",
-    "productId": "prod-001",
-    "status": "submitted",
-    "submittedAt": "2025-01-01T00:00:00Z",
-    "result": "提交成功，等待审核",
-    "fields": { "name": "产品名", "email": "founder@example.com" }
-  }
-]
-```
+**submissions** — 提交记录表：
 
-| 字段 | 类型 | 必填 | 说明 |
+| 列名 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `id` | string | 是 | 唯一标识，格式 `sub-{timestamp}-{random4hex}` |
-| `siteName` | string | 是 | 目标站点域名 |
-| `siteUrl` | string | 是 | 提交页面 URL |
-| `productId` | string | 是 | 关联产品 ID |
-| `status` | string | 是 | `submitted` \| `failed` \| `skipped` |
-| `submittedAt` | string | 是 | ISO 8601 时间戳 |
-| `result` | string | 否 | 提交结果描述 |
-| `fields` | object | 否 | 填写的字段键值对 |
+| `id` | TEXT | 是 | 唯一标识，格式 `sub-{timestamp}-{random4hex}` |
+| `site_name` | TEXT | 是 | 目标站点域名 |
+| `site_url` | TEXT | 是 | 提交页面 URL |
+| `product_id` | TEXT | 是 | 关联产品 ID |
+| `status` | TEXT | 是 | `submitted` \| `failed` \| `skipped` |
+| `submitted_at` | TEXT | 是 | ISO 8601 时间戳 |
+| `result` | TEXT | 否 | 提交结果描述 |
+| `fields` | TEXT | 否 | 填写的字段键值对（JSON 对象字符串） |
 
-**sync-config.json** — Google Sheets 同步配置：
-```json
-{
-  "serviceAccountKey": "{ ... Google Cloud 服务账号 JSON 密钥 ... }",
-  "sheetUrl": "https://docs.google.com/spreadsheets/d/xxx/edit"
-}
-```
+**site_experience** — 站点经验表：
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `serviceAccountKey` | string | Google Cloud 服务账号 JSON 密钥（完整 JSON 字符串） |
-| `sheetUrl` | string | Google Sheet URL |
+| 列名 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `domain` | TEXT | 是 | 站点域名（PRIMARY KEY） |
+| `aliases` | TEXT | 否 | 域名别名（JSON 数组字符串） |
+| `updated` | TEXT | 是 | 最后更新日期 |
+| `submit_type` | TEXT | 否 | `"directory"` \| `"blog-comment"` |
+| `form_framework` | TEXT | 否 | 表单技术栈 (native/react/vue/wordpress) |
+| `antispam` | TEXT | 否 | 反垃圾系统 (none/akismet/hcaptcha/etc) |
+| `fill_strategy` | TEXT | 否 | 填充策略 (direct/execCommand/reactSetter) |
+| `post_submit_behavior` | TEXT | 否 | 提交后行为 (redirect/success-message/moderation-notice/silent) |
+| `effective_patterns` | TEXT | 否 | 已验证有效的操作策略（JSON 数组字符串） |
+| `known_traps` | TEXT | 否 | 已知的陷阱和注意事项（JSON 数组字符串） |
+
+---
+
+### 2.4 数据访问说明
+
+**重要**：所有数据操作必须通过 `db-ops.mjs` CLI 执行，不要直接操作数据库文件。
+
+- **读取数据**：使用 Bash 工具执行 `node "${SKILL_DIR}/scripts/db-ops.mjs <command>`
+- **写入数据**：使用 Bash 工具执行对应的写入命令
+- **CLI 输出统一为 JSON 格式**，可直接用于后续处理
+- **写入命令中的 JSON 参数**需要正确转义（使用单引号包裹 JSON 字符串）

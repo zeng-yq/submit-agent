@@ -13,7 +13,7 @@
 5. Claude 分析字段 + 活跃产品信息，生成字段映射
 6. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
 7. 用户确认后通过 `/click` 点击提交按钮
-8. 将结果写入 `${SKILL_DIR}/data/submissions.json`（subagent 自行写入）
+8. 将结果写入数据库（subagent 自行写入）
 9. `/close` 关闭 tab
 
 ## 2. 博客评论流程
@@ -27,7 +27,7 @@
 7. 决定链接放置策略（URL 字段 > name 字段 > 正文 HTML）
 8. 设置 `window.__FILL_DATA__`，调用 `form-filler.js` 注入填写
 9. 用户确认后提交
-10. 将结果写入 `${SKILL_DIR}/data/submissions.json`（subagent 自行写入）
+10. 将结果写入数据库（subagent 自行写入）
 11. `/close` 关闭 tab
 
 **form-filler.js 调用方式（两步注入）：**
@@ -46,7 +46,11 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ## 3. 站点经验查询与更新
 
-提交前读取 `${SKILL_DIR}/data/site-experience.json`，查找目标域名。
+提交前查询目标域名的站点经验：
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs experience <domain>
+```
 
 ### 有经验
 
@@ -57,29 +61,29 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ### 无经验
 
-正常流程完成后，将发现的操作经验写入 `site-experience.json`：
+正常流程完成后，将发现的操作经验写入数据库：
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience <domain> '<experienceJSON>'
+```
+
+经验 JSON 格式：
 
 ```json
 {
-  "domain.com": {
-    "domain": "domain.com",
-    "aliases": [],
-    "updated": "2026-04-16",
-    "submitType": "directory",
-    "formFramework": "native",
-    "antispam": "none",
-    "fillStrategy": "direct",
-    "postSubmitBehavior": "redirect",
-    "effectivePatterns": ["有效策略描述"],
-    "knownTraps": ["陷阱描述"]
-  }
+  "aliases": [],
+  "submitType": "directory",
+  "formFramework": "native",
+  "antispam": "none",
+  "fillStrategy": "direct",
+  "postSubmitBehavior": "redirect",
+  "effectivePatterns": ["有效策略描述"],
+  "knownTraps": ["陷阱描述"]
 }
 ```
 
 字段说明：
-- `domain` — 站点域名（JSON key）
 - `aliases` — 域名别名或简称
-- `updated` — 最后更新日期
 - `submitType` — `"directory"` | `"blog-comment"`
 - `formFramework` — 表单技术栈 (native/react/vue/wordpress)
 - `antispam` — 反垃圾系统 (none/akismet/hcaptcha/etc)
@@ -90,21 +94,29 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ### 经验过时
 
-策略失败时更新对应条目，更新 `updated` 日期。
+策略失败时更新对应条目：
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience <domain> '<updatedExperienceJSON>'
+```
 
 ---
 
 ## 4. 提交记录写入
 
-提交完成后，subagent **自行写入**结果到 `${SKILL_DIR}/data/submissions.json`，不由主 agent 代写。
+提交完成后，subagent **自行写入**结果到数据库，不由主 agent 代写。
 
-### 写入流程
+### 写入命令
 
-1. 读取现有 `submissions.json`（文件不存在则初始化为 `[]`）
-2. 生成提交记录，追加到数组末尾
-3. 写回文件
+使用 `add-submission` 命令一次性写入提交记录和站点经验：
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs add-submission '<submissionJSON>' '<experienceJSON>'
+```
 
 ### 记录格式
+
+提交记录 JSON：
 
 ```json
 {
@@ -118,10 +130,6 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
   "fields": { "name": "产品名", "email": "founder@example.com" }
 }
 ```
-
-### 站点经验写入
-
-如提交过程中发现了新的站点经验（或已有经验需要更新），subagent 同样自行写入 `${SKILL_DIR}/data/site-experience.json`。
 
 ### 返回给主 agent
 
@@ -137,9 +145,16 @@ curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
 
 ## 5. 提交记录查询
 
-查看和统计提交历史。
+查看和统计提交历史：
 
-- 所有提交记录存储在 `${SKILL_DIR}/data/submissions.json`
+```bash
+# 获取指定产品的提交记录
+node "${SKILL_DIR}/scripts/db-ops.mjs submissions <productId>"
+
+# 数据库统计概览（含提交记录按状态分组）
+node "${SKILL_DIR}/scripts/db-ops.mjs stats"
+```
+
 - 按状态筛选：`submitted` / `failed` / `skipped`
 - 按产品筛选：`productId`
 - 统计总提交数、成功率、失败原因分布

@@ -6,11 +6,19 @@
 
 ## 1. 单条分析流程
 
-对 `backlinks.json` 中每条 `status: "pending"` 的记录执行以下步骤：
+对 `backlinks` 表中每条 `status: "pending"` 的记录执行以下步骤：
 
 ### 步骤 1：域名去重检查
 
-读取 `${SKILL_DIR}/data/sites.json`，如果该记录的 `domain` 已存在于站点库中，直接将 status 更新为 `skipped`，跳过后续步骤。
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs site <domain>
+```
+
+如果该记录的 `domain` 已存在于站点库中，直接将 status 更新为 `skipped`，跳过后续步骤：
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> skipped
+```
 
 ### 步骤 2：打开页面
 
@@ -77,9 +85,24 @@ node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
 
 ### 步骤 7：写回数据
 
-将分析结果写入该条记录的 `analysis` 字段（格式见 `references/publishability-rules.md` 7.3 节），更新 `status`。使用 Write 工具写回 `backlinks.json`。
+根据判定结果选择对应的写入命令：
 
-如果判定为 `publishable`，同时创建站点记录写入 `sites.json`。
+**不可发布（not_publishable）**：
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> not_publishable '<analysisJSON>'
+```
+
+**已跳过（skipped）**：
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> skipped
+```
+
+**可发布（publishable）**：使用 `add-publishable` 一次性更新外链状态并创建站点记录：
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs add-publishable <id> '<siteJSON>'
+```
+
+分析结果写入 `analysis` 字段（格式见 `references/publishability-rules.md` 7.3 节）。
 
 ### 步骤 8：关闭 tab
 
@@ -92,7 +115,7 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 ## 2. 批量处理规则
 
 - **逐条分析**：每次只打开一个 tab，分析完立即关闭再打开下一个
-- **即时写回**：每条分析完成后立即更新 `backlinks.json`，防止中途丢失
+- **即时写回**：每条分析完成后立即通过 `db-ops.mjs` 更新数据库，防止中途丢失
 - **进度报告**：每分析完 10 条，向用户报告进度（已完成/总数）
 - **超时处理**：单条分析超过 30 秒标记为 `error` 并跳过，继续下一条
 - **可恢复**：如果中途中断，下次启动时只会处理 `status: "pending"` 的记录
@@ -117,7 +140,7 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 
 ### 3.2 可发布站点列表
 
-按 `pageAscore` 降序排列，展示：
+按 `page_ascore` 降序排列，展示：
 
 | 排名 | 域名 | URL | 分类 | 评论系统 | 反垃圾系统 | AScore |
 |------|------|-----|------|---------|-----------|--------|
@@ -146,7 +169,7 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 ### 3.5 后续建议
 
 根据分析结果给出可操作的建议：
-- 将 `publishable` 的站点自动迁移到 `sites.json`（需用户确认）
+- 将 `publishable` 的站点自动迁移到 `sites` 表（需用户确认）
 - 按反垃圾系统类型分组，推荐处理优先级
 - 标注可直接操作的站点（无反垃圾 + 原生评论表单）
 

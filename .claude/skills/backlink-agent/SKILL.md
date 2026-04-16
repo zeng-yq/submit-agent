@@ -20,6 +20,7 @@ metadata:
 这三个操作需要通过 CDP 操控浏览器，执行前必须确认环境就绪：
 
 ```bash
+cd "${SKILL_DIR}" && npm install
 node "${SKILL_DIR}/scripts/check-deps.mjs"
 ```
 
@@ -37,7 +38,31 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 
 > 环境就绪。CDP Proxy 运行在 `http://localhost:3457`。
 > 所有浏览器操作将在后台 tab 中执行，不会干扰你当前的工作。
-> 数据文件位于 `${SKILL_DIR}/data/` 目录。
+> 数据存储在 SQLite 数据库 `${SKILL_DIR}/data/backlink.db`。
+
+---
+
+## 数据操作速查
+
+所有数据通过 `db-ops.mjs` CLI 访问，不直接操作数据库文件。
+
+```bash
+# 读取
+node "${SKILL_DIR}/scripts/db-ops.mjs products                          # 所有产品
+node "${SKILL_DIR}/scripts/db-ops.mjs product <id>                      # 指定产品
+node "${SKILL_DIR}/scripts/db-ops.mjs backlinks [status]                # 外链候选（默认 pending）
+node "${SKILL_DIR}/scripts/db-ops.mjs sites [productId]                 # 站点库
+node "${SKILL_DIR}/scripts/db-ops.mjs site <domain>                     # 指定域名站点
+node "${SKILL_DIR}/scripts/db-ops.mjs submissions <productId>           # 提交记录
+node "${SKILL_DIR}/scripts/db-ops.mjs experience <domain>               # 站点经验
+node "${SKILL_DIR}/scripts/db-ops.mjs stats                             # 统计概览
+
+# 写入
+node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> <status> [analysisJSON]   # 更新外链状态
+node "${SKILL_DIR}/scripts/db-ops.mjs add-publishable <id> <siteJSON>                 # 标记可发布+添加站点
+node "${SKILL_DIR}/scripts/db-ops.mjs add-submission <submissionJSON> <experienceJSON> # 添加提交记录+经验
+node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience <domain> <experienceJSON>     # 写入/更新站点经验
+```
 
 ---
 
@@ -49,7 +74,7 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 
 **① 定义目标** — 明确要提交什么产品、什么类型的站点、达到什么效果。这是后续所有判断的锚点。
 
-**② 选择策略** — 根据站点类型、已有经验（`data/site-experience.json`）、工具能力选择最可能成功的方式。先读站点经验，有经验则据此调整；无经验则走通用流程。
+**② 选择策略** — 根据站点类型、已有经验（`site_experience` 表）、工具能力选择最可能成功的方式。先读站点经验，有经验则据此调整；无经验则走通用流程。
 
 **③ 验证调整** — 每一步的结果都是证据。表单分析结果与预期不符？调整填充策略。提交后页面报错？分析错误原因并重试或回退。不在同一个失败的方法上反复尝试。
 
@@ -98,14 +123,14 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 ## 操作概览
 
-所有操作均为**独立操作**，可在不同时间、不同会话中分别执行。它们共享数据文件，但运行时互不依赖。
+所有操作均为**独立操作**，可在不同时间、不同会话中分别执行。它们共享 SQLite 数据库，但运行时互不依赖。
 
 | 操作 | 说明 | 数据来源 | 环境依赖 | 详见 |
 |------|------|---------|---------|------|
-| **PRODUCT** | 添加产品，提取页面信息 | 用户提供 URL → `products.json` | Chrome + CDP | `references/workflow-product.md` |
-| **IMPORT** | 导入外链候选数据 | 用户提供的 Semrush 数据 → `backlinks.json` | Node.js | `references/workflow-import.md` |
-| **ANALYZE** | 批量分析可发布性 | `backlinks.json` 中的 pending 条目 | Chrome + CDP | `references/workflow-analyze.md` |
-| **SUBMIT** | 对可发布站点执行表单提交 | `backlinks.json` 可发布条目 + `products.json` | Chrome + CDP | `references/workflow-submit.md` |
+| **PRODUCT** | 添加产品，提取页面信息 | 用户提供 URL → `products` 表 | Chrome + CDP | `references/workflow-product.md` |
+| **IMPORT** | 导入外链候选数据 | 用户提供的 Semrush 数据 → `backlinks` 表 | Node.js | `references/workflow-import.md` |
+| **ANALYZE** | 批量分析可发布性 | `backlinks` 表中的 pending 条目 | Chrome + CDP | `references/workflow-analyze.md` |
+| **SUBMIT** | 对可发布站点执行表单提交 | `backlinks` 可发布条目 + `products` 表 | Chrome + CDP | `references/workflow-submit.md` |
 
 典型使用顺序为 IMPORT → ANALYZE → SUBMIT，但不必在同一会话中完成。每个操作按需读取对应的参考文件，不需要提前全部加载。
 
@@ -115,11 +140,19 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 提交阶段的效率加速器。仅用于表单提交过程，分析阶段不使用。
 
-**提交前**：读取 `${SKILL_DIR}/data/site-experience.json`，查找目标域名的操作经验。
+**提交前**：查询 `site_experience` 表，查找目标域名的操作经验。
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs experience <domain>
+```
 
 **有经验**：根据 `fillStrategy` 选择填充方式，按 `effectivePatterns` 操作，避开 `knownTraps`。
 
-**无经验**：正常提交流程，完成后将发现的操作经验写入该文件。
+**无经验**：正常提交流程，完成后将发现的操作经验写入数据库。
+
+```bash
+node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience <domain> '<experienceJSON>'
+```
 
 **经验过时**：策略失败时更新对应条目。
 
@@ -134,7 +167,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 ### 设计原则
 
 - **主 agent 是调度器**：只持有待提交域名列表和每个域名的简短状态，不读取/传递业务数据
-- **Subagent 自给自足**：自行读取数据文件、操控浏览器、写入结果
+- **Subagent 自给自足**：自行通过 `db-ops.mjs` 读取数据、操控浏览器、写入结果
 - **返回最小摘要**：subagent 只向主 agent 返回一行结果，不回传完整过程
 
 ### 调度循环
@@ -142,15 +175,15 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 ```
 主 Agent                          Subagent
   │                                  │
-  │  1. 读取 backlinks.json          │
+  │  1. 查询 backlinks 表            │
   │     筛选可提交条目                │
   │                                  │
   │── 派发: domain + productId ──→   │
-  │                                  │  2. 自行读取 products.json
-  │                                  │  3. 自行读取 site-experience.json
+  │                                  │  2. 自行查询 products 表
+  │                                  │  3. 自行查询 site_experience 表
   │                                  │  4. 创建 tab，执行提交
-  │                                  │  5. 自行写入 submissions.json
-  │                                  │  6. 自行更新 site-experience.json
+  │                                  │  5. 自行写入 submissions 表
+  │                                  │  6. 自行更新 site_experience 表
   │                                  │  7. 关闭 tab
   │←── 返回: 简短摘要 ──────────────│
   │                                  │
@@ -165,15 +198,17 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 ```
 在 {domain} 提交产品 {productId}。
 
-数据文件路径：${SKILL_DIR}/data/
-- 自行读取 products.json 获取产品信息
-- 自行读取 site-experience.json 获取站点经验（如有）
-- 自行读取 sites.json 获取站点详情（如有）
+数据操作：
+- 查询产品：node "${SKILL_DIR}/scripts/db-ops.mjs product <productId>
+- 查询站点经验：node "${SKILL_DIR}/scripts/db-ops.mjs experience <domain>
+- 查询站点详情：node "${SKILL_DIR}/scripts/db-ops.mjs site <domain>
+- 写入提交记录和经验：node "${SKILL_DIR}/scripts/db-ops.mjs add-submission '<submissionJSON>' '<experienceJSON>'
+- 更新站点经验：node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience <domain> '<experienceJSON>'
 
 要求：
 - 必须加载 backlink-agent skill 并遵循指引
-- 完成后自行将结果写入 ${SKILL_DIR}/data/submissions.json
-- 如有新的站点经验，自行写入 ${SKILL_DIR}/data/site-experience.json
+- 完成后自行将结果写入数据库（使用 add-submission 命令）
+- 如有新的站点经验，自行写入数据库（使用 upsert-experience 命令）
 - 完成后自行关闭创建的 tab
 - 返回简短摘要：域名 + 成功/失败 + 一句话说明
 
@@ -183,7 +218,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 ### 主 Agent 职责
 
-1. 从 `backlinks.json` 筛选可提交条目（`status: "publishable"`）
+1. 从 `backlinks` 表筛选可提交条目（`status: "publishable"`）
 2. 逐个派发 subagent，传递 `domain` 和 `productId`
 3. 接收 subagent 返回的简短摘要，记录进度
 4. 全部完成后向用户汇报汇总结果
@@ -220,7 +255,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 ### 先读知识库再操作
 
-执行任何操作前，先读取相关数据文件（products.json、backlinks.json、sites.json），了解当前状态。
+执行任何操作前，先通过 `db-ops.mjs` 查询相关数据，了解当前状态。
 
 ### 切站必须确认产品
 
@@ -244,7 +279,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 | Chrome 未开启远程调试 | 提示用户启用远程调试 |
 | 页面加载超时（>30s） | 标记 `error`，跳过继续 |
 | CDP 连接断开 | Proxy 内置重连，持续失败则暂停提示 |
-| JSON 文件损坏 | 提示用户，不自行覆盖 |
+| 数据库操作失败 | 提示用户，检查数据库文件是否损坏 |
 | 批量分析中途失败 | 已分析已写回，未分析的保持 `pending` |
 | `/eval` 返回 JS 错误 | 检查 CSP 阻止，降级检测；标记 `error` 继续 |
 
@@ -255,7 +290,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 1. 关闭本次任务中创建的所有后台 tab（通过记录的 targetId 逐一 `/close`）
 2. 不关闭用户原有的 tab
 3. CDP Proxy 保持运行
-4. 确认数据文件已正确写入
+4. 确认数据已正确写入数据库
 
 ---
 
@@ -264,7 +299,7 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 | 文件 | 何时加载 |
 |------|---------|
 | `references/cdp-proxy-api.md` | 需要 CDP API 详细参考时 |
-| `references/data-formats.md` | 操作数据文件前，了解字段格式 |
+| `references/data-formats.md` | 操作数据前，了解表结构和 CLI 命令 |
 | `references/publishability-rules.md` | 分析阶段，判断可发布性 |
 | `references/workflow-product.md` | 添加产品时 |
 | `references/workflow-import.md` | 进入导入阶段时 |
