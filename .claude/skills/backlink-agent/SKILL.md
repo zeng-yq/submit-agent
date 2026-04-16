@@ -9,7 +9,15 @@ metadata:
 
 ## 前置检查
 
-每次执行任务前，先确认环境就绪：
+根据操作类型按需检查环境：
+
+### IMPORT — 仅需 Node.js
+
+导入操作是纯数据处理，不涉及浏览器。只需确认 Node.js 可用即可，跳过 Chrome / CDP Proxy 检查。
+
+### PRODUCT / ANALYZE / SUBMIT — 完整环境检查
+
+这三个操作需要通过 CDP 操控浏览器，执行前必须确认环境就绪：
 
 ```bash
 node "${SKILL_DIR}/scripts/check-deps.mjs"
@@ -17,7 +25,7 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 
 脚本会依次检查 Node.js 22+、Chrome 远程调试端口、CDP Proxy（端口 3457）。
 
-### 未通过时的引导
+#### 未通过时的引导
 
 | 检查项 | 处理方式 |
 |--------|---------|
@@ -25,7 +33,7 @@ node "${SKILL_DIR}/scripts/check-deps.mjs"
 | Chrome 未开启远程调试 | 引导打开 `chrome://inspect/#remote-debugging`，勾选 "Allow remote debugging" |
 | CDP Proxy 连接超时 | 检查 Chrome 授权弹窗；查看日志 `$(getconf DARWIN_USER_TEMP_DIR)/cdp-proxy.log`（macOS）或 `/tmp/cdp-proxy.log`（Linux） |
 
-### 通过后提示
+#### 通过后提示
 
 > 环境就绪。CDP Proxy 运行在 `http://localhost:3457`。
 > 所有浏览器操作将在后台 tab 中执行，不会干扰你当前的工作。
@@ -92,12 +100,12 @@ CDP Proxy API 速查（完整文档见 `references/cdp-proxy-api.md`）：
 
 所有操作均为**独立操作**，可在不同时间、不同会话中分别执行。它们共享数据文件，但运行时互不依赖。
 
-| 操作 | 说明 | 数据来源 | 详见 |
-|------|------|---------|------|
-| **PRODUCT** | 添加产品，提取页面信息 | 用户提供 URL → `products.json` | `references/workflow-product.md` |
-| **IMPORT** | 导入外链候选数据 | 用户提供的 Semrush 数据 → `backlinks.json` | `references/workflow-import.md` |
-| **ANALYZE** | 批量分析可发布性 | `backlinks.json` 中的 pending 条目 | `references/workflow-analyze.md` |
-| **SUBMIT** | 对可发布站点执行表单提交 | `backlinks.json` 可发布条目 + `products.json` | `references/workflow-submit.md` |
+| 操作 | 说明 | 数据来源 | 环境依赖 | 详见 |
+|------|------|---------|---------|------|
+| **PRODUCT** | 添加产品，提取页面信息 | 用户提供 URL → `products.json` | Chrome + CDP | `references/workflow-product.md` |
+| **IMPORT** | 导入外链候选数据 | 用户提供的 Semrush 数据 → `backlinks.json` | Node.js | `references/workflow-import.md` |
+| **ANALYZE** | 批量分析可发布性 | `backlinks.json` 中的 pending 条目 | Chrome + CDP | `references/workflow-analyze.md` |
+| **SUBMIT** | 对可发布站点执行表单提交 | `backlinks.json` 可发布条目 + `products.json` | Chrome + CDP | `references/workflow-submit.md` |
 
 典型使用顺序为 IMPORT → ANALYZE → SUBMIT，但不必在同一会话中完成。每个操作按需读取对应的参考文件，不需要提前全部加载。
 
