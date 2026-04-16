@@ -9,7 +9,7 @@
 ### 2.1 数据库概述
 
 - **数据库文件**：`${SKILL_DIR}/data/backlink.db`
-- **访问方式**：通过 CLI 工具 `node "${SKILL_DIR}/scripts/db-ops.mjs <command> [args]"`
+- **访问方式**：通过 CLI 工具 `node "${SKILL_DIR}/scripts/data/db-ops.mjs <command> [args]"`
 - **数据表**：`products`、`backlinks`、`sites`、`submissions`、`site_experience`
 
 ### 2.2 CLI 命令速查
@@ -20,23 +20,23 @@
 
 | 命令 | 用途 | 示例 |
 |------|------|------|
-| `products` | 列出所有产品 | `node "${SKILL_DIR}/scripts/db-ops.mjs products` |
-| `product <id>` | 获取指定产品 | `node "${SKILL_DIR}/scripts/db-ops.mjs product prod-001` |
-| `backlinks [status]` | 列出外链候选（默认 pending） | `node "${SKILL_DIR}/scripts/db-ops.mjs backlinks publishable` |
-| `sites [productId]` | 列出站点（可选按产品筛选） | `node "${SKILL_DIR}/scripts/db-ops.mjs sites prod-001` |
-| `site <domain>` | 获取指定域名站点 | `node "${SKILL_DIR}/scripts/db-ops.mjs site example.com` |
-| `submissions <productId>` | 获取指定产品的提交记录 | `node "${SKILL_DIR}/scripts/db-ops.mjs submissions prod-001` |
-| `experience <domain>` | 获取站点经验 | `node "${SKILL_DIR}/scripts/db-ops.mjs experience example.com` |
-| `stats` | 数据库统计概览 | `node "${SKILL_DIR}/scripts/db-ops.mjs stats` |
+| `products` | 列出所有产品 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs products` |
+| `product <id>` | 获取指定产品 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs product prod-001` |
+| `backlinks [status]` | 列出外链候选（默认 pending） | `node "${SKILL_DIR}/scripts/data/db-ops.mjs backlinks publishable` |
+| `sites [productId]` | 列出站点（可选按产品筛选） | `node "${SKILL_DIR}/scripts/data/db-ops.mjs sites prod-001` |
+| `site <domain>` | 获取指定域名站点 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs site example.com` |
+| `submissions <productId>` | 获取指定产品的提交记录 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs submissions prod-001` |
+| `experience <domain>` | 获取站点经验 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs experience example.com` |
+| `stats` | 数据库统计概览 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs stats` |
 
 #### 写入命令
 
 | 命令 | 用途 | 示例 |
 |------|------|------|
-| `update-backlink <id> <status> [analysis]` | 更新外链状态 | `node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink bl-xxx skipped` |
-| `add-publishable <id> <siteJSON>` | 标记可发布并添加站点 | `node "${SKILL_DIR}/scripts/db-ops.mjs add-publishable bl-xxx '{"id":"site-001",...}'` |
-| `add-submission <submissionJSON> <experienceJSON>` | 添加提交记录和经验 | `node "${SKILL_DIR}/scripts/db-ops.mjs add-submission '{"id":"sub-xxx",...}' '{"fillStrategy":"direct",...}'` |
-| `upsert-experience <domain> <experienceJSON>` | 写入/更新站点经验 | `node "${SKILL_DIR}/scripts/db-ops.mjs upsert-experience example.com '{"fillStrategy":"direct",...}'` |
+| `update-backlink <id> <status> [analysis]` | 更新外链状态 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs update-backlink bl-xxx skipped` |
+| `add-publishable <id> <siteJSON>` | 标记可发布并添加站点 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs add-publishable bl-xxx '{"id":"site-001",...}'` |
+| `add-submission <submissionJSON> <experienceJSON>` | 添加提交记录和经验 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs add-submission '{"id":"sub-xxx",...}' '{"fillStrategy":"direct",...}'` |
+| `upsert-experience <domain> <experienceJSON>` | 写入/更新站点经验 | `node "${SKILL_DIR}/scripts/data/db-ops.mjs upsert-experience example.com '{"fillStrategy":"direct",...}'` |
 
 ---
 
@@ -129,7 +129,7 @@
 
 **重要**：所有数据操作必须通过 `db-ops.mjs` CLI 执行，不要直接操作数据库文件。
 
-- **读取数据**：使用 Bash 工具执行 `node "${SKILL_DIR}/scripts/db-ops.mjs <command>`
+- **读取数据**：使用 Bash 工具执行 `node "${SKILL_DIR}/scripts/data/db-ops.mjs <command>`
 - **写入数据**：使用 Bash 工具执行对应的写入命令
 - **CLI 输出统一为 JSON 格式**，可直接用于后续处理
 - **写入命令中的 JSON 参数**需要正确转义（使用单引号包裹 JSON 字符串）

@@ -19,7 +19,7 @@
 1. 运行 CSV 导入脚本（脚本自动解析、去重并写入数据库）：
 
 ```bash
-node "${SKILL_DIR}/scripts/import-csv.mjs" <csv-file-path>
+node "${SKILL_DIR}/scripts/data/import-csv.mjs" <csv-file-path>
 ```
 
 2. 脚本输出 JSON：`{ "imported": <新增数量>, "skipped": <重复跳过数量> }`
