@@ -11,13 +11,13 @@
 ### 步骤 1：域名去重检查
 
 ```bash
-node "${SKILL_DIR}/scripts/db-ops.mjs site <domain>
+node "${SKILL_DIR}/scripts/data/db-ops.mjs site <domain>
 ```
 
 如果该记录的 `domain` 已存在于站点库中，直接将 status 更新为 `skipped`，跳过后续步骤：
 
 ```bash
-node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> skipped
+node "${SKILL_DIR}/scripts/data/db-ops.mjs update-backlink <id> skipped
 ```
 
 ### 步骤 2：打开页面
@@ -43,68 +43,64 @@ curl -s "http://localhost:3457/info?target=<targetId>"
 ```bash
 # 评论表单检测
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${SKILL_DIR}/scripts/detect-comment-form.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/injection/detect-comment-form.js")"
 
 # 反垃圾系统检测
 curl -s -X POST "http://localhost:3457/eval?target=<targetId>" \
-  -d "$(cat "${SKILL_DIR}/scripts/detect-antispam.js")"
+  -d "$(cat "${SKILL_DIR}/scripts/injection/detect-antispam.js")"
 ```
 
-### 步骤 5：快速判定
+### 步骤 5：判定决策树
 
-基于步骤 4 的结构化检测结果，尝试快速判定：
+基于步骤 4 的结构化检测结果，按以下决策树判定：
 
-- **直接判定为 `not_publishable`**：
-  - 存在 `bypassable: false` 的反垃圾系统（CleanTalk、hCaptcha、Jetpack）
-  - 存在 `bypassable: 'depends_on_config'` 的反垃圾系统（保守策略）
-  - `commentSystem` 为 `none` 且 `hasTextarea` 为 `false` 且 `hasCommentForm` 为 `false`
+```
+检测结果
+  ├─ bypassable=false 的反垃圾 → not_publishable
+  ├─ bypassable=depends_on_config → not_publishable（保守）
+  ├─ 无评论表单信号 → not_publishable
+  ├─ 原生评论 + textarea + 无硬封 → publishable
+  └─ 模糊信号 → Claude 综合判定（加载 publishability-rules.md）
+```
 
-- **直接判定为 `publishable`**：
-  - `commentSystem` 为 `native` 且 `hasTextarea` 为 `true` 且 `hasUnbypassable` 为 `false`
-
-如果快速判定结果明确，跳过步骤 6，直接进入步骤 7。
-
-### 步骤 6：Claude 综合判定（仅对快速判定无法明确的情况）
-
-当评论系统为 Disqus/Facebook/Commento 等第三方系统，或评论信号模糊时，需要 Claude 做语义分析：
+**Claude 综合判定流程**（仅对模糊信号触发）：
 
 1. 执行页面内容提取脚本：
 
 ```bash
-node "${SKILL_DIR}/scripts/page-extractor.mjs" <targetId>
+node "${SKILL_DIR}/scripts/browser/page-extractor.mjs" <targetId>
 ```
 
 2. 将提取结果（title、textContent、commentSignals）与步骤 4 的检测结果一起交给 Claude 分析
 3. Claude 根据 `publishability-rules.md` 中的规则，综合判断可发布性
 4. 输出判定结果：`{ status, category, reason }`
 
-**需要 Claude 判定的典型场景：**
+**触发 Claude 综合判定的典型场景：**
 - 评论系统为 `disqus` / `facebook` / `commento`（第三方系统，需判断是否可操作）
-- 存在 `bypassable: 'depends_on_config'` 的反垃圾（需具体分析）
 - `commentSystem` 为 `none` 但 `hasTextarea` 为 `true`（textarea 用途不明确）
 
-### 步骤 7：写回数据
+### 步骤 6：写回数据
 
 根据判定结果选择对应的写入命令：
 
 **不可发布（not_publishable）**：
 ```bash
-node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> not_publishable '<analysisJSON>'
+node "${SKILL_DIR}/scripts/data/db-ops.mjs update-backlink <id> not_publishable '<analysisJSON>'
 ```
 
 **已跳过（skipped）**：
 ```bash
-node "${SKILL_DIR}/scripts/db-ops.mjs update-backlink <id> skipped
+node "${SKILL_DIR}/scripts/data/db-ops.mjs update-backlink <id> skipped
 ```
 
 **可发布（publishable）**：使用 `add-publishable` 一次性更新外链状态并创建站点记录：
 ```bash
-node "${SKILL_DIR}/scripts/db-ops.mjs add-publishable <id> '<siteJSON>'
+node "${SKILL_DIR}/scripts/data/db-ops.mjs add-publishable <id> '<siteJSON>'
 ```
 
 分析结果写入 `analysis` 字段（格式见 `references/publishability-rules.md` 7.3 节）。
 
-### 步骤 8：关闭 tab
+### 步骤 7：关闭 tab
 
 ```bash
 curl -s "http://localhost:3457/close?target=<targetId>"
@@ -174,6 +170,63 @@ curl -s "http://localhost:3457/close?target=<targetId>"
 - 将 `publishable` 的站点自动迁移到 `sites` 表（需用户确认）
 - 按反垃圾系统类型分组，推荐处理优先级
 - 标注可直接操作的站点（无反垃圾 + 原生评论表单）
+
+---
+
+## 并行分析策略
+
+每次最多 **3 个 subagent** 同时分析不同的外链候选。主 agent 只做轻量调度，不承载业务数据。
+
+### 设计原则
+
+- **主 agent 是调度器**：只持有待分析记录列表和每条的简短状态，不读取/传递业务数据
+- **Subagent 自给自足**：自行通过 `db-ops.mjs` 读取数据、操控浏览器、写入结果
+- **返回最小摘要**：subagent 只向主 agent 返回一行结果，不回传完整过程
+
+### 调度循环
+
+```
+主 Agent (调度器, 滑动窗口 maxSize=3)
+  │
+  │  1. 查询 backlinks 表中 status: "pending" 的记录
+  │  2. 取前 3 条，派发 3 个 subagent（后台运行）
+  │
+  │── subagent-1: {id, domain, sourceUrl} ──→ 打开tab → 检测 → 判定 → 写回 → 关闭tab
+  │── subagent-2: {id, domain, sourceUrl} ──→ ...
+  │── subagent-3: {id, domain, sourceUrl} ──→ ...
+  │
+  │  3. 任一 subagent 返回 → 立即派发下一个 pending 记录
+  │  4. 重复直到所有 pending 记录处理完毕
+  │  5. 生成分析报告
+```
+
+### Subagent prompt 模板
+
+```
+分析外链候选 {id}（{domain}，{sourceUrl}）。
+
+数据操作：
+- 查询站点是否已存在：node "${SKILL_DIR}/scripts/data/db-ops.mjs site <domain>
+- 更新外链状态：node "${SKILL_DIR}/scripts/data/db-ops.mjs update-backlink <id> <status> [analysisJSON]
+- 标记可发布+添加站点：node "${SKILL_DIR}/scripts/data/db-ops.mjs add-publishable <id> '<siteJSON>'
+
+要求：
+- 必须加载 backlink-agent skill 并遵循分析流程指引（workflow-analyze.md）
+- 自行创建 tab 打开页面，分析完成后自行关闭 tab
+- 分析结果必须自行写入数据库
+- 返回简短摘要
+
+返回格式：
+{id} | {domain} | publishable/not_publishable/skipped/error | 一句话说明
+```
+
+### 并行控制规则
+
+- **最大并发 3**：同时运行的 subagent 不超过 3 个
+- **滑动窗口**：一个完成，立即派发下一个，不等待整批完成
+- **失败不重试**：subagent 标记为 `error` 的记录保持 error，不自动重试
+- **进度报告**：每 5 条完成后向用户报告进度（已完成/总数/成功率）
+- **上下文控制**：主 agent 上下文只增加一行摘要（约 50 tokens）每条记录
 
 ---
 
