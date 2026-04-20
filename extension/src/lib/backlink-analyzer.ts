@@ -41,30 +41,18 @@ export async function analyzeBacklink(
   const unfilteredForms = analysis.forms.filter(f => !f.filtered)
   const allFields = analysis.fields
 
-  // Detect comment-related fields
+  // Detect comment-related fields (only for canComment determination)
   const commentFields = allFields.filter(f => {
     const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
     return p.includes('comment') || p.includes('message') || p.includes('reply')
   })
-  const urlFields = allFields.filter(f => {
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return p.includes('url') || p.includes('website') || p.includes('site')
-  })
   const textareaFields = allFields.filter(f =>
     f.tagName === 'textarea' || f.effective_type === 'textarea'
   )
-  const emailFields = allFields.filter(f => {
-    const t = (f.type || f.effective_type || '').toLowerCase()
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return t === 'email' || p.includes('email')
-  })
 
   log('info', 'analyze', `表单分析完成 — 发现 ${unfilteredForms.length} 个表单, ${allFields.length} 个字段`, {
     forms: unfilteredForms.length,
     fields: allFields.length,
-    commentFields: commentFields.length,
-    urlFields: urlFields.length,
-    textareaFields: textareaFields.length,
   })
 
   // Determine canComment
@@ -88,15 +76,11 @@ export async function analyzeBacklink(
   // Detect field names
   const detectedFields = allFields.map(f => f.inferred_purpose || f.label || f.name).filter(Boolean)
 
-  // Confidence scoring
-  let confidence = 0.3
-  if (canComment) {
-    if (urlFields.length > 0) confidence += 0.3
-    if (textareaFields.length > 0) confidence += 0.2
-    if (emailFields.length > 0) confidence += 0.1
-    if (commentFields.length > 0) confidence += 0.1
-    confidence = Math.min(confidence, 1.0)
-  }
+  const confidence = calculateConfidence({
+    forms: analysis.forms,
+    fields: allFields,
+    cmsType,
+  })
 
   const result: BacklinkAnalysisResult = {
     canComment,
