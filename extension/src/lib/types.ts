@@ -129,6 +129,16 @@ export type BacklinkStatus =
 	| 'skipped'
 	| 'error'
 
+/** Extended analysis result from LLM for backlink suitability */
+export interface BacklinkAnalysisResult {
+	canComment: boolean
+	summary: string
+	formType: 'blog_comment' | 'directory' | 'contact_form' | 'forum' | 'none'
+	cmsType: 'wordpress' | 'blogger' | 'discuz' | 'custom' | 'unknown'
+	detectedFields: string[]
+	confidence: number
+}
+
 /** Backlink record imported from Semrush CSV, stored in IndexedDB */
 export interface BacklinkRecord {
 	id: string
@@ -137,6 +147,7 @@ export interface BacklinkRecord {
 	pageAscore: number
 	status: BacklinkStatus
 	analysisLog: string[]
+	analysisResult?: BacklinkAnalysisResult
 	domain?: string
 	createdAt: number
 	updatedAt: number
