@@ -1,0 +1,13 @@
+{
+  "name": "backlink-agent-data",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test scripts/data/db.test.mjs",
+    "build": "node scripts/data/db.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  }
+}
