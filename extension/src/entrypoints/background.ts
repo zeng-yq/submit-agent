@@ -89,11 +89,11 @@ function handleFetchPageContent(
 			const result = await chrome.tabs.sendMessage(tab.id, {
 				type: 'FLOAT_FILL',
 				action: 'analyze',
-				payload: { siteType: 'directory_submit' },
+				payload: { siteType: 'blog_comment' },
 			})
 
 			if (result?.ok && result.analysis) {
-				sendResponse({ ok: true, analysis: result.analysis })
+				sendResponse({ ok: true, analysis: result.analysis, pageContent: result.pageContent })
 			} else {
 				sendResponse({ error: result?.error || 'Content script did not return analysis' })
 			}
