@@ -1,5 +1,5 @@
 import type { BacklinkAnalysisResult } from './types'
-import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
+import type { FormAnalysisResult, FormField, FormGroup } from '@/agent/FormAnalyzer'
 import type { LogEntry, LogLevel } from '@/agent/types'
 
 export type AnalysisStep = 'loading' | 'analyzing' | 'done'
@@ -112,4 +112,56 @@ export async function analyzeBacklink(
 
   onProgress?.('done')
   return result
+}
+
+interface ConfidenceInput {
+  forms: FormGroup[]
+  fields: FormField[]
+  cmsType: string
+}
+
+export function calculateConfidence(input: ConfidenceInput): number {
+  const { forms, fields, cmsType } = input
+  const unfilteredForms = forms.filter(f => !f.filtered)
+
+  const commentFields = fields.filter(f => {
+    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
+    return p.includes('comment') || p.includes('message') || p.includes('reply')
+  })
+  const urlFields = fields.filter(f => {
+    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
+    return p.includes('url') || p.includes('website') || p.includes('site')
+  })
+  const textareaFields = fields.filter(f =>
+    f.tagName === 'textarea' || f.effective_type === 'textarea'
+  )
+  const emailFields = fields.filter(f => {
+    const t = (f.type || f.effective_type || '').toLowerCase()
+    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
+    return t === 'email' || p.includes('email')
+  })
+  const authorFields = fields.filter(f => {
+    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
+    return p.includes('author') || p.includes('nickname') || (p === 'name')
+  })
+
+  const formActions = unfilteredForms.map(f => (f.form_action || '').toLowerCase()).join(' ')
+  const hasContactSignal = /\/(contact|support|help)/.test(formActions)
+
+  const onlyMessageNoComment = textareaFields.length > 0
+    && commentFields.length === 0
+    && urlFields.length === 0
+
+  let confidence = 0
+  if (unfilteredForms.length > 0) confidence += 0.2
+  if (textareaFields.length > 0) confidence += 0.15
+  if (commentFields.length > 0) confidence += 0.2
+  if (urlFields.length > 0) confidence += 0.2
+  if (emailFields.length > 0) confidence += 0.05
+  if (authorFields.length > 0) confidence += 0.1
+  if (cmsType !== 'unknown') confidence += 0.15
+  if (hasContactSignal) confidence -= 0.2
+  if (onlyMessageNoComment) confidence -= 0.1
+
+  return Math.max(0, Math.min(1, confidence))
 }
