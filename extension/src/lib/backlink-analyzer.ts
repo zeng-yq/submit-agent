@@ -1,211 +1,148 @@
 import type { LLMSettings } from './types'
+import type { BacklinkAnalysisResult } from './types'
+import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
+import type { PageContent } from '@/agent/PageContentExtractor'
+import type { LogEntry, LogLevel } from '@/agent/types'
 import { getLLMConfig } from './storage'
-
-export interface AnalysisResult {
-	canComment: boolean
-	summary: string
-}
+import { callLLM, parseLLMJson } from '@/agent/llm-utils'
+import { buildFieldList } from '@/agent/FormAnalyzer'
 
 export type AnalysisStep = 'loading' | 'analyzing' | 'done'
 
-const SYSTEM_PROMPT = `You are a Backlink Analyzer. You will receive the HTML source of a webpage along with detected form elements. Determine:
-
-Can you submit a comment on this page? (Look for comment forms, reply boxes, especially ones with URL/Website fields)
+const SYSTEM_PROMPT = `You are a Backlink Analyzer. You receive structured form analysis data from a webpage. Determine if this page is suitable for posting a comment with a backlink.
 
 Return ONLY valid JSON:
 {
   "canComment": true/false,
-  "summary": "简短结论，不超过10个汉字"
+  "summary": "简短结论，不超过15个汉字",
+  "formType": "blog_comment" | "directory" | "contact_form" | "forum" | "none",
+  "cmsType": "wordpress" | "blogger" | "discuz" | "custom" | "unknown",
+  "detectedFields": ["field_name_1", "field_name_2"],
+  "confidence": 0.0-1.0
 }
 
 Rules:
-- canComment: true if there is a visible comment/reply form that allows posting (ideally with a URL field). Page type (blog, game, news, etc.) does NOT matter — any page with a comment form counts.
-- summary: MUST be written in Chinese (简体中文), ultra-short conclusion within 10 characters, e.g. "可评论" or "无评论框"
+- canComment: true if there is a comment/reply form with fields like name, email, URL/website, and a textarea for the comment body. The form must allow user submission.
+- formType: classify the primary form found on the page
+- cmsType: detect the CMS from HTML patterns (wp-content/wp-includes = wordpress, blogger.com = blogger, wpdiscuz = discuz, etc.)
+- detectedFields: list the inferred purposes of detected fields (e.g. "name", "email", "url", "comment", "website")
+- confidence: your confidence in the canComment judgment (0.0 = pure guess, 1.0 = absolutely certain)
+- summary: MUST be in Chinese (简体中文), ultra-short conclusion within 15 characters
 - Return ONLY the JSON object, no markdown fences`
 
-/** Fix unquoted property names in JSON-like text, e.g. {canComment: true} → {"canComment": true} */
-function fixUnquotedKeys(json: string): string {
-	return json.replace(
-		/([{,]\s*)([a-zA-Z_$][\w$]*)\s*:/g,
-		'$1"$2":',
-	)
-}
-
-function parseJsonResponse(text: string): AnalysisResult {
-	let cleaned = text.trim()
-	const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/)
-	if (fenceMatch) {
-		cleaned = fenceMatch[1].trim()
-	}
-
-	// Try direct parse
-	try {
-		return JSON.parse(cleaned)
-	} catch {
-		// Try extracting first {...} block
-		const objectMatch = cleaned.match(/\{[\s\S]*\}/)
-		if (!objectMatch) {
-			throw new Error('Failed to parse analysis result from LLM response')
-		}
-
-		// Try fixing unquoted keys (common LLM output issue)
-		try {
-			return JSON.parse(fixUnquotedKeys(objectMatch[0]))
-		} catch {
-			// Last resort: try the original extracted block as-is
-			try {
-				return JSON.parse(objectMatch[0])
-			} catch {
-				throw new Error('Failed to parse analysis result from LLM response')
-			}
-		}
-	}
-}
-
-/** Strip HTML to plain text for LLM consumption */
-function htmlToText(html: string): string {
-	return html
-		.replace(/<script[\s\S]*?<\/script>/gi, '')
-		.replace(/<style[\s\S]*?<\/style>/gi, '')
-		.replace(/<nav[\s\S]*?<\/nav>/gi, '')
-		.replace(/<footer[\s\S]*?<\/footer>/gi, '')
-		.replace(/<[^>]+>/g, ' ')
-		.replace(/&nbsp;/g, ' ')
-		.replace(/&amp;/g, '&')
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&quot;/g, '"')
-		.replace(/&#\d+;/g, '')
-		.replace(/\s+/g, ' ')
-		.trim()
-}
-
-/** Extract <title> from HTML */
-function extractTitle(html: string): string {
-	const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
-	return match ? match[1].trim() : ''
-}
-
-/** Detect comment form elements in raw HTML */
-function detectCommentSignals(html: string): { found: boolean; details: string } {
-	const signals: string[] = []
-
-	// Common comment form patterns
-	if (/<textarea[^>]*>/i.test(html)) {
-		// Check if textarea is near comment-related context
-		const textareaCtx = html.match(/.{0,80}<textarea[\s\S]{0,200}/gi)
-		if (textareaCtx) {
-			const first = textareaCtx[0].toLowerCase()
-			if (first.includes('comment') || first.includes('reply') || first.includes('message') || first.includes('respond')) {
-				signals.push('textarea with comment context')
-			} else {
-				signals.push('textarea element found')
-			}
-		} else {
-			signals.push('textarea element found')
-		}
-	}
-
-	if (/id\s*=\s*["'][^"']*(?:respond|comment-?form|commentform|replytocom)/i.test(html)) {
-		signals.push('comment form container (id)')
-	}
-	if (/class\s*=\s*["'][^"']*(?:comment-?form|comment-?respond|comments-?area|reply-?form)/i.test(html)) {
-		signals.push('comment form container (class)')
-	}
-	if (/<input[^>]*name\s*=\s*["'](?:url|website|site)/i.test(html)) {
-		signals.push('URL/Website input field')
-	}
-	if (/id\s*=\s*["']comments["']/i.test(html) || /class\s*=\s*["'][^"']*comments[\s"']/i.test(html)) {
-		signals.push('comments section')
-	}
-
-	return {
-		found: signals.length > 0,
-		details: signals.join('; '),
-	}
+export interface AnalyzeBacklinkOptions {
+  url: string
+  signal?: AbortSignal
+  onProgress?: (step: AnalysisStep) => void
+  onLog?: (entry: LogEntry) => void
 }
 
 export async function analyzeBacklink(
-	url: string,
-	signal?: AbortSignal,
-	onProgress?: (step: AnalysisStep) => void,
-): Promise<AnalysisResult> {
-	const config: LLMSettings = await getLLMConfig()
-	if (!config.baseUrl) throw new Error('LLM 未配置，请在设置中填写 Base URL')
-	if (!config.model) throw new Error('模型未配置，请在设置中填写模型名称')
+  options: AnalyzeBacklinkOptions
+): Promise<BacklinkAnalysisResult> {
+  const { url, signal, onProgress, onLog } = options
+  let logId = 0
+  const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown) => {
+    onLog?.({ id: ++logId, timestamp: Date.now(), level, phase, message, data })
+  }
 
-	// Step 1: Fetch page HTML via background service worker
-	onProgress?.('loading')
-	const fetchResponse = await chrome.runtime.sendMessage({
-		type: 'FETCH_PAGE_CONTENT',
-		url,
-	})
+  const config: LLMSettings = await getLLMConfig()
+  if (!config.baseUrl) throw new Error('LLM 未配置，请在设置中填写 Base URL')
+  if (!config.model) throw new Error('模型未配置，请在设置中填写模型名称')
 
-	if (!fetchResponse?.ok || !fetchResponse.html) {
-		throw new Error(fetchResponse?.error || `无法获取页面内容: ${url}`)
-	}
+  // Step 1: Fetch form analysis via background service worker
+  onProgress?.('loading')
+  log('info', 'analyze', '正在获取页面内容...')
 
-	const html: string = fetchResponse.html
+  const fetchResponse = await chrome.runtime.sendMessage({
+    type: 'FETCH_PAGE_CONTENT',
+    url,
+  })
 
-	// Step 2: Extract content from HTML
-	const title = extractTitle(html)
-	const textContent = htmlToText(html)
-	const commentSignals = detectCommentSignals(html)
+  if (!fetchResponse?.ok) {
+    throw new Error(fetchResponse?.error || `无法获取页面内容: ${url}`)
+  }
 
-	if (textContent.length < 50) {
-		return { canComment: false, summary: '页面内容为空或过短，无法分析。' }
-	}
+  const analysis: FormAnalysisResult = fetchResponse.analysis
+  const pageContent: PageContent | undefined = fetchResponse.pageContent
 
-	// Step 3: Build prompt content
-	const truncated = textContent.length > 8000 ? textContent.slice(0, 8000) + '\n...[truncated]' : textContent
+  const unfilteredForms = analysis.forms.filter(f => !f.filtered)
+  const commentFields = analysis.fields.filter(f => {
+    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
+    return p.includes('comment') || p.includes('message') || p.includes('reply')
+      || p.includes('url') || p.includes('website') || p.includes('site')
+  })
 
-	const pageContent = [
-		`URL: ${url}`,
-		title ? `Title: ${title}` : '',
-		`Comment form detection: ${commentSignals.found ? `YES (${commentSignals.details})` : 'No comment form elements detected'}`,
-		`Page text content:\n${truncated}`,
-	].filter(Boolean).join('\n\n')
+  log('info', 'analyze', `表单分析完成 — 发现 ${unfilteredForms.length} 个表单, ${analysis.fields.length} 个字段`, {
+    forms: unfilteredForms.length,
+    fields: analysis.fields.length,
+    commentFields: commentFields.length,
+  })
 
-	// Step 4: LLM analysis
-	onProgress?.('analyzing')
-	const baseUrl = config.baseUrl.replace(/\/+$/, '')
-	const endpoint = `${baseUrl}/chat/completions`
+  if (commentFields.length > 0) {
+    const cmsGuess = analysis.page_info.title?.toLowerCase().includes('wordpress')
+      || (analysis.forms.some(f => f.form_action?.includes('wp-comments-post')))
+      ? 'WordPress' : 'unknown'
+    log('success', 'analyze', `检测到评论相关字段 (${cmsGuess})`, {
+      fields: commentFields.map(f => f.inferred_purpose || f.label || f.name),
+    })
+  } else if (analysis.fields.length === 0) {
+    log('warning', 'analyze', '未发现任何表单字段')
+  } else {
+    log('warning', 'analyze', '未发现评论相关字段')
+  }
 
-	const response = await fetch(endpoint, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-		},
-		body: JSON.stringify({
-			model: config.model,
-			messages: [
-				{ role: 'system', content: SYSTEM_PROMPT },
-				{ role: 'user', content: `Analyze this webpage for backlink opportunities:\n\n${pageContent}` },
-			],
-			temperature: 0.3,
-			max_tokens: 512,
-		}),
-		signal,
-	})
+  // Step 2: Build prompt and call LLM
+  onProgress?.('analyzing')
+  log('info', 'llm', '正在分析页面适配性...')
 
-	if (!response.ok) {
-		const errorText = await response.text().catch(() => '')
-		if (response.status === 401 || response.status === 403) {
-			throw new Error('API 认证失败，请检查设置中的 API Key')
-		}
-		if (response.status === 429) {
-			throw new Error('API 请求频率超限，请稍后重试')
-		}
-		throw new Error(`API 错误 (${response.status}): ${errorText || '未知错误'}`)
-	}
+  const fieldList = buildFieldList(analysis.fields, analysis.forms)
+  const pageSection = pageContent
+    ? [
+        `**Title:** ${pageContent.title}`,
+        pageContent.description ? `**Description:** ${pageContent.description}` : '',
+        pageContent.headings.length > 0 ? `**Headings:**\n${pageContent.headings.slice(0, 10).join('\n')}` : '',
+        '**Content Preview:**',
+        pageContent.content_preview.slice(0, 2000),
+      ].filter(Boolean).join('\n')
+    : `**Title:** ${analysis.page_info.title}`
 
-	const data = await response.json()
-	const content = data.choices?.[0]?.message?.content
-	if (!content) {
-		throw new Error('LLM 返回了空响应')
-	}
+  const userPrompt = [
+    `URL: ${url}`,
+    '',
+    '## Page Content',
+    pageSection,
+    '',
+    '## Detected Form Fields',
+    fieldList,
+    '',
+    'Analyze this page for backlink opportunities. Can we submit a comment with a URL field?',
+  ].join('\n')
 
-	onProgress?.('done')
-	return parseJsonResponse(content)
+  const rawResponse = await callLLM({
+    config,
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt,
+    temperature: 0.3,
+    maxTokens: 512,
+    signal,
+  })
+
+  const parsed = parseLLMJson(rawResponse) as BacklinkAnalysisResult
+
+  // Validate required fields with defaults
+  const result: BacklinkAnalysisResult = {
+    canComment: !!parsed.canComment,
+    summary: parsed.summary || (parsed.canComment ? '可评论' : '不可评论'),
+    formType: parsed.formType || 'none',
+    cmsType: parsed.cmsType || 'unknown',
+    detectedFields: Array.isArray(parsed.detectedFields) ? parsed.detectedFields : [],
+    confidence: typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.5,
+  }
+
+  const level = result.canComment ? 'success' : 'warning'
+  log(level, 'llm', `LLM 判定: ${result.canComment ? '可发布' : '不可发布'} (信心度: ${(result.confidence * 100).toFixed(0)}%)`, result)
+
+  onProgress?.('done')
+  return result
 }
