@@ -1,8 +1,11 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { AnalysisStep } from '@/lib/backlink-analyzer'
 import type { BatchRecord } from '@/hooks/useBacklinkAgent'
+import type { LogEntry } from '@/agent/types'
 import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
 import { Button } from './ui/Button'
+import { ActivityLog } from './ActivityLog'
+import { ScrollText } from 'lucide-react'
 
 interface BacklinkAnalysisProps {
 	backlinks: BacklinkRecord[]
@@ -22,6 +25,8 @@ interface BacklinkAnalysisProps {
 	activeBatchId: string | null
 	onSelectBatch: (id: string | null) => void
 	onDismissBatch: (id: string) => void
+	logs: LogEntry[]
+	onClearLogs: () => void
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -72,6 +77,8 @@ export function BacklinkAnalysis({
 	activeBatchId,
 	onSelectBatch,
 	onDismissBatch,
+	logs,
+	onClearLogs,
 }: BacklinkAnalysisProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const urlInputRef = useRef<HTMLInputElement>(null)
@@ -81,6 +88,7 @@ export function BacklinkAnalysis({
 	const [urlInput, setUrlInput] = useState('')
 	const [adding, setAdding] = useState(false)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
+	const [logPanelOpen, setLogPanelOpen] = useState(false)
 	const lastAnalyzedRef = useRef<string | null>(null)
 
 	useEffect(() => {
@@ -171,9 +179,24 @@ export function BacklinkAnalysis({
 						</span>
 					)}
 				</div>
-				<Button variant="ghost" size="sm" onClick={onBack}>
-					{'返回'}
-				</Button>
+				<div className="flex items-center gap-1">
+					<button
+						type="button"
+						className="relative p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer"
+						onClick={() => setLogPanelOpen(prev => !prev)}
+						title="活动日志"
+					>
+						<ScrollText className="w-4 h-4" />
+						{logs.length > 0 && (
+							<span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-medium bg-primary text-primary-foreground rounded-full px-0.5">
+								{logs.length > 99 ? '99+' : logs.length}
+							</span>
+						)}
+					</button>
+					<Button variant="ghost" size="sm" onClick={onBack}>
+						{'返回'}
+					</Button>
+				</div>
 			</header>
 
 			{/* ── Toolbar: data actions + batch controls ── */}
@@ -469,6 +492,37 @@ export function BacklinkAnalysis({
 					</table>
 				)}
 			</div>
+			{logPanelOpen && (
+				<div className="shrink-0 border-t border-border/60" style={{ height: '40%', minHeight: 120, maxHeight: '70%' }}>
+					<div
+						className="h-2 cursor-row-resize flex items-center justify-center hover:bg-accent/30 transition-colors"
+						onMouseDown={(e) => {
+							e.preventDefault()
+							const panel = e.currentTarget.parentElement
+							if (!panel) return
+							const startY = e.clientY
+							const startHeight = panel.offsetHeight
+
+							const onMouseMove = (moveE: MouseEvent) => {
+								const delta = startY - moveE.clientY
+								const newHeight = Math.max(120, Math.min(window.innerHeight * 0.7, startHeight + delta))
+								panel.style.height = `${newHeight}px`
+							}
+							const onMouseUp = () => {
+								document.removeEventListener('mousemove', onMouseMove)
+								document.removeEventListener('mouseup', onMouseUp)
+							}
+							document.addEventListener('mousemove', onMouseMove)
+							document.addEventListener('mouseup', onMouseUp)
+						}}
+					>
+						<div className="w-8 h-1 rounded-full bg-border" />
+					</div>
+					<div className="flex-1 overflow-hidden" style={{ height: 'calc(100% - 8px)' }}>
+						<ActivityLog logs={logs} onClear={onClearLogs} className="h-full border-0 rounded-none" />
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

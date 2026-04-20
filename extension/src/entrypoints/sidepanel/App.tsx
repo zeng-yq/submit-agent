@@ -49,6 +49,8 @@ export default function App() {
 		activeBatchId,
 		selectBatch,
 		dismissBatch,
+		logs: backlinkLogs,
+		clearLogs: clearBacklinkLogs,
 	} = useBacklinkAgent()
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 	const [pendingUnmatchedUrl, setPendingUnmatchedUrl] = useState<string | null>(null)
@@ -304,6 +306,8 @@ export default function App() {
 					activeBatchId={activeBatchId}
 					onSelectBatch={selectBatch}
 					onDismissBatch={dismissBatch}
+				logs={backlinkLogs}
+				onClearLogs={clearBacklinkLogs}
 				/>
 			</div>
 		)
