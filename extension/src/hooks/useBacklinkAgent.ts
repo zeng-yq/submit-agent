@@ -70,7 +70,7 @@ export function useBacklinkAgent() {
 
 	/** Analyze a single backlink */
 	const analyzeOne = useCallback(
-		async (backlink: BacklinkRecord): Promise<void> => {
+		async (backlink: BacklinkRecord, progress?: string): Promise<void> => {
 			abortRef.current?.abort()
 			const ac = new AbortController()
 			abortRef.current = ac
@@ -91,9 +91,8 @@ export function useBacklinkAgent() {
 					return
 				}
 
-				logIdRef.current = 0
-				setLogs([])
-				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: 'info', phase: 'system', message: `开始分析: ${extractDomain(backlink.sourceUrl)}` })
+				const prefix = progress ? `[${progress}] ` : ''
+				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: 'info', phase: 'system', message: `${prefix}开始分析: ${domain}` })
 
 				const result = await analyzeBacklink({
 					url: backlink.sourceUrl,
@@ -178,6 +177,10 @@ export function useBacklinkAgent() {
 			currentBatchIdRef.current = batchId
 
 			try {
+				// Clear logs at the start of a new batch
+				logIdRef.current = 0
+				setLogs([])
+
 				// Load all backlinks for display
 				setBacklinks(await listBacklinks())
 				const pending = await listBacklinksByStatus('pending')
@@ -187,7 +190,7 @@ export function useBacklinkAgent() {
 				for (let i = 0; i < batch.length; i++) {
 					if (stopRequestedRef.current) break
 					setCurrentIndex(i)
-					await analyzeOne(batch[i])
+					await analyzeOne(batch[i], `${i + 1}/${batch.length}`)
 				}
 
 				// Refresh full list after batch
