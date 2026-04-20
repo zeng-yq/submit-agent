@@ -3,6 +3,7 @@ import type { BacklinkRecord, BacklinkStatus, SiteRecord } from '@/lib/types'
 import { updateBacklink, listBacklinksByStatus, addSite, listBacklinks, saveBacklink, getBacklinkByUrl, getSiteByDomain } from '@/lib/db'
 import { extractDomain } from '@/lib/backlinks'
 import { analyzeBacklink, type AnalysisStep } from '@/lib/backlink-analyzer'
+import type { LogEntry } from '@/agent/types'
 
 export interface BatchRecord {
 	id: string
@@ -32,6 +33,8 @@ export function useBacklinkAgent() {
 	const [analyzingId, setAnalyzingId] = useState<string | null>(null)
 	const [batchHistory, setBatchHistory] = useState<BatchRecord[]>([])
 	const [activeBatchId, setActiveBatchId] = useState<string | null>(null)
+	const [logs, setLogs] = useState<LogEntry[]>([])
+	const logIdRef = useRef(0)
 	const currentBatchIdRef = useRef<string | null>(null)
 
 	/** Update current batch stats after an item is analyzed */
@@ -51,6 +54,18 @@ export function useBacklinkAgent() {
 				stats: key ? { ...b.stats, [key]: b.stats[key] + 1, total: b.stats.total + 1 } : b.stats,
 			}
 		}))
+	}, [])
+
+	const handleLog = useCallback((entry: LogEntry) => {
+		setLogs(prev => {
+			const next = [...prev, entry]
+			return next.length > 200 ? next.slice(-200) : next
+		})
+	}, [])
+
+	const clearLogs = useCallback(() => {
+		setLogs([])
+		logIdRef.current = 0
 	}, [])
 
 	/** Analyze a single backlink */
@@ -76,19 +91,31 @@ export function useBacklinkAgent() {
 					return
 				}
 
-				const result = await analyzeBacklink(
-					backlink.sourceUrl,
-					ac.signal,
-					(step) => setCurrentStep(step),
-				)
+				logIdRef.current = 0
+				setLogs([])
+				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: 'info', phase: 'system', message: `开始分析: ${extractDomain(backlink.sourceUrl)}` })
+
+				const result = await analyzeBacklink({
+					url: backlink.sourceUrl,
+					signal: ac.signal,
+					onProgress: (step) => setCurrentStep(step),
+					onLog: handleLog,
+				})
 
 				const publishable = !!result?.canComment
 				const newStatus: BacklinkStatus = publishable ? 'publishable' : 'not_publishable'
 
+				const analysisLog = [
+					result.summary,
+					`表单类型: ${result.formType}`,
+					`CMS: ${result.cmsType}`,
+					`信心度: ${(result.confidence * 100).toFixed(0)}%`,
+				]
+
 				const updated = await updateBacklink({
 					...backlink,
 					status: newStatus,
-					analysisLog: [result.summary || 'Analysis complete'],
+					analysisLog,
 				})
 
 				// If publishable, add to sites table
@@ -107,9 +134,11 @@ export function useBacklinkAgent() {
 
 				setBacklinks(prev => prev.map(b => b.id === backlink.id ? updated : b))
 				updateBatchStats(backlink.id, newStatus)
+				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: publishable ? 'success' : 'warning', phase: 'system', message: `分析完成: ${publishable ? '可发布' : '不可发布'}` })
 			} catch (error) {
 				if (ac.signal.aborted) return
 				const errorMsg = error instanceof Error ? error.message : String(error)
+				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: 'error', phase: 'system', message: `分析出错: ${errorMsg}` })
 				try {
 					const updated = await updateBacklink({
 						...backlink,
@@ -125,7 +154,7 @@ export function useBacklinkAgent() {
 				setAnalyzingId(null)
 			}
 		},
-		[updateBatchStats]
+		[updateBatchStats, handleLog]
 	)
 
 	const startAnalysis = useCallback(
@@ -267,5 +296,7 @@ export function useBacklinkAgent() {
 		activeBatchId,
 		selectBatch,
 		dismissBatch,
+		logs,
+		clearLogs,
 	}
 }
