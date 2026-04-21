@@ -8,9 +8,9 @@ import { useSites } from '@/hooks/useSites'
 import { useFormFillEngine } from '@/hooks/useFormFillEngine'
 import { useBacklinkState } from '@/hooks/useBacklinkState'
 import { useBacklinkAnalysis } from '@/hooks/useBacklinkAnalysis'
+import { useFloatFill } from '@/hooks/useFloatFill'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
-import { matchCurrentPage, filterSubmittable } from '@/lib/sites'
 
 type Tab = 'submit' | 'analysis' | 'settings'
 
@@ -37,99 +37,19 @@ export default function App() {
 		stop: stopBacklinkAnalysis,
 	} = useBacklinkAnalysis(backlinkState)
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
-	const [pendingUnmatchedUrl, setPendingUnmatchedUrl] = useState<string | null>(null)
 	const dashboardRunningRef = useRef(false)
 	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-	// Run float-fill: match current tab to a site and start submission
-	const floatFillRunningRef = useRef(false)
-	const runFloatFill = useCallback(async () => {
-		if (floatFillRunningRef.current) return
-		floatFillRunningRef.current = true
-		// Reset float button to idle so it can be clicked again later
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
-		try {
-			if (!activeProduct) {
-				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
-				return
-			}
-			const res = await chrome.storage.session.get('floatFillTabId')
-			const tabId = res.floatFillTabId as number | undefined
-			if (!tabId) return
-			try {
-				const tab = await chrome.tabs.get(tabId)
-				const tabUrl = tab.url ?? ''
-				const submittable = filterSubmittable(sites)
-				const matched = matchCurrentPage(submittable, tabUrl)
-				if (matched) {
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
-					reset()
-					setCurrentEngineSite(matched)
-					try {
-						const r = await startSubmission(matched)
-						if (r.failed === 0 && r.filled > 0) {
-							markSubmitted(matched.name, activeProduct.id)
-						}
-						setTimeout(() => {
-							setCurrentEngineSite(null)
-							reset()
-						}, 3000)
-					} catch (err) {
-						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
-						setTimeout(() => {
-							setCurrentEngineSite(null)
-							reset()
-						}, 3000)
-					}
-				} else {
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
-					setPendingUnmatchedUrl(tabUrl)
-				}
-			} catch (err) {
-				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
-			}
-		} finally {
-			floatFillRunningRef.current = false
-		}
-	}, [activeProduct, sites, startSubmission, markSubmitted, reset, markFailed])
-
-	// On mount, check if there's a pending float-fill request (sidepanel may have been opened by float button)
-	useEffect(() => {
-		if (!activeProduct || sites.length === 0) return
-		chrome.storage.session.get('floatFillPending').then((res) => {
-			if (res.floatFillPending) {
-				chrome.storage.session.remove('floatFillPending').catch(() => {})
-				runFloatFill()
-			}
-		})
-	}, [activeProduct, sites.length, runFloatFill])
-
-	// Listen for float-fill trigger and status updates from content script via background
-	useEffect(() => {
-		const handler = (message: any) => {
-			if (message.type === 'FLOAT_FILL' && message.action === 'start') {
-				runFloatFill()
-				return
-			}
-			if (message.type === 'STATUS_UPDATE') {
-				if (!activeProduct) return
-				const { status, tabUrl } = message.payload ?? {}
-				if (!status || !tabUrl) return
-				const submittable = filterSubmittable(sites)
-				const matched = matchCurrentPage(submittable, tabUrl)
-				if (!matched) return
-				if (status === 'not_started') {
-					resetSubmission(matched.name)
-				} else if (status === 'submitted') {
-					markSubmitted(matched.name, activeProduct.id)
-				} else if (status === 'failed') {
-					markFailed(matched.name, activeProduct.id)
-				}
-			}
-		}
-		chrome.runtime.onMessage.addListener(handler)
-		return () => chrome.runtime.onMessage.removeListener(handler)
-	}, [runFloatFill, activeProduct, sites, markSubmitted, markFailed, resetSubmission])
+	const { pendingUnmatchedUrl, confirmUnmatched, cancelUnmatched } = useFloatFill({
+		activeProduct,
+		sites,
+		startSubmission,
+		markSubmitted,
+		markFailed,
+		resetSubmission,
+		reset,
+		setCurrentEngineSite,
+	})
 
 	useEffect(() => {
 		if (!dropdownOpen) return
@@ -192,43 +112,6 @@ export default function App() {
 
 		dashboardRunningRef.current = false
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
-
-	// Confirm submission for an unmatched page
-	const handleConfirmUnmatched = useCallback(async () => {
-		if (!pendingUnmatchedUrl || !activeProduct) return
-		const url = new URL(pendingUnmatchedUrl)
-		const virtualSite: SiteData = {
-			name: url.hostname,
-			submit_url: pendingUnmatchedUrl,
-			category: 'directory_submit',
-			dr: null,
-		}
-		setPendingUnmatchedUrl(null)
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
-		reset()
-		setCurrentEngineSite(virtualSite)
-		try {
-			const r = await startSubmission(virtualSite)
-			if (r.failed === 0 && r.filled > 0) {
-				markSubmitted(virtualSite.name, activeProduct.id)
-			}
-			setTimeout(() => {
-				setCurrentEngineSite(null)
-				reset()
-			}, 3000)
-		} catch (err) {
-			markFailed(virtualSite.name, activeProduct.id, err instanceof Error ? err.message : String(err))
-			setTimeout(() => {
-				setCurrentEngineSite(null)
-				reset()
-			}, 3000)
-		}
-	}, [pendingUnmatchedUrl, activeProduct, startSubmission, markSubmitted, reset, markFailed])
-
-	const handleCancelUnmatched = useCallback(() => {
-		setPendingUnmatchedUrl(null)
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
-	}, [])
 
 	// Reload backlinks from DB when entering the analysis tab
 	useEffect(() => {
@@ -390,8 +273,8 @@ export default function App() {
 						<p className="text-xs text-muted-foreground mb-1">{'当前页面不在外链资源库中，是否仍然提交？'}</p>
 						<p className="text-xs text-muted-foreground break-all mb-4">{pendingUnmatchedUrl}</p>
 						<div className="flex justify-end gap-2">
-							<button type="button" className="px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors cursor-pointer" onClick={handleCancelUnmatched}>{'取消'}</button>
-							<button type="button" className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer" onClick={handleConfirmUnmatched}>{'提交'}</button>
+							<button type="button" className="px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors cursor-pointer" onClick={cancelUnmatched}>{'取消'}</button>
+							<button type="button" className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer" onClick={confirmUnmatched}>{'提交'}</button>
 						</div>
 					</div>
 				</div>
