@@ -117,7 +117,7 @@ export function Dashboard({
 							: 'bg-muted hover:bg-muted/80 text-foreground'
 					}`}
 				>
-					{'当前提交'}
+					{'活动日志'}
 				</button>
 			</div>
 
