@@ -94,18 +94,4 @@ export const SHEET_DEFS: Record<string, SheetDef> = {
       { header: 'updatedAt', key: 'updatedAt', encode: 'date' },
     ],
   },
-  backlinks: {
-    tabName: 'backlinks',
-    columns: [
-      { header: 'id', key: 'id' },
-      { header: 'sourceUrl', key: 'sourceUrl' },
-      { header: 'sourceTitle', key: 'sourceTitle' },
-      { header: 'pageAscore', key: 'pageAscore' },
-      { header: 'status', key: 'status' },
-      { header: 'analysisLog', key: 'analysisLog', encode: 'json' },
-      { header: 'domain', key: 'domain' },
-      { header: 'createdAt', key: 'createdAt', encode: 'date' },
-      { header: 'updatedAt', key: 'updatedAt', encode: 'date' },
-    ],
-  },
 }
