@@ -8,6 +8,7 @@ export {
   classifyForm,
   inferFieldPurpose,
   inferEffectiveType,
+  classifyFields,
   detectCommentLinks,
   buildFieldList,
 } from './form-analyzer'

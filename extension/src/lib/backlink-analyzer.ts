@@ -1,5 +1,6 @@
 import type { BacklinkAnalysisResult } from './types'
 import type { FormAnalysisResult, FormField, FormGroup } from '@/agent/FormAnalyzer'
+import { classifyFields } from '@/agent/FormAnalyzer'
 import type { LogEntry, LogLevel } from '@/agent/types'
 
 export type AnalysisStep = 'loading' | 'analyzing' | 'done'
@@ -42,13 +43,7 @@ export async function analyzeBacklink(
   const allFields = analysis.fields
 
   // Detect comment-related fields (only for canComment determination)
-  const commentFields = allFields.filter(f => {
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return p.includes('comment') || p.includes('message') || p.includes('reply')
-  })
-  const textareaFields = allFields.filter(f =>
-    f.tagName === 'textarea' || f.effective_type === 'textarea'
-  )
+  const { commentFields, textareaFields } = classifyFields(allFields)
 
   log('info', 'analyze', `表单分析完成 — 发现 ${unfilteredForms.length} 个表单, ${allFields.length} 个字段`, {
     forms: unfilteredForms.length,
@@ -115,26 +110,7 @@ export function calculateConfidence(input: ConfidenceInput): number {
   const { forms, fields, cmsType } = input
   const unfilteredForms = forms.filter(f => !f.filtered)
 
-  const commentFields = fields.filter(f => {
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return p.includes('comment') || p.includes('message') || p.includes('reply')
-  })
-  const urlFields = fields.filter(f => {
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return p.includes('url') || p.includes('website') || p.includes('site')
-  })
-  const textareaFields = fields.filter(f =>
-    f.tagName === 'textarea' || f.effective_type === 'textarea'
-  )
-  const emailFields = fields.filter(f => {
-    const t = (f.type || f.effective_type || '').toLowerCase()
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return t === 'email' || p.includes('email')
-  })
-  const authorFields = fields.filter(f => {
-    const p = (f.inferred_purpose || f.label || f.name || '').toLowerCase()
-    return p.includes('author') || p.includes('nickname') || (p === 'name')
-  })
+  const { commentFields, textareaFields, urlFields, emailFields, authorFields } = classifyFields(fields)
 
   const formActions = unfilteredForms.map(f => (f.form_action || '').toLowerCase()).join(' ')
   const hasContactSignal = /\/(contact|support|help)/.test(formActions)
