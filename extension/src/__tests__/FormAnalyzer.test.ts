@@ -815,3 +815,183 @@ describe('buildFieldList', () => {
     expect(result).toContain('field_0: type=text, label="Name", required');
   });
 });
+
+describe('detectCommentLinks', () => {
+  let detectCommentLinks: typeof import('@/agent/FormAnalyzer').detectCommentLinks;
+
+  beforeEach(async () => {
+    dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'dangerously',
+      url: 'https://example.com',
+    });
+    const mod = await import('@/agent/FormAnalyzer');
+    detectCommentLinks = mod.detectCommentLinks;
+  });
+
+  function getDoc(): Document {
+    return dom.window.document;
+  }
+
+  it('无评论容器时返回 hasExternalLinks=false', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `<p>Just a regular page with no comment section.</p>`;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(false);
+    expect(result.uniqueDomains).toBe(0);
+    expect(result.totalLinks).toBe(0);
+  });
+
+  it('评论容器内无外链时返回 hasExternalLinks=false', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <div id="comments">
+        <p>Great article!</p>
+        <p>Thanks for sharing.</p>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(false);
+    expect(result.uniqueDomains).toBe(0);
+    expect(result.totalLinks).toBe(0);
+  });
+
+  it('外链数量未达阈值时返回 hasExternalLinks=false', () => {
+    const doc = getDoc();
+    const links = Array.from({ length: 9 }, (_, i) =>
+      `<a href="https://domain${i}.com/page">link ${i}</a>`
+    ).join('\n');
+    doc.body.innerHTML = `
+      <div id="comments">
+        <div class="comment-content">${links}</div>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(false);
+    expect(result.uniqueDomains).toBe(9);
+    expect(result.totalLinks).toBe(9);
+  });
+
+  it('10+ 不同域名外链时返回 hasExternalLinks=true', () => {
+    const doc = getDoc();
+    const links = Array.from({ length: 12 }, (_, i) =>
+      `<a href="https://domain${i}.com/page">link ${i}</a>`
+    ).join('\n');
+    doc.body.innerHTML = `
+      <div id="comments">
+        <div class="comment-content">${links}</div>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(true);
+    expect(result.uniqueDomains).toBe(12);
+    expect(result.totalLinks).toBe(12);
+  });
+
+  it('排除评论元数据区域的链接', () => {
+    const doc = getDoc();
+    const contentLinks = Array.from({ length: 10 }, (_, i) =>
+      `<a href="https://content-domain${i}.com">content link ${i}</a>`
+    ).join('\n');
+    doc.body.innerHTML = `
+      <div id="comments">
+        <div class="comment-meta">
+          <a href="https://meta-should-be-excluded.com">meta link</a>
+        </div>
+        <div class="reply">
+          <a href="https://reply-should-be-excluded.com">reply link</a>
+        </div>
+        <div class="comment-content">${contentLinks}</div>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(true);
+    expect(result.uniqueDomains).toBe(10);
+    expect(result.totalLinks).toBe(10);
+  });
+
+  it('排除同域名链接', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <div id="comments">
+        <div class="comment-content">
+          <a href="https://example.com/page">same host link</a>
+          <a href="https://example.com/other">another same host</a>
+          <a href="https://external.com">external link</a>
+        </div>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.uniqueDomains).toBe(1);
+    expect(result.totalLinks).toBe(1);
+  });
+
+  it('重复域名只计数一次', () => {
+    const doc = getDoc();
+    doc.body.innerHTML = `
+      <div id="comments">
+        <div class="comment-content">
+          <a href="https://same-domain.com/page1">link 1</a>
+          <a href="https://same-domain.com/page2">link 2</a>
+          <a href="https://another-domain.com/page">link 3</a>
+        </div>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.uniqueDomains).toBe(2);
+    expect(result.totalLinks).toBe(3);
+  });
+
+  it('支持 WordPress 风格评论结构', () => {
+    const doc = getDoc();
+    const commentLinks = Array.from({ length: 11 }, (_, i) =>
+      `<a href="https://wp-site${i}.example.com" rel="nofollow ugc">WP link ${i}</a>`
+    ).join('\n');
+    doc.body.innerHTML = `
+      <div id="comments" class="comments-area">
+        <h2 class="comments-title">11 Responses</h2>
+        <ol class="comment-list">
+          <li class="comment" id="comment-1">
+            <article class="comment-body">
+              <footer class="comment-meta">
+                <div class="comment-author vcard">
+                  <a href="https://example.com/author">Author Link</a>
+                </div>
+                <div class="comment-metadata">
+                  <a href="https://example.com/comment-page">April 21, 2026</a>
+                </div>
+              </footer>
+              <div class="comment-content">
+                <p>${commentLinks}</p>
+              </div>
+              <div class="reply">
+                <a href="https://example.com/reply">Reply</a>
+              </div>
+            </article>
+          </li>
+        </ol>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(true);
+    expect(result.uniqueDomains).toBe(11);
+    expect(result.totalLinks).toBe(11);
+  });
+
+  it('支持 .comments 选择器（Blogger 风格）', () => {
+    const doc = getDoc();
+    const links = Array.from({ length: 10 }, (_, i) =>
+      `<a href="https://blogger-site${i}.blogspot.com">blog link ${i}</a>`
+    ).join('\n');
+    doc.body.innerHTML = `
+      <div class="comments">
+        <div class="comment-block">
+          <p class="comment-content">${links}</p>
+        </div>
+      </div>
+    `;
+    const result = detectCommentLinks(doc);
+    expect(result.hasExternalLinks).toBe(true);
+    expect(result.uniqueDomains).toBe(10);
+    expect(result.totalLinks).toBe(10);
+  });
+});

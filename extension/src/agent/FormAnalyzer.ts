@@ -34,6 +34,14 @@ export interface FormAnalysisResult {
   page_info: PageInfo;
 }
 
+export interface CommentLinkResult {
+  hasExternalLinks: boolean;   // true when >= 10 unique external domains
+  uniqueDomains: number;       // count of distinct external domains
+  totalLinks: number;          // total external link count
+}
+
+const EXTERNAL_LINK_DOMAIN_THRESHOLD = 10;
+
 export type FormRole = 'search' | 'login' | 'newsletter' | 'unknown'
 export type FormConfidence = 'high' | 'medium' | 'low'
 
@@ -613,4 +621,89 @@ export function resolveField(
   } catch {
     return null;
   }
+}
+
+/**
+ * Detect external links within comment sections of a webpage.
+ * Returns hasExternalLinks: true when >= 10 unique external domains are found.
+ */
+export function detectCommentLinks(doc: Document): CommentLinkResult {
+  const COMMENT_CONTAINER_SELECTORS = [
+    '#comments',
+    '.comments-area',
+    '.comments',
+    '#comment-list',
+    '.comment-list',
+  ];
+
+  const METADATA_SELECTORS = [
+    '.reply',
+    '.comment-reply',
+    '.comment-meta',
+    '.comment-metadata',
+    '.comment-author',
+    '.vcard',
+    '.says',
+    '.must-log-in',
+    'nav',
+    '.navigation',
+    '.nav-links',
+    '.comment-navigation',
+    '.comment-reply-login',
+    '.comment-actions',
+    '.blog-admin',
+    '.comment-replybox-single',
+  ].join(', ');
+
+  // 1. Find comment container
+  let container: Element | null = null;
+  for (const selector of COMMENT_CONTAINER_SELECTORS) {
+    container = doc.querySelector(selector);
+    if (container) break;
+  }
+
+  // 2. No container found
+  if (!container) {
+    return { hasExternalLinks: false, uniqueDomains: 0, totalLinks: 0 };
+  }
+
+  // 3. Get page hostname
+  const pageHostname = doc.location.hostname;
+
+  // 4-8. Scan links
+  const allLinks = container.querySelectorAll('a[href]');
+  const externalDomains = new Set<string>();
+  let totalLinks = 0;
+
+  for (const link of allLinks) {
+    // 5. Skip links inside metadata areas
+    if (METADATA_SELECTORS && link.closest(METADATA_SELECTORS)) {
+      continue;
+    }
+
+    const href = (link as HTMLAnchorElement).href;
+
+    // 6. Only count http/https links
+    if (!href.startsWith('http:') && !href.startsWith('https:')) {
+      continue;
+    }
+
+    try {
+      const url = new URL(href, doc.location.href);
+      // 7. Skip same-hostname links
+      if (url.hostname === pageHostname) {
+        continue;
+      }
+      externalDomains.add(url.hostname);
+      totalLinks++;
+    } catch {
+      // Invalid URL, skip
+    }
+  }
+
+  return {
+    hasExternalLinks: externalDomains.size >= EXTERNAL_LINK_DOMAIN_THRESHOLD,
+    uniqueDomains: externalDomains.size,
+    totalLinks,
+  };
 }
