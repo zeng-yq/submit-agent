@@ -71,8 +71,6 @@ export function Dashboard({
 		})
 	}, [sites, submissions])
 
-	const pct = stats.total > 0 ? Math.round((stats.submitted / stats.total) * 100) : 0
-
 	const tabs: { id: Tab; label: string; count: number }[] = [
 		{ id: 'all', label: '全部', count: allSites.length },
 		{ id: 'done', label: '已完成', count: doneSites.length },
@@ -93,22 +91,6 @@ export function Dashboard({
 
 	return (
 		<div className="flex flex-col gap-2 h-full">
-			{/* Progress */}
-			<div className="px-1 space-y-1">
-				<div className="flex items-center justify-between">
-					<span className="text-xs font-medium">
-						{`已提交 ${stats.submitted} / ${stats.total}`}
-					</span>
-					<span className="text-xs text-muted-foreground">{pct}%</span>
-				</div>
-				<div className="h-1.5 rounded-full bg-muted overflow-hidden">
-					<div
-						className="h-full rounded-full bg-primary transition-all"
-						style={{ width: `${pct}%` }}
-					/>
-				</div>
-			</div>
-
 			{/* Tabs + current submission toggle */}
 			<div className="flex items-center gap-0 border-b">
 				{tabs.map((tabItem) => (

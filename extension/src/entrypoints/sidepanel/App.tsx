@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { SiteData } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
 import { QuickCreate } from '@/components/QuickCreate'
@@ -250,6 +250,15 @@ export default function App() {
 
 	const isLoading = productLoading || sitesLoading
 
+	const submitStats = useMemo(() => {
+		const submittable = sites.filter((s) => !!s.submit_url)
+		let submitted = 0
+		for (const sub of submissions.values()) {
+			if (sub.status === 'submitted' || sub.status === 'approved') submitted++
+		}
+		return { submitted, total: submittable.length }
+	}, [sites, submissions])
+
 	function renderSubmitTab() {
 		if (!activeProduct) {
 			return (
@@ -310,6 +319,7 @@ export default function App() {
 								</div>
 							)}
 						</div>
+						<span className="text-xs text-muted-foreground tabular-nums">{`已提交 ${submitStats.submitted} / ${submitStats.total}`}</span>
 					</div>
 				</div>
 
