@@ -168,17 +168,11 @@ export async function waitForFormFields(timeoutMs = 5000): Promise<void> {
   // 1. Already have form fields
   if (hasFormFields(doc)) return;
 
-  // 2. Wait for page to fully load
-  if (doc.readyState !== 'complete') {
-    await new Promise<void>(r => {
-      const handler = () => { r(); };
-      doc.addEventListener('readystatechange', handler, { once: true });
-      window.addEventListener('load', handler, { once: true });
-    });
-    if (hasFormFields(doc)) return;
-  }
-
-  // 3. MutationObserver for dynamically added fields
+  // 2. MutationObserver for dynamically added fields
+  // Content script is injected at document_end (readyState >= 'interactive'),
+  // so MutationObserver can work immediately. We intentionally do NOT wait for
+  // readyState 'complete' because pages with persistent connections (analytics,
+  // websockets, SSE) may never reach that state.
   await new Promise<void>((resolve) => {
     const timeout = setTimeout(resolve, timeoutMs);
 

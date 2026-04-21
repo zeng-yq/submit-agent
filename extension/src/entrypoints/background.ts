@@ -48,8 +48,9 @@ function handleSubmitControl(
 	}
 }
 
-const PAGE_LOAD_TIMEOUT_MS = 30_000
+const TAB_COMPLETE_TIMEOUT_MS = 10_000
 const JS_RENDER_DELAY_MS = 2_000
+const FALLBACK_DELAY_MS = 1_000
 
 function handleFetchPageContent(
 	message: { type: string; url: string },
@@ -78,24 +79,37 @@ function handleFetchPageContent(
 			}
 			openedTabId = tab.id
 
-			const loaded = await waitForTabLoad(tab.id, PAGE_LOAD_TIMEOUT_MS)
-			if (!loaded) {
-				sendResponse({ error: `Page load timed out after ${PAGE_LOAD_TIMEOUT_MS / 1000}s` })
-				return
+			// Wait for tab "complete" status, but don't treat timeout as fatal.
+			// Many sites have persistent connections (analytics, websockets, SSE)
+			// that keep tab status as "loading" even when DOM is fully rendered.
+			const loaded = await waitForTabLoad(tab.id, TAB_COMPLETE_TIMEOUT_MS)
+
+			if (loaded) {
+				await new Promise((resolve) => setTimeout(resolve, JS_RENDER_DELAY_MS))
+			} else {
+				// Tab didn't reach "complete", but content script (injected at document_end)
+				// may already be available. Use a shorter delay before trying.
+				await new Promise((resolve) => setTimeout(resolve, FALLBACK_DELAY_MS))
 			}
 
-			await new Promise((resolve) => setTimeout(resolve, JS_RENDER_DELAY_MS))
+			try {
+				const result = await chrome.tabs.sendMessage(tab.id, {
+					type: 'FLOAT_FILL',
+					action: 'analyze',
+					payload: { siteType: 'blog_comment' },
+				})
 
-			const result = await chrome.tabs.sendMessage(tab.id, {
-				type: 'FLOAT_FILL',
-				action: 'analyze',
-				payload: { siteType: 'blog_comment' },
-			})
-
-			if (result?.ok && result.analysis) {
-				sendResponse({ ok: true, analysis: result.analysis, pageContent: result.pageContent })
-			} else {
-				sendResponse({ error: result?.error || 'Content script did not return analysis' })
+				if (result?.ok && result.analysis) {
+					sendResponse({ ok: true, analysis: result.analysis, pageContent: result.pageContent })
+				} else {
+					sendResponse({ error: result?.error || 'Content script did not return analysis' })
+				}
+			} catch {
+				sendResponse({
+					error: loaded
+						? 'Content script did not respond'
+						: `Page did not become available within ${TAB_COMPLETE_TIMEOUT_MS / 1000}s`,
+				})
 			}
 		} catch (err) {
 			sendResponse({ error: err instanceof Error ? err.message : String(err) })
