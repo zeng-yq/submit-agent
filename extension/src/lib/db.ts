@@ -207,8 +207,8 @@ export async function seedSites(sites: SiteData[]): Promise<void> {
 	for (const site of sites) {
 		const existing = await tx.store.get(site.name)
 		if (!existing) {
-			const category: SiteCategory =
-				site.category === 'Non-Blog Comment' ? 'others' : site.category
+			const raw = site.category as string
+			const category: SiteCategory = raw === 'Non-Blog Comment' ? 'others' : raw as SiteCategory
 			const record: SiteRecord = {
 				...site,
 				category,
