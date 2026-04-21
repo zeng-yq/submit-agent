@@ -585,6 +585,50 @@ describe('FormAnalyzer', () => {
     expect(result.fields).toHaveLength(1);
     expect(result.fields[0].id).toBe('name1');
   });
+
+  describe('analyzeForms integration with commentLinks', () => {
+    let analyzeFormsMod: typeof import('@/agent/FormAnalyzer').analyzeForms;
+
+    beforeEach(async () => {
+      dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+        runScripts: 'dangerously',
+        url: 'https://example.com',
+      });
+      const mod = await import('@/agent/FormAnalyzer');
+      analyzeFormsMod = mod.analyzeForms;
+    });
+
+    function getDoc(): Document {
+      return dom.window.document;
+    }
+
+    it('analyzeForms 返回 commentLinks 字段', () => {
+      const doc = getDoc();
+      doc.body.innerHTML = '<p>No forms, no comments</p>';
+      const result = analyzeFormsMod(doc);
+      expect(result.commentLinks).toBeDefined();
+      expect(result.commentLinks!.hasExternalLinks).toBe(false);
+    });
+
+    it('analyzeForms 检测到评论外链时 commentLinks.hasExternalLinks=true', () => {
+      const doc = getDoc();
+      const domains = Array.from({ length: 12 }, (_, i) =>
+        `<a href="https://spam${i}.com">spam${i}</a>`
+      ).join(' ');
+      doc.body.innerHTML = `
+        <div id="comments">
+          <ol class="comment-list">
+            <li class="comment">
+              <div class="comment-content"><p>${domains}</p></div>
+            </li>
+          </ol>
+        </div>
+      `;
+      const result = analyzeFormsMod(doc);
+      expect(result.commentLinks!.hasExternalLinks).toBe(true);
+      expect(result.commentLinks!.uniqueDomains).toBe(12);
+    });
+  });
 });
 
 describe('inferFieldPurpose', () => {

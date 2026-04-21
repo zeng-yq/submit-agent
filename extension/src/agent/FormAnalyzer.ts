@@ -32,6 +32,7 @@ export interface FormAnalysisResult {
   fields: FormField[];
   forms: FormGroup[];   // all form metadata (including filtered)
   page_info: PageInfo;
+  commentLinks?: CommentLinkResult;
 }
 
 export interface CommentLinkResult {
@@ -630,6 +631,7 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
     fields: deduplicateFields(fields),
     forms: formGroups,
     page_info: extractPageInfo(doc),
+    commentLinks: detectCommentLinks(doc),
   };
 }
 
