@@ -901,7 +901,7 @@ describe('detectCommentLinks', () => {
 
   it('外链数量未达阈值时返回 hasExternalLinks=false', () => {
     const doc = getDoc();
-    const links = Array.from({ length: 9 }, (_, i) =>
+    const links = Array.from({ length: 4 }, (_, i) =>
       `<a href="https://domain${i}.com/page">link ${i}</a>`
     ).join('\n');
     doc.body.innerHTML = `
@@ -911,13 +911,13 @@ describe('detectCommentLinks', () => {
     `;
     const result = detectCommentLinks(doc);
     expect(result.hasExternalLinks).toBe(false);
-    expect(result.uniqueDomains).toBe(9);
-    expect(result.totalLinks).toBe(9);
+    expect(result.uniqueDomains).toBe(4);
+    expect(result.totalLinks).toBe(4);
   });
 
-  it('10+ 不同域名外链时返回 hasExternalLinks=true', () => {
+  it('5+ 不同域名外链时返回 hasExternalLinks=true', () => {
     const doc = getDoc();
-    const links = Array.from({ length: 12 }, (_, i) =>
+    const links = Array.from({ length: 7 }, (_, i) =>
       `<a href="https://domain${i}.com/page">link ${i}</a>`
     ).join('\n');
     doc.body.innerHTML = `
@@ -927,13 +927,13 @@ describe('detectCommentLinks', () => {
     `;
     const result = detectCommentLinks(doc);
     expect(result.hasExternalLinks).toBe(true);
-    expect(result.uniqueDomains).toBe(12);
-    expect(result.totalLinks).toBe(12);
+    expect(result.uniqueDomains).toBe(7);
+    expect(result.totalLinks).toBe(7);
   });
 
   it('排除评论元数据区域的链接', () => {
     const doc = getDoc();
-    const contentLinks = Array.from({ length: 10 }, (_, i) =>
+    const contentLinks = Array.from({ length: 6 }, (_, i) =>
       `<a href="https://content-domain${i}.com">content link ${i}</a>`
     ).join('\n');
     doc.body.innerHTML = `
@@ -949,8 +949,8 @@ describe('detectCommentLinks', () => {
     `;
     const result = detectCommentLinks(doc);
     expect(result.hasExternalLinks).toBe(true);
-    expect(result.uniqueDomains).toBe(10);
-    expect(result.totalLinks).toBe(10);
+    expect(result.uniqueDomains).toBe(6);
+    expect(result.totalLinks).toBe(6);
   });
 
   it('排除同域名链接', () => {
@@ -987,7 +987,7 @@ describe('detectCommentLinks', () => {
 
   it('支持 WordPress 风格评论结构', () => {
     const doc = getDoc();
-    const commentLinks = Array.from({ length: 11 }, (_, i) =>
+    const commentLinks = Array.from({ length: 6 }, (_, i) =>
       `<a href="https://wp-site${i}.example.com" rel="nofollow ugc">WP link ${i}</a>`
     ).join('\n');
     doc.body.innerHTML = `
@@ -1017,13 +1017,13 @@ describe('detectCommentLinks', () => {
     `;
     const result = detectCommentLinks(doc);
     expect(result.hasExternalLinks).toBe(true);
-    expect(result.uniqueDomains).toBe(11);
-    expect(result.totalLinks).toBe(11);
+    expect(result.uniqueDomains).toBe(6);
+    expect(result.totalLinks).toBe(6);
   });
 
   it('支持 .comments 选择器（Blogger 风格）', () => {
     const doc = getDoc();
-    const links = Array.from({ length: 10 }, (_, i) =>
+    const links = Array.from({ length: 6 }, (_, i) =>
       `<a href="https://blogger-site${i}.blogspot.com">blog link ${i}</a>`
     ).join('\n');
     doc.body.innerHTML = `
@@ -1035,7 +1035,7 @@ describe('detectCommentLinks', () => {
     `;
     const result = detectCommentLinks(doc);
     expect(result.hasExternalLinks).toBe(true);
-    expect(result.uniqueDomains).toBe(10);
-    expect(result.totalLinks).toBe(10);
+    expect(result.uniqueDomains).toBe(6);
+    expect(result.totalLinks).toBe(6);
   });
 });

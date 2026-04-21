@@ -1,6 +1,6 @@
 import type { CommentLinkResult } from './types'
 
-const EXTERNAL_LINK_DOMAIN_THRESHOLD = 10;
+const EXTERNAL_LINK_DOMAIN_THRESHOLD = 5;
 
 const COMMENT_CONTAINER_SELECTORS = [
   '#comments',
