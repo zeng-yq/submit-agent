@@ -212,3 +212,46 @@ describe('calculateConfidence', () => {
     })
   })
 })
+
+describe('评论系统信号', () => {
+  it('commentSystem 为 disqus 时 confidence 加 0.20', () => {
+    const without = calculateConfidence({
+      forms: [],
+      fields: [],
+      cmsType: 'unknown',
+    })
+    const withSystem = calculateConfidence({
+      forms: [],
+      fields: [],
+      cmsType: 'unknown',
+      commentSystem: 'disqus',
+    })
+    expect(withSystem - without).toBeCloseTo(0.20, 1)
+  })
+
+  it('commentSystem 为 unknown 时不影响 confidence', () => {
+    const without = calculateConfidence({
+      forms: [],
+      fields: [],
+      cmsType: 'unknown',
+    })
+    const withUnknown = calculateConfidence({
+      forms: [],
+      fields: [],
+      cmsType: 'unknown',
+      commentSystem: 'unknown',
+    })
+    expect(withUnknown).toBe(without)
+  })
+
+  it('commentSystem 与其他信号叠加', () => {
+    const result = calculateConfidence({
+      forms: [makeForm({ form_index: 0, filtered: false })],
+      fields: [makeField({ name: 'comment', tagName: 'textarea', label: 'Comment' })],
+      cmsType: 'wordpress',
+      commentSystem: 'disqus',
+    })
+    // 0.2(form) + 0.15(textarea) + 0.2(comment) + 0.15(cms) + 0.2(commentSystem) = 0.9
+    expect(result).toBeCloseTo(0.9, 1)
+  })
+})

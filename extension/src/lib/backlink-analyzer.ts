@@ -69,6 +69,8 @@ export async function analyzeBacklink(
     cmsType = 'wordpress'
   }
 
+  const commentSystem = analysis.commentSystem?.name
+
   // Infer formType
   let formType: BacklinkAnalysisResult['formType'] = 'none'
   if (canComment) {
@@ -83,6 +85,7 @@ export async function analyzeBacklink(
     fields: allFields,
     cmsType,
     hasCommentExternalLinks,
+    commentSystem,
   })
 
   const result: BacklinkAnalysisResult = {
@@ -96,10 +99,11 @@ export async function analyzeBacklink(
     cmsType,
     detectedFields,
     confidence,
+    commentSystem,
   }
 
   const level = result.canComment ? 'success' : 'warning'
-  log(level, 'analyze', `判定: ${result.canComment ? '可发布' : '不可发布'} (信心度: ${(result.confidence * 100).toFixed(0)}%)`, result)
+  log(level, 'analyze', `判定: ${result.canComment ? '可发布' : '不可发布'} (信心度: ${(result.confidence * 100).toFixed(0)}%)${commentSystem ? ` [${commentSystem}]` : ''}`, result)
 
   onProgress?.('done')
   return result
@@ -110,6 +114,7 @@ interface ConfidenceInput {
   fields: FormField[]
   cmsType: string
   hasCommentExternalLinks?: boolean
+  commentSystem?: string
 }
 
 export function calculateConfidence(input: ConfidenceInput): number {
@@ -134,6 +139,7 @@ export function calculateConfidence(input: ConfidenceInput): number {
   if (authorFields.length > 0) confidence += 0.1
   if (cmsType !== 'unknown') confidence += 0.15
   if (input.hasCommentExternalLinks) confidence += 0.25
+  if (input.commentSystem && input.commentSystem !== 'unknown') confidence += 0.20
   if (hasContactSignal) confidence -= 0.2
   if (onlyMessageNoComment) confidence -= 0.1
 
