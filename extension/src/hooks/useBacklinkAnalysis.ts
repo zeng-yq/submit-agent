@@ -54,6 +54,7 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 					result.summary,
 					`表单类型: ${result.formType}`,
 					`CMS: ${result.cmsType}`,
+					...(result.commentSystem ? [`评论系统: ${result.commentSystem}`] : []),
 					`信心度: ${(result.confidence * 100).toFixed(0)}%`,
 				]
 
