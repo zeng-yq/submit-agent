@@ -164,7 +164,7 @@ export function BacklinkAnalysis({
 	return (
 		<div className="flex flex-col h-full">
 			{/* ── Toolbar: data actions + batch controls ── */}
-			<div className="shrink-0 px-4 pb-3 space-y-2">
+			<div className="shrink-0 px-4 pt-3 pb-3 space-y-2">
 				<div className="flex items-center gap-2">
 					<input
 						ref={fileInputRef}
@@ -274,7 +274,7 @@ export function BacklinkAnalysis({
 					) : null}
 					{isRunning && (
 						<div className="ml-auto">
-							<Button variant="destructive" size="sm" onClick={onStop}>
+							<Button variant="destructive" size="xs" onClick={onStop}>
 								{'停止'}
 							</Button>
 						</div>
@@ -370,20 +370,17 @@ export function BacklinkAnalysis({
 							<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 						</button>
 					))}
-					<button
-						type="button"
+					<Button
+						variant={logPanelOpen ? 'default' : 'ghost'}
+						size="xs"
 						onClick={() => setLogPanelOpen(prev => !prev)}
-						className={"ml-auto px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer " + (
-							logPanelOpen
-								? "bg-primary text-primary-foreground"
-								: "bg-muted hover:bg-muted/80 text-foreground"
-						)}
+						className="ml-auto"
 					>
 						{'活动日志'}
 						{logs.length > 0 && (
 							<span className="ml-1 text-[10px] opacity-70">{logs.length > 99 ? '99+' : logs.length}</span>
 						)}
-					</button>
+					</Button>
 				</div>
 			</div>
 

@@ -3,6 +3,7 @@ import type { FillEngineStatus, LogEntry } from '@/agent/types'
 import { useMemo, useState, useEffect } from 'react'
 import { Play, Trash2, Loader2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
+import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
 
 interface DashboardProps {
@@ -108,17 +109,14 @@ export function Dashboard({
 						<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 					</button>
 				))}
-				<button
-					type="button"
+				<Button
+					variant={tab === 'log' ? 'default' : 'ghost'}
+					size="xs"
 					onClick={() => setTab('log')}
-					className={`ml-auto px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-						tab === 'log'
-							? 'bg-primary text-primary-foreground'
-							: 'bg-muted hover:bg-muted/80 text-foreground'
-					}`}
+					className="ml-auto"
 				>
 					{'活动日志'}
-				</button>
+				</Button>
 			</div>
 
 			{tab === 'log' ? (
