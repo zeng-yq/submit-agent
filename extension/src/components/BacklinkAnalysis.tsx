@@ -14,6 +14,7 @@ interface BacklinkAnalysisProps {
 	onAddUrl: (url: string) => Promise<{ success: boolean; error?: string }>
 	onStop: () => void
 	logs: LogEntry[]
+	totalLogCount?: number
 	onClearLogs: () => void
 }
 
@@ -28,6 +29,7 @@ export function BacklinkAnalysis({
 	onAddUrl,
 	onStop,
 	logs,
+	totalLogCount,
 	onClearLogs,
 }: BacklinkAnalysisProps) {
 	const stats = {
@@ -53,6 +55,7 @@ export function BacklinkAnalysis({
 				isRunning={isRunning}
 				onAnalyzeOne={onAnalyzeOne}
 				logs={logs}
+				totalLogCount={totalLogCount}
 				onClearLogs={onClearLogs}
 			/>
 		</div>

@@ -11,6 +11,7 @@ interface BacklinkTableProps {
 	isRunning: boolean
 	onAnalyzeOne: (backlink: BacklinkRecord) => void
 	logs: LogEntry[]
+	totalLogCount?: number
 	onClearLogs: () => void
 }
 
@@ -24,6 +25,7 @@ export function BacklinkTable({
 	isRunning,
 	onAnalyzeOne,
 	logs,
+	totalLogCount,
 	onClearLogs,
 }: BacklinkTableProps) {
 	const [tab, setTab] = useState<Tab>('all')
@@ -94,7 +96,7 @@ export function BacklinkTable({
 
 			{/* ── Content: ActivityLog or Table ── */}
 			{tab === 'log' ? (
-				<ActivityLog logs={logs} onClear={onClearLogs} className="flex-1" />
+				<ActivityLog logs={logs} totalLogCount={totalLogCount} onClear={onClearLogs} className="flex-1" />
 			) : (
 				<div className="flex-1 overflow-y-auto">
 				{filteredBacklinks.length === 0 ? (

@@ -5,6 +5,7 @@ import type { LogEntry, LogLevel, LogPhase } from '@/agent/types'
 
 interface ActivityLogProps {
 	logs: LogEntry[]
+	totalLogCount?: number
 	onClear?: () => void
 	className?: string
 }
@@ -104,7 +105,8 @@ function LogItem({ entry, expanded, onToggle }: { entry: LogEntry; expanded: boo
 	)
 }
 
-export function ActivityLog({ logs, onClear, className }: ActivityLogProps) {
+export function ActivityLog({ logs, totalLogCount, onClear, className }: ActivityLogProps) {
+	const displayCount = totalLogCount ?? logs.length
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const userScrolledRef = useRef(false)
 	const [expandedId, setExpandedId] = useState<number | null>(null)
@@ -131,7 +133,7 @@ export function ActivityLog({ logs, onClear, className }: ActivityLogProps) {
 				<span className="text-xs font-medium">{'活动日志'}</span>
 				<div className="flex items-center gap-2">
 					<span className="text-[10px] text-muted-foreground tabular-nums">
-						{logs.length} 条
+						{displayCount} 条
 					</span>
 					{onClear && (
 						<button

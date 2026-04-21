@@ -259,6 +259,7 @@ export default function App() {
 						onAddUrl={backlinkState.addUrl}
 						onStop={stopBacklinkAnalysis}
 						logs={backlinkState.logs}
+						totalLogCount={backlinkState.totalLogCount}
 						onClearLogs={backlinkState.clearLogs}
 					/>
 				)}

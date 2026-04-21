@@ -23,6 +23,7 @@ export function useBacklinkState() {
 	const [batchHistory, setBatchHistory] = useState<BatchRecord[]>([])
 	const [activeBatchId, setActiveBatchId] = useState<string | null>(null)
 	const [logs, setLogs] = useState<LogEntry[]>([])
+	const [totalLogCount, setTotalLogCount] = useState(0)
 	const logIdRef = useRef(0)
 	const currentBatchIdRef = useRef<string | null>(null)
 
@@ -32,10 +33,12 @@ export function useBacklinkState() {
 			const next = [...prev, { ...entry, id }]
 			return next.length > 200 ? next.slice(-200) : next
 		})
+		setTotalLogCount(prev => prev + 1)
 	}, [])
 
 	const clearLogs = useCallback(() => {
 		setLogs([])
+		setTotalLogCount(0)
 		logIdRef.current = 0
 	}, [])
 
@@ -109,6 +112,7 @@ export function useBacklinkState() {
 		selectBatch,
 		dismissBatch,
 		logs,
+		totalLogCount,
 		handleLog,
 		clearLogs,
 		logIdRef,
