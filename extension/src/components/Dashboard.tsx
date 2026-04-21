@@ -1,4 +1,5 @@
-import type { SiteData, SubmissionRecord, SubmissionStatus } from '@/lib/types'
+import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory } from '@/lib/types'
+import { SITE_CATEGORIES } from '@/lib/types'
 import type { FillEngineStatus, LogEntry } from '@/agent/types'
 import { useMemo, useState, useEffect } from 'react'
 import { Play, Trash2, Loader2 } from 'lucide-react'
@@ -13,6 +14,7 @@ interface DashboardProps {
 	onRetrySite?: (site: SiteData) => void
 	onResetStatus?: (siteName: string) => void
 	onDeleteSite?: (siteName: string) => void
+	onCategoryChange?: (siteName: string, category: SiteCategory) => void
 	engineStatus: FillEngineStatus
 	engineLogs: LogEntry[]
 	onClearEngineLogs: () => void
@@ -30,6 +32,7 @@ export function Dashboard({
 	onRetrySite,
 	onResetStatus,
 	onDeleteSite,
+	onCategoryChange,
 	engineStatus,
 	engineLogs,
 	onClearEngineLogs,
@@ -37,6 +40,7 @@ export function Dashboard({
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
+	const [categoryFilter, setCategoryFilter] = useState<SiteCategory | 'all'>('all')
 
 	const submittableSites = useMemo(
 		() => sites.filter((s) => !!s.submit_url),
@@ -55,8 +59,9 @@ export function Dashboard({
 		const q = search.toLowerCase()
 		return sites
 			.filter((s) => !q || s.name.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q))
-			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
-	}, [sites, search])
+			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
+				.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
+		}, [sites, search, categoryFilter])
 
 	const doneSites = useMemo(() => {
 		return sites.filter((s) => {
@@ -129,13 +134,25 @@ export function Dashboard({
 				<>
 					{/* Search (All tab only) */}
 					{tab === 'all' && (
-						<input
-							type="text"
-							placeholder={'搜索站点...'}
-							value={search}
-							onChange={(e) => setSearch(e.target.value)}
-							className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-						/>
+						<div className="flex items-center gap-2">
+							<select
+								value={categoryFilter}
+								onChange={(e) => setCategoryFilter(e.target.value as SiteCategory | 'all')}
+								className="shrink-0 px-2 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+							>
+								<option value="all">全部分类</option>
+								{SITE_CATEGORIES.map((c) => (
+									<option key={c.value} value={c.value}>{c.label}</option>
+								))}
+							</select>
+							<input
+								type="text"
+								placeholder={'搜索站点...'}
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+							/>
+						</div>
 					)}
 
 					{/* Site list */}
@@ -237,6 +254,7 @@ export function Dashboard({
 									onSelect={onSelectSite}
 									onDelete={onDeleteSite}
 									onResetStatus={onResetStatus}
+									onCategoryChange={onCategoryChange}
 									disabled={hasActive && site.name !== activeSiteName}
 									isActive={hasActive && site.name === activeSiteName}
 								/>

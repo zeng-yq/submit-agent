@@ -19,7 +19,7 @@ export default function App() {
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
-	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite } = useSites(activeProduct?.id ?? null)
+	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSiteCategory } = useSites(activeProduct?.id ?? null)
 	const { status: engineStatus, result: engineResult, error: engineError, logs: engineLogs, startSubmission, stop, reset, clearLogs } = useFormFillEngine()
 
 	const handleDeleteSite = useCallback(
@@ -209,6 +209,7 @@ export default function App() {
 							onRetrySite={handleStartSite}
 							onResetStatus={resetSubmission}
 							onDeleteSite={handleDeleteSite}
+							onCategoryChange={updateSiteCategory}
 							engineStatus={engineStatus}
 							engineLogs={engineLogs}
 							onClearEngineLogs={clearLogs}
