@@ -44,6 +44,25 @@ function formatTime(ts: number): string {
 	return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+const URL_RE = /https?:\/\/[^\s<>"')\]，】】]+/g
+
+function linkify(text: string) {
+	const parts: (string | JSX.Element)[] = []
+	let lastIndex = 0
+	for (const m of text.matchAll(URL_RE)) {
+		if (m.index! > lastIndex) parts.push(text.slice(lastIndex, m.index!))
+		const url = m[0]
+		parts.push(
+			<a key={m.index} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
+				{url}
+			</a>
+		)
+		lastIndex = m.index! + url.length
+	}
+	if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+	return parts.length > 1 ? parts : text
+}
+
 function LogItem({ entry, expanded, onToggle }: { entry: LogEntry; expanded: boolean; onToggle: () => void }) {
 	const config = LEVEL_CONFIG[entry.level]
 	const Icon = config.icon
@@ -62,7 +81,7 @@ function LogItem({ entry, expanded, onToggle }: { entry: LogEntry; expanded: boo
 					<span className="text-[9px] font-medium px-1 py-px rounded bg-muted/80 text-muted-foreground shrink-0">
 						{PHASE_LABELS[entry.phase]}
 					</span>
-					<span className="truncate">{entry.message}</span>
+					<span className="truncate [&_a]:inline [&_a]:align-baseline">{linkify(entry.message)}</span>
 					{hasData && (
 						<button
 							type="button"

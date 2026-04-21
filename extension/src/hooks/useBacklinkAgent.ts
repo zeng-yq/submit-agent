@@ -92,7 +92,7 @@ export function useBacklinkAgent() {
 				}
 
 				const prefix = progress ? `[${progress}] ` : ''
-				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: 'info', phase: 'system', message: `${prefix}开始分析: ${domain}` })
+				handleLog({ id: ++logIdRef.current, timestamp: Date.now(), level: 'info', phase: 'system', message: `${prefix}开始分析: ${backlink.sourceUrl}` })
 
 				const result = await analyzeBacklink({
 					url: backlink.sourceUrl,

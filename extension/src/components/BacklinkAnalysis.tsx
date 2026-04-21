@@ -359,7 +359,7 @@ export function BacklinkAnalysis({
 						<button
 							key={tabItem.id}
 							type="button"
-							onClick={() => setStatusFilter(tabItem.id)}
+							onClick={() => { setStatusFilter(tabItem.id); setLogPanelOpen(false) }}
 							className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${
 								statusFilter === tabItem.id
 									? 'border-primary text-foreground'
@@ -377,9 +377,6 @@ export function BacklinkAnalysis({
 						className="ml-auto"
 					>
 						{'活动日志'}
-						{logs.length > 0 && (
-							<span className="ml-1 text-[10px] opacity-70">{logs.length > 99 ? '99+' : logs.length}</span>
-						)}
 					</Button>
 				</div>
 			</div>
