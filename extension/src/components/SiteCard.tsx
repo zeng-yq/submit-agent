@@ -1,5 +1,7 @@
+import { useState, useRef, useEffect } from 'react'
 import { Play, Trash2, Loader2 } from 'lucide-react'
-import type { SiteData, SubmissionStatus } from '@/lib/types'
+import type { SiteData, SubmissionStatus, SiteCategory } from '@/lib/types'
+import { SITE_CATEGORIES, getCategoryLabel } from '@/lib/types'
 
 interface SiteCardProps {
 	site: SiteData
@@ -7,6 +9,7 @@ interface SiteCardProps {
 	onSelect?: (site: SiteData) => void
 	onDelete?: (siteName: string) => void
 	onResetStatus?: (siteName: string) => void
+	onCategoryChange?: (siteName: string, category: SiteCategory) => void
 	disabled?: boolean
 	isActive?: boolean
 }
@@ -31,7 +34,62 @@ const statusLabelKey: Record<SubmissionStatus, string> = {
 	skipped: '已跳过',
 }
 
-export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onResetStatus, disabled, isActive }: SiteCardProps) {
+/** Inline category editor — a clickable tag that opens a small dropdown. */
+function CategoryEditor({
+	siteName,
+	category,
+	onChange,
+}: {
+	siteName: string
+	category: string
+	onChange: (siteName: string, category: SiteCategory) => void
+}) {
+	const [open, setOpen] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
+
+	useEffect(() => {
+		if (!open) return
+		const handler = (e: MouseEvent) => {
+			if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+		}
+		document.addEventListener('mousedown', handler)
+		return () => document.removeEventListener('mousedown', handler)
+	}, [open])
+
+	return (
+		<div className="relative" ref={ref}>
+			<button
+				type="button"
+				className="text-[10px] text-muted-foreground hover:text-foreground hover:bg-accent/50 px-1 rounded transition-colors"
+				onClick={() => setOpen((v) => !v)}
+			>
+				{getCategoryLabel(category)}
+				<span className="ml-0.5 opacity-50">▾</span>
+			</button>
+			{open && (
+				<div className="absolute left-0 top-full mt-1 bg-popover border border-border/60 rounded shadow-lg z-50 py-1 min-w-[100px]">
+					{SITE_CATEGORIES.map((opt) => (
+						<button
+							key={opt.value}
+							type="button"
+							className={`w-full text-left px-2.5 py-1 text-[10px] hover:bg-accent transition-colors ${
+								category === opt.value ? 'text-primary font-medium' : 'text-foreground'
+							}`}
+							onClick={() => {
+								onChange(siteName, opt.value)
+								setOpen(false)
+							}}
+						>
+							{opt.label}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	)
+}
+
+export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onResetStatus, onCategoryChange, disabled, isActive }: SiteCardProps) {
 	const hasSubmitUrl = !!site.submit_url
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
@@ -78,8 +136,10 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 					)}
 				</div>
 				<div className="flex items-center gap-1.5 mt-0.5">
-					{site.category && (
-						<span className="text-[10px] text-muted-foreground truncate">{site.category}</span>
+					{onCategoryChange ? (
+						<CategoryEditor siteName={site.name} category={site.category} onChange={onCategoryChange} />
+					) : (
+						<span className="text-[10px] text-muted-foreground truncate">{getCategoryLabel(site.category)}</span>
 					)}
 				</div>
 			</div>
