@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
-import { listProducts, listSubmissions, listSites, listBacklinks } from '@/lib/db'
-import { bulkPutProducts, bulkPutSubmissions, bulkPutSites, bulkPutBacklinks } from '@/lib/db'
+import { listProducts, listSubmissions, listSites } from '@/lib/db'
+import { bulkPutProducts, bulkPutSubmissions, bulkPutSites } from '@/lib/db'
 import {
   exportToSheets,
   importFromSheets,
@@ -166,11 +166,10 @@ export function SyncPanel() {
     setStatus({ type: 'exporting', phase: 'backup', tabs: initialTabs })
 
     try {
-      const [products, submissions, sites, backlinks] = await Promise.all([
+      const [products, submissions, sites] = await Promise.all([
         listProducts(),
         listSubmissions(),
         listSites(),
-        listBacklinks(),
       ])
 
       const result = await exportToSheets(
@@ -179,14 +178,13 @@ export function SyncPanel() {
           products: products as unknown as Record<string, unknown>[],
           submissions: submissions as unknown as Record<string, unknown>[],
           sites: sites as unknown as Record<string, unknown>[],
-          backlinks: backlinks as unknown as Record<string, unknown>[],
         },
         handleExportProgress,
         abortController.signal,
       )
 
       if (result.success) {
-        const detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}, 外链: ${result.counts['backlinks'] ?? 0}`
+        const detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}`
         setStatus({ type: 'success', message: '导出完成', detail })
       } else {
         setStatus({
@@ -225,26 +223,13 @@ export function SyncPanel() {
         // Ensure records have required IDB keyPath fields
         const products = (result.data.products as Record<string, unknown>[]).map(r => r.id ? r : { ...r, id: crypto.randomUUID() })
         const submissions = (result.data.submissions as Record<string, unknown>[]).map(r => r.id ? r : { ...r, id: crypto.randomUUID() })
-        const now = Date.now()
-        const VALID_STATUS = new Set(['pending', 'publishable', 'not_publishable', 'skipped', 'error'])
-        const backlinks = (result.data.backlinks as Record<string, unknown>[]).map(r => ({
-          ...r,
-          id: r.id || crypto.randomUUID(),
-          pageAscore: Number(r.pageAscore) || 0,
-          status: VALID_STATUS.has(r.status as string) ? r.status : 'pending',
-          analysisLog: Array.isArray(r.analysisLog) ? r.analysisLog : [],
-          createdAt: typeof r.createdAt === 'number' ? r.createdAt : now,
-          updatedAt: typeof r.updatedAt === 'number' ? r.updatedAt : now,
-        }))
-
         await Promise.all([
           bulkPutProducts(products as any),
           bulkPutSubmissions(submissions as any),
           bulkPutSites(result.data.sites as any),
-          bulkPutBacklinks(backlinks as any),
         ])
 
-        let detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}, 外链: ${result.counts['backlinks'] ?? 0}`
+        let detail = `产品: ${result.counts['products'] ?? 0}, 提交记录: ${result.counts['submissions'] ?? 0}, 站点: ${result.counts['sites'] ?? 0}`
         if (result.skipped > 0) {
           detail += `\n${result.skipped} 行因格式无效被跳过`
         }
