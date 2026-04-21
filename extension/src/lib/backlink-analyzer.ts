@@ -58,7 +58,8 @@ export async function analyzeBacklink(
   // Determine canComment
   const hasUnfilteredForm = unfilteredForms.length > 0
   const hasCommentArea = commentFields.length > 0 || textareaFields.length > 0
-  const canComment = hasUnfilteredForm && hasCommentArea
+  const hasCommentExternalLinks = analysis.commentLinks?.hasExternalLinks ?? false
+  const canComment = (hasUnfilteredForm && hasCommentArea) || hasCommentExternalLinks
 
   // Detect CMS
   let cmsType: BacklinkAnalysisResult['cmsType'] = 'unknown'
@@ -80,11 +81,16 @@ export async function analyzeBacklink(
     forms: analysis.forms,
     fields: allFields,
     cmsType,
+    hasCommentExternalLinks,
   })
 
   const result: BacklinkAnalysisResult = {
     canComment,
-    summary: canComment ? '检测到评论表单' : '未发现评论表单',
+    summary: canComment
+      ? hasCommentExternalLinks
+        ? '检测到评论外链（无需可见表单）'
+        : '检测到评论表单'
+      : '未发现评论表单',
     formType,
     cmsType,
     detectedFields,
@@ -102,6 +108,7 @@ interface ConfidenceInput {
   forms: FormGroup[]
   fields: FormField[]
   cmsType: string
+  hasCommentExternalLinks?: boolean
 }
 
 export function calculateConfidence(input: ConfidenceInput): number {
@@ -144,6 +151,7 @@ export function calculateConfidence(input: ConfidenceInput): number {
   if (emailFields.length > 0) confidence += 0.05
   if (authorFields.length > 0) confidence += 0.1
   if (cmsType !== 'unknown') confidence += 0.15
+  if (input.hasCommentExternalLinks) confidence += 0.25
   if (hasContactSignal) confidence -= 0.2
   if (onlyMessageNoComment) confidence -= 0.1
 

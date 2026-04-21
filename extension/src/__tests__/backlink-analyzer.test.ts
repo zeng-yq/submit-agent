@@ -168,4 +168,47 @@ describe('calculateConfidence', () => {
     })
     expect(result).toBeLessThanOrEqual(1)
   })
+
+  describe('评论外链信号', () => {
+    it('hasCommentExternalLinks 为 true 时 confidence 加 0.25', () => {
+      const without = calculateConfidence({
+        forms: [],
+        fields: [],
+        cmsType: 'unknown',
+      })
+      const withLinks = calculateConfidence({
+        forms: [],
+        fields: [],
+        cmsType: 'unknown',
+        hasCommentExternalLinks: true,
+      })
+      expect(withLinks - without).toBeCloseTo(0.25, 1)
+    })
+
+    it('hasCommentExternalLinks 为 false 时不影响 confidence', () => {
+      const without = calculateConfidence({
+        forms: [],
+        fields: [],
+        cmsType: 'unknown',
+      })
+      const withFalse = calculateConfidence({
+        forms: [],
+        fields: [],
+        cmsType: 'unknown',
+        hasCommentExternalLinks: false,
+      })
+      expect(withFalse).toBe(without)
+    })
+
+    it('hasCommentExternalLinks 与表单信号叠加', () => {
+      const result = calculateConfidence({
+        forms: [makeForm({ form_index: 0, filtered: false })],
+        fields: [makeField({ name: 'comment', tagName: 'textarea', label: 'Comment' })],
+        cmsType: 'unknown',
+        hasCommentExternalLinks: true,
+      })
+      // 0.2 (form) + 0.15 (textarea) + 0.2 (comment) + 0.25 (commentLinks) = 0.8
+      expect(result).toBeCloseTo(0.8, 1)
+    })
+  })
 })
