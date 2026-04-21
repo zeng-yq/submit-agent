@@ -4,6 +4,7 @@ import { buildSelector, findLabel, deduplicateFields, extractPageInfo } from './
 import { classifyForm } from './form-classifier';
 import { inferFieldPurpose, inferEffectiveType } from './field-resolver';
 import { detectCommentLinks } from './comment-links';
+import { detectCommentSystem } from './comment-system-detector';
 
 // Re-export all public types and functions
 export type { FormField, PageInfo, FormAnalysisResult, CommentLinkResult, FormRole, FormConfidence, FormGroup } from './types'
@@ -11,6 +12,7 @@ export { findLabel, deduplicateFields, extractPageInfo, buildSelector, cssEscape
 export { classifyForm } from './form-classifier'
 export { inferFieldPurpose, inferEffectiveType, classifyFields } from './field-resolver'
 export { detectCommentLinks } from './comment-links'
+export { detectCommentSystem } from './comment-system-detector'
 export { buildFieldList } from './field-list-builder'
 
 /**
@@ -162,5 +164,6 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
     forms: formGroups,
     page_info: extractPageInfo(doc),
     commentLinks: detectCommentLinks(doc),
+    commentSystem: detectCommentSystem(doc),
   };
 }

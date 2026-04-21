@@ -27,6 +27,7 @@ export interface FormAnalysisResult {
   forms: FormGroup[];
   page_info: PageInfo;
   commentLinks?: CommentLinkResult;
+  commentSystem?: CommentSystemResult;
 }
 
 export interface CommentLinkResult {
