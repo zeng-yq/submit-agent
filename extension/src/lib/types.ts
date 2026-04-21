@@ -44,6 +44,7 @@ export interface SubmissionRecord {
 
 /** Site record stored in IndexedDB, extends SiteData with DB metadata */
 export interface SiteRecord extends SiteData {
+  domain?: string
   createdAt: number
   updatedAt: number
 }

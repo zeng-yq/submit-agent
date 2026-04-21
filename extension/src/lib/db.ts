@@ -3,7 +3,7 @@ import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRe
 import { extractDomain } from './backlinks'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 5
+const DB_VERSION = 6
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
@@ -27,6 +27,7 @@ interface SubmitAgentDB extends DBSchema {
 		indexes: {
 			'by-category': string
 			'by-dr': number
+			'by-domain': string
 		}
 	}
 	backlinks: {
@@ -69,6 +70,14 @@ function getDB() {
 				}
 				if (oldVersion < 4) {
 					// Schema-less: new optional fields (error, failedAt) need no index changes
+				}
+				if (oldVersion < 6) {
+					const sites = db.objectStoreNames.contains('sites')
+						? db.transaction('sites').objectStore('sites')
+						: null
+					if (sites) {
+						sites.createIndex('by-domain', 'domain')
+					}
 				}
 			},
 		})
@@ -203,6 +212,7 @@ export async function seedSites(sites: SiteData[]): Promise<void> {
 		if (!existing) {
 			const record: SiteRecord = {
 				...site,
+				domain: site.submit_url ? extractDomain(site.submit_url) : undefined,
 				createdAt: now,
 				updatedAt: now,
 			}
@@ -302,15 +312,7 @@ export async function getBacklinkByUrl(sourceUrl: string): Promise<BacklinkRecor
 
 export async function getSiteByDomain(domain: string): Promise<SiteRecord | undefined> {
 	const db = await getDB()
-	const all = await db.getAll('sites')
-	return all.find(s => {
-		if (!s.submit_url) return false
-		try {
-			return extractDomain(s.submit_url) === domain
-		} catch {
-			return false
-		}
-	})
+	return db.getFromIndex('sites', 'by-domain', domain)
 }
 
 export async function listBacklinks(): Promise<BacklinkRecord[]> {
