@@ -49,11 +49,25 @@ export interface SiteRecord extends SiteData {
   updatedAt: number
 }
 
+/** Site category — fixed set of 3 categories for the submit dashboard */
+export type SiteCategory = 'blog_comment' | 'ai_directory' | 'others'
+
+export const SITE_CATEGORIES: { value: SiteCategory; label: string }[] = [
+  { value: 'blog_comment', label: '博客评论' },
+  { value: 'ai_directory', label: 'AI 目录' },
+  { value: 'others', label: '其他' },
+]
+
+/** Get display label for a category value; unknown values map to their raw string. */
+export function getCategoryLabel(category: string): string {
+  return SITE_CATEGORIES.find((c) => c.value === category)?.label ?? category
+}
+
 /** One entry from sites.json */
 export interface SiteData {
 	name: string
 	submit_url: string | null
-	category: string
+	category: SiteCategory
 	lang?: string
 	dr: number | null
 	status?: string
