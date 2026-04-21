@@ -258,7 +258,6 @@ export function useBacklinkAgent() {
 				sourceUrl: url,
 				sourceTitle: '',
 				pageAscore: 0,
-				targetUrl: '',
 				status: 'pending',
 				analysisLog: [],
 			})

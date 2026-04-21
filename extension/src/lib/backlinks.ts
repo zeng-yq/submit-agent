@@ -1,60 +1,66 @@
 import type { BacklinkRecord } from './types'
 import { getBacklinkByUrl, saveBacklink } from './db'
 
-/** Parse a CSV string into rows (handles quoted fields) */
+/** Parse a CSV string into rows (handles quoted fields per RFC 4180) */
 function parseCsv(csvText: string): Record<string, string>[] {
-	const lines = csvText.split(/\r?\n/)
-	if (lines.length < 2) return []
-
-	// Parse header
-	const headers = parseCsvLine(lines[0])
-
 	const rows: Record<string, string>[] = []
-	for (let i = 1; i < lines.length; i++) {
-		const line = lines[i].trim()
-		if (!line) continue
-		const values = parseCsvLine(line)
-		const row: Record<string, string> = {}
-		for (let j = 0; j < headers.length; j++) {
-			row[headers[j]] = values[j] ?? ''
-		}
-		rows.push(row)
-	}
-	return rows
-}
-
-/** Parse a single CSV line respecting quoted fields */
-function parseCsvLine(line: string): string[] {
-	const fields: string[] = []
-	let current = ''
+	let currentRow: string[] = []
+	let currentField = ''
 	let inQuotes = false
+	let i = 0
 
-	for (let i = 0; i < line.length; i++) {
-		const char = line[i]
+	while (i < csvText.length) {
+		const char = csvText[i]
+
 		if (inQuotes) {
 			if (char === '"') {
-				if (i + 1 < line.length && line[i + 1] === '"') {
-					current += '"'
-					i++
-				} else {
-					inQuotes = false
+				if (i + 1 < csvText.length && csvText[i + 1] === '"') {
+					currentField += '"'
+					i += 2
+					continue
 				}
+				inQuotes = false
 			} else {
-				current += char
+				currentField += char
 			}
 		} else {
 			if (char === '"') {
 				inQuotes = true
 			} else if (char === ',') {
-				fields.push(current)
-				current = ''
+				currentRow.push(currentField)
+				currentField = ''
+			} else if (char === '\r') {
+				// Skip CR, handle CRLF
+			} else if (char === '\n') {
+				currentRow.push(currentField)
+				currentField = ''
+				if (currentRow.length > 0 && currentRow.some(f => f !== '')) {
+					rows.push(currentRow)
+				}
+				currentRow = []
 			} else {
-				current += char
+				currentField += char
 			}
 		}
+		i++
 	}
-	fields.push(current)
-	return fields
+
+	// Handle last field/row
+	currentRow.push(currentField)
+	if (currentRow.length > 0 && currentRow.some(f => f !== '')) {
+		rows.push(currentRow)
+	}
+
+	if (rows.length < 2) return []
+
+	const headers = rows[0]
+	return rows.slice(1).map(row => {
+		const record: Record<string, string> = {}
+		for (let j = 0; j < headers.length; j++) {
+			record[headers[j]] = row[j] ?? ''
+		}
+		return record
+	})
 }
 
 export interface ImportResult {
