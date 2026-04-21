@@ -3,7 +3,6 @@ import type { SiteData } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
 import { QuickCreate } from '@/components/QuickCreate'
 import { SettingsPanel } from '@/components/SettingsPanel'
-import { Button } from '@/components/ui/Button'
 import { useProduct } from '@/hooks/useProduct'
 import { useSites } from '@/hooks/useSites'
 import { useFormFillEngine } from '@/hooks/useFormFillEngine'
@@ -12,14 +11,10 @@ import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { matchCurrentPage, filterSubmittable } from '@/lib/sites'
 
-type View =
-	| { name: 'dashboard' }
-	| { name: 'quick-create' }
-	| { name: 'settings' }
-	| { name: 'backlink-analysis' }
+type Tab = 'submit' | 'analysis' | 'settings'
 
 export default function App() {
-	const [view, setView] = useState<View>({ name: 'dashboard' })
+	const [tab, setTab] = useState<Tab>('submit')
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
@@ -246,170 +241,154 @@ export default function App() {
 		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
 	}, [])
 
-	// Reload backlinks from DB when entering the backlink analysis view
+	// Reload backlinks from DB when entering the analysis tab
 	useEffect(() => {
-		if (view.name === 'backlink-analysis') {
+		if (tab === 'analysis') {
 			reloadBacklinks()
 		}
-	}, [view.name, reloadBacklinks])
-
-	if (view.name === 'settings') {
-		return (
-			<div className="flex flex-col h-screen bg-background">
-				<SettingsPanel onClose={() => setView({ name: 'dashboard' })} />
-			</div>
-		)
-	}
-
-	if (view.name === 'quick-create') {
-		return (
-			<div className="flex flex-col h-screen bg-background">
-				<header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-					<span className="text-base font-semibold">{'Submit Agent'}</span>
-					<Button variant="ghost" size="sm" onClick={() => setView({ name: 'dashboard' })}>
-						{'返回'}
-					</Button>
-				</header>
-				<QuickCreate
-					onSave={async (data) => {
-						await createProduct(data)
-						setView({ name: 'dashboard' })
-					}}
-					onSkip={() => chrome.runtime.openOptionsPage()}
-					onOpenSettings={() => setView({ name: 'settings' })}
-				/>
-			</div>
-		)
-	}
-
-	if (view.name === 'backlink-analysis') {
-		return (
-			<div className="flex flex-col h-screen bg-background">
-				<BacklinkAnalysis
-					backlinks={backlinks}
-					analyzingId={analyzingId}
-					currentStep={backlinkStep}
-					currentIndex={currentIndex}
-					batchSize={batchSize}
-					isRunning={isBacklinkRunning}
-					onImportCsv={importBacklinksFromCsv}
-					onReload={reloadBacklinks}
-					onStartAnalysis={startAnalysis}
-					onAnalyzeOne={analyzeBacklink}
-					onAddUrl={addUrl}
-					onStop={stopBacklinkAnalysis}
-					onBack={() => {
-						if (!isBacklinkRunning) resetBacklinkAgent()
-						setView({ name: 'dashboard' })
-					}}
-					batchHistory={batchHistory}
-					activeBatchId={activeBatchId}
-					onSelectBatch={selectBatch}
-					onDismissBatch={dismissBatch}
-				logs={backlinkLogs}
-				onClearLogs={clearBacklinkLogs}
-				/>
-			</div>
-		)
-	}
+	}, [tab, reloadBacklinks])
 
 	const isLoading = productLoading || sitesLoading
 
-	return (
-		<div className="flex flex-col h-screen bg-background">
-			<header className="border-b border-border/60 px-4 py-3">
-				<div className="flex items-center justify-between">
-					<div className="relative" ref={dropdownRef}>
-						<button
-							type="button"
-							className="text-xs font-semibold flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
-							onClick={() => setDropdownOpen((o) => !o)}
-						>
-							{activeProduct?.name ?? 'Submit Agent'}
-							<svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-150 ${dropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-								<path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-							</svg>
-						</button>
-						{dropdownOpen && (
-							<div className="absolute top-full left-0 mt-1.5 bg-popover border border-border/60 rounded-lg shadow-lg z-50 min-w-[180px] py-1.5">
-								{products.map((p) => (
+	function renderSubmitTab() {
+		if (!activeProduct) {
+			return (
+				<QuickCreate
+					onSave={async (data) => {
+						await createProduct(data)
+					}}
+					onSkip={() => chrome.runtime.openOptionsPage()}
+				/>
+			)
+		}
+
+		return (
+			<div className="flex flex-col h-full">
+				{/* 产品选择器 */}
+				<div className="shrink-0 px-3 py-2 border-b border-border/60">
+					<div className="flex items-center justify-between">
+						<div className="relative" ref={dropdownRef}>
+							<button
+								type="button"
+								className="text-xs font-semibold flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
+								onClick={() => setDropdownOpen((o) => !o)}
+							>
+								{activeProduct.name}
+								<svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-150 ${dropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+									<path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+								</svg>
+							</button>
+							{dropdownOpen && (
+								<div className="absolute top-full left-0 mt-1.5 bg-popover border border-border/60 rounded-lg shadow-lg z-50 min-w-[180px] py-1.5">
+									{products.map((p) => (
+										<button
+											key={p.id}
+											type="button"
+											className={`w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors cursor-pointer ${
+												p.id === activeProduct?.id ? 'font-semibold text-primary' : ''
+											}`}
+											onClick={() => { setActive(p.id); setDropdownOpen(false) }}
+										>
+											{p.name}
+										</button>
+									))}
+									<div className="border-t border-border/60 my-1" />
 									<button
-										key={p.id}
 										type="button"
-										className={`w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors cursor-pointer ${
-											p.id === activeProduct?.id ? 'font-semibold text-primary' : ''
-										}`}
-										onClick={() => { setActive(p.id); setDropdownOpen(false) }}
+										className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
+										onClick={() => { setDropdownOpen(false) }}
 									>
-										{p.name}
+										{'+ 添加产品'}
 									</button>
-								))}
-								<div className="border-t border-border/60 my-1" />
-								<button
-									type="button"
-									className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
-									onClick={() => { setView({ name: 'quick-create' }); setDropdownOpen(false) }}
-								>
-									{'+ 添加产品'}
-								</button>
-							</div>
-						)}
-					</div>
-					<div className="flex items-center gap-0.5">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setView({ name: 'backlink-analysis' })}
-						>
-							{'外链分析'}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => chrome.runtime.openOptionsPage()}
-						>
-							{'产品管理'}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setView({ name: 'settings' })}
-						>
-							{'设置'}
-						</Button>
+									<button
+										type="button"
+										className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
+										onClick={() => { setDropdownOpen(false); chrome.runtime.openOptionsPage() }}
+									>
+										{'管理产品'}
+									</button>
+								</div>
+							)}
+						</div>
 					</div>
 				</div>
-			</header>
 
-			<main className={`flex-1 overflow-hidden ${activeProduct ? 'p-3' : ''}`}>
-				{isLoading ? (
-					<div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-						{'加载中...'}
-					</div>
-				) : !activeProduct ? (
-					<QuickCreate
-						onSave={async (data) => {
-							await createProduct(data)
-							setView({ name: 'dashboard' })
-						}}
-						onSkip={() => chrome.runtime.openOptionsPage()}
-						onOpenSettings={() => setView({ name: 'settings' })}
-					/>
-				) : (
-					<Dashboard
-						sites={sites}
-						submissions={submissions}
-						onSelectSite={handleStartSite}
-						onRetrySite={handleStartSite}
-						onResetStatus={resetSubmission}
-						onDeleteSite={handleDeleteSite}
-						engineStatus={engineStatus}
-						engineLogs={engineLogs}
-						onClearEngineLogs={clearLogs}
-						activeSiteName={currentEngineSite?.name ?? null}
+				{/* Dashboard 内容 */}
+				<div className="flex-1 overflow-hidden p-3">
+					{isLoading ? (
+						<div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+							{'加载中...'}
+						</div>
+					) : (
+						<Dashboard
+							sites={sites}
+							submissions={submissions}
+							onSelectSite={handleStartSite}
+							onRetrySite={handleStartSite}
+							onResetStatus={resetSubmission}
+							onDeleteSite={handleDeleteSite}
+							engineStatus={engineStatus}
+							engineLogs={engineLogs}
+							onClearEngineLogs={clearLogs}
+							activeSiteName={currentEngineSite?.name ?? null}
+						/>
+					)}
+				</div>
+			</div>
+		)
+	}
+
+	return (
+		<div className="flex flex-col h-screen bg-background">
+			{/* Tab 栏 */}
+			<div className="flex shrink-0 border-b border-border/60">
+				{[
+					{ id: 'submit' as Tab, label: '外链提交' },
+					{ id: 'analysis' as Tab, label: '外链分析' },
+					{ id: 'settings' as Tab, label: '设置' },
+				].map((t) => (
+					<button
+						key={t.id}
+						type="button"
+						onClick={() => setTab(t.id)}
+						className={`flex-1 py-2.5 text-xs font-medium text-center border-b-2 transition-colors cursor-pointer ${
+							tab === t.id
+								? 'border-primary text-foreground'
+								: 'border-transparent text-muted-foreground hover:text-foreground'
+						}`}
+					>
+						{t.label}
+					</button>
+				))}
+			</div>
+
+			{/* Tab 内容 */}
+			<div className="flex-1 overflow-hidden">
+				{tab === 'submit' && renderSubmitTab()}
+				{tab === 'analysis' && (
+					<BacklinkAnalysis
+						backlinks={backlinks}
+						analyzingId={analyzingId}
+						currentStep={backlinkStep}
+						currentIndex={currentIndex}
+						batchSize={batchSize}
+						isRunning={isBacklinkRunning}
+						onImportCsv={importBacklinksFromCsv}
+						onReload={reloadBacklinks}
+						onStartAnalysis={startAnalysis}
+						onAnalyzeOne={analyzeBacklink}
+						onAddUrl={addUrl}
+						onStop={stopBacklinkAnalysis}
+						batchHistory={batchHistory}
+						activeBatchId={activeBatchId}
+						onSelectBatch={selectBatch}
+						onDismissBatch={dismissBatch}
+						logs={backlinkLogs}
+						onClearLogs={clearBacklinkLogs}
 					/>
 				)}
-			</main>
+				{tab === 'settings' && <SettingsPanel />}
+			</div>
 
 			{/* Confirm dialog for unmatched page */}
 			{pendingUnmatchedUrl && (
@@ -419,16 +398,12 @@ export default function App() {
 						<p className="text-xs text-muted-foreground mb-1">{'当前页面不在外链资源库中，是否仍然提交？'}</p>
 						<p className="text-xs text-muted-foreground break-all mb-4">{pendingUnmatchedUrl}</p>
 						<div className="flex justify-end gap-2">
-							<Button variant="outline" size="sm" onClick={handleCancelUnmatched}>
-								{'取消'}
-							</Button>
-							<Button size="sm" onClick={handleConfirmUnmatched}>
-								{'提交'}
-							</Button>
+							<button type="button" className="px-3 py-1.5 text-xs rounded-md border border-border hover:bg-accent transition-colors cursor-pointer" onClick={handleCancelUnmatched}>{'取消'}</button>
+							<button type="button" className="px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer" onClick={handleConfirmUnmatched}>{'提交'}</button>
 						</div>
 					</div>
 				</div>
 			)}
 		</div>
-		)
+	)
 }
