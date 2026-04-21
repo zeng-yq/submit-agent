@@ -1,5 +1,5 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
-import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRecord, BacklinkStatus } from './types'
+import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRecord, BacklinkStatus, SiteCategory } from './types'
 import { extractDomain } from './backlinks'
 
 const DB_NAME = 'submit-agent'
@@ -207,8 +207,11 @@ export async function seedSites(sites: SiteData[]): Promise<void> {
 	for (const site of sites) {
 		const existing = await tx.store.get(site.name)
 		if (!existing) {
+			const category: SiteCategory =
+				site.category === 'Non-Blog Comment' ? 'others' : site.category
 			const record: SiteRecord = {
 				...site,
+				category,
 				domain: site.submit_url ? extractDomain(site.submit_url) : undefined,
 				createdAt: now,
 				updatedAt: now,
@@ -237,6 +240,15 @@ export async function addSite(site: SiteRecord): Promise<void> {
 export async function updateSite(site: SiteRecord): Promise<SiteRecord> {
 	const db = await getDB()
 	const updated = { ...site, updatedAt: Date.now() }
+	await db.put('sites', updated)
+	return updated
+}
+
+export async function updateSiteCategory(name: string, category: SiteCategory): Promise<SiteRecord> {
+	const db = await getDB()
+	const site = await db.get('sites', name)
+	if (!site) throw new Error(`Site not found: ${name}`)
+	const updated = { ...site, category, updatedAt: Date.now() }
 	await db.put('sites', updated)
 	return updated
 }

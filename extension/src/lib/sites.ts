@@ -1,4 +1,4 @@
-import type { SiteData, SitesDatabase } from './types'
+import type { SiteData, SitesDatabase, SiteCategory } from './types'
 import { seedSites, listSites } from './db'
 
 let cachedSites: SiteData[] | null = null
@@ -33,7 +33,7 @@ export function sortByDR(sites: SiteData[]): SiteData[] {
 	return [...sites].sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
 }
 
-export function filterByCategory(sites: SiteData[], category: string): SiteData[] {
+export function filterByCategory(sites: SiteData[], category: SiteCategory): SiteData[] {
 	return sites.filter((s) => s.category === category)
 }
 
