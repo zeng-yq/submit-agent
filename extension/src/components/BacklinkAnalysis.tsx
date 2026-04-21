@@ -20,7 +20,6 @@ interface BacklinkAnalysisProps {
 	onAnalyzeOne: (backlink: BacklinkRecord) => void
 	onAddUrl: (url: string) => Promise<{ success: boolean; error?: string }>
 	onStop: () => void
-	onBack: () => void
 	batchHistory: BatchRecord[]
 	activeBatchId: string | null
 	onSelectBatch: (id: string | null) => void
@@ -72,7 +71,6 @@ export function BacklinkAnalysis({
 	onAnalyzeOne,
 	onAddUrl,
 	onStop,
-	onBack,
 	batchHistory,
 	activeBatchId,
 	onSelectBatch,
@@ -166,39 +164,6 @@ export function BacklinkAnalysis({
 
 	return (
 		<div className="flex flex-col h-full">
-			{/* ── Header: title + stats ── */}
-			<header className="flex items-center justify-between px-4 py-3 shrink-0">
-				<div className="flex items-center gap-2.5">
-					<span className="text-sm font-semibold">{'外链分析'}</span>
-					<span className="text-xs text-muted-foreground tabular-nums">
-						{stats.analyzed}/{stats.total}
-					</span>
-					{stats.publishable > 0 && (
-						<span className="text-xs text-green-400 tabular-nums">
-							{`${stats.publishable} 条可发布`}
-						</span>
-					)}
-				</div>
-				<div className="flex items-center gap-1">
-					<button
-						type="button"
-						className="relative p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer"
-						onClick={() => setLogPanelOpen(prev => !prev)}
-						title="活动日志"
-					>
-						<ScrollText className="w-4 h-4" />
-						{logs.length > 0 && (
-							<span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-medium bg-primary text-primary-foreground rounded-full px-0.5">
-								{logs.length > 99 ? '99+' : logs.length}
-							</span>
-						)}
-					</button>
-					<Button variant="ghost" size="sm" onClick={onBack}>
-						{'返回'}
-					</Button>
-				</div>
-			</header>
-
 			{/* ── Toolbar: data actions + batch controls ── */}
 			<div className="shrink-0 px-4 pb-3 space-y-2">
 				<div className="flex items-center gap-2">
@@ -240,12 +205,35 @@ export function BacklinkAnalysis({
 							{adding ? '添加中...' : '添加 URL'}
 						</Button>
 					</div>
+
+					{/* 日志按钮 — 从 header 移入 */}
+					<button
+						type="button"
+						className="relative p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer shrink-0"
+						onClick={() => setLogPanelOpen(prev => !prev)}
+						title="活动日志"
+					>
+						<ScrollText className="w-4 h-4" />
+						{logs.length > 0 && (
+							<span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-medium bg-primary text-primary-foreground rounded-full px-0.5">
+								{logs.length > 99 ? '99+' : logs.length}
+							</span>
+						)}
+					</button>
 				</div>
 
 				{/* Inline messages */}
 				{importMsg && (
 					<p className="text-xs text-green-400 pl-0.5">{importMsg}</p>
 				)}
+
+				{/* 统计信息 — 从 header 移入 */}
+				<div className="flex items-center gap-2 text-xs text-muted-foreground">
+					<span className="tabular-nums">{stats.analyzed}/{stats.total}</span>
+					{stats.publishable > 0 && (
+						<span className="text-green-400 tabular-nums">{`${stats.publishable} 条可发布`}</span>
+					)}
+				</div>
 			</div>
 
 			<div className="shrink-0 h-px bg-border/60 mx-4" />

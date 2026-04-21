@@ -6,9 +6,7 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { SyncPanel } from './SyncPanel'
 
-interface SettingsPanelProps {
-	onClose: () => void
-}
+interface SettingsPanelProps {}
 
 const PROVIDER_LABELS: Record<ProviderKey, string> = {
 	openrouter: 'OpenRouter',
@@ -67,7 +65,7 @@ function SpinnerIcon() {
 	)
 }
 
-export function SettingsPanel({ onClose }: SettingsPanelProps) {
+export function SettingsPanel({}: SettingsPanelProps) {
 	const [activeProvider, setActiveProvider] = useState<ProviderKey>('openrouter')
 	const [configs, setConfigs] = useState<Record<ProviderKey, LLMSettings>>({
 		openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
@@ -77,6 +75,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 	})
 	const [floatEnabled, setFloatEnabled] = useState(true)
 	const [saving, setSaving] = useState(false)
+	const [saveSuccess, setSaveSuccess] = useState(false)
 	const [loaded, setLoaded] = useState(false)
 	const [showApiKey, setShowApiKey] = useState(false)
 	const [testState, setTestState] = useState<TestState>({ status: 'idle' })
@@ -135,11 +134,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 		try {
 			await setProviderConfigs({ active: activeProvider, configs })
 			chrome.runtime.sendMessage({ type: 'FLOAT_BUTTON_TOGGLE', enabled: floatEnabled }).catch(() => {})
-			onClose()
+			setSaveSuccess(true)
+			setTimeout(() => setSaveSuccess(false), 2000)
 		} finally {
 			setSaving(false)
 		}
-	}, [activeProvider, configs, floatEnabled, onClose])
+	}, [activeProvider, configs, floatEnabled])
 
 	const currentConfig = configs[activeProvider]
 	const hasValidConfig = !!(currentConfig.baseUrl && currentConfig.model)
@@ -152,13 +152,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
 	return (
 		<div className="flex flex-col h-full">
-			<header className="flex items-center justify-between border-b px-3 py-2">
-				<span className="text-sm font-semibold">{'设置'}</span>
-				<Button variant="ghost" size="sm" onClick={onClose}>
-					{'返回'}
-				</Button>
-			</header>
-
 			<div className="flex-1 overflow-y-auto p-3 space-y-4">
 				{/* Data Sync */}
 				<SyncPanel />
@@ -297,7 +290,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 					disabled={saving || !canSave}
 					className="w-full"
 				>
-					{saving ? '保存中...' : '保存设置'}
+					{saving ? '保存中...' : saveSuccess ? '已保存 ✓' : '保存设置'}
 				</Button>
 			</footer>
 		</div>
