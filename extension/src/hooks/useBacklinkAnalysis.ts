@@ -80,7 +80,7 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 				state.updateBatchStats(backlink.id, newStatus)
 				state.handleLog({ id: ++state.logIdRef.current, timestamp: Date.now(), level: publishable ? 'success' : 'warning', phase: 'system', message: `分析完成: ${publishable ? '可发布' : '不可发布'}` })
 			} catch (error) {
-				if (ac.signal.aborted) return
+				if (ac.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) return
 				const errorMsg = error instanceof Error ? error.message : String(error)
 				state.handleLog({ id: ++state.logIdRef.current, timestamp: Date.now(), level: 'error', phase: 'system', message: `分析出错: ${errorMsg}` })
 				try {

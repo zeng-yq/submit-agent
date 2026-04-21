@@ -48,9 +48,9 @@ function handleSubmitControl(
 	}
 }
 
-const TAB_COMPLETE_TIMEOUT_MS = 10_000
+const TAB_COMPLETE_TIMEOUT_MS = 20_000
 const JS_RENDER_DELAY_MS = 2_000
-const FALLBACK_DELAY_MS = 1_000
+const FALLBACK_DELAY_MS = 3_000
 
 function handleFetchPageContent(
 	message: { type: string; url: string },
@@ -72,12 +72,21 @@ function handleFetchPageContent(
 
 	const run = async () => {
 		try {
-			const tab = await chrome.tabs.create({ url, active: false })
+			// Remember the currently active tab so we can switch back after creating
+			// a new tab. Using active:true avoids Chrome's background tab throttling.
+			const [prevTab] = await chrome.tabs.query({ active: true, currentWindow: true })
+
+			const tab = await chrome.tabs.create({ url, active: true })
 			if (!tab.id) {
 				sendResponse({ error: 'Failed to open tab' })
 				return
 			}
 			openedTabId = tab.id
+
+			// Immediately switch back so the user isn't disrupted.
+			if (prevTab?.id) {
+				chrome.tabs.update(prevTab.id, { active: true }).catch(() => {})
+			}
 
 			// Wait for tab "complete" status, but don't treat timeout as fatal.
 			// Many sites have persistent connections (analytics, websockets, SSE)
@@ -92,25 +101,38 @@ function handleFetchPageContent(
 				await new Promise((resolve) => setTimeout(resolve, FALLBACK_DELAY_MS))
 			}
 
-			try {
-				const result = await chrome.tabs.sendMessage(tab.id, {
-					type: 'FLOAT_FILL',
-					action: 'analyze',
-					payload: { siteType: 'blog_comment' },
-				})
+			// Retry sendMessage up to 3 times — content script may not be
+			// fully initialized on the first attempt for slow-loading pages.
+			const MAX_SEND_ATTEMPTS = 3
+			const RETRY_DELAY_MS = 2_000
+			let lastError: string | undefined
 
-				if (result?.ok && result.analysis) {
-					sendResponse({ ok: true, analysis: result.analysis, pageContent: result.pageContent })
-				} else {
-					sendResponse({ error: result?.error || 'Content script did not return analysis' })
+			for (let attempt = 0; attempt < MAX_SEND_ATTEMPTS; attempt++) {
+				if (attempt > 0) {
+					await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
 				}
-			} catch {
-				sendResponse({
-					error: loaded
+				try {
+					const result = await chrome.tabs.sendMessage(tab.id, {
+						type: 'FLOAT_FILL',
+						action: 'analyze',
+						payload: { siteType: 'blog_comment' },
+					})
+
+					if (result?.ok && result.analysis) {
+						sendResponse({ ok: true, analysis: result.analysis, pageContent: result.pageContent })
+						return
+					} else {
+						sendResponse({ error: result?.error || 'Content script did not return analysis' })
+						return
+					}
+				} catch {
+					lastError = loaded
 						? 'Content script did not respond'
-						: `Page did not become available within ${TAB_COMPLETE_TIMEOUT_MS / 1000}s`,
-				})
+						: `Page did not become available within ${TAB_COMPLETE_TIMEOUT_MS / 1000}s`
+				}
 			}
+
+			sendResponse({ error: lastError || 'Content script did not respond' })
 		} catch (err) {
 			sendResponse({ error: err instanceof Error ? err.message : String(err) })
 		} finally {

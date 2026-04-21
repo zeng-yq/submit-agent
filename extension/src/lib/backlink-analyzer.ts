@@ -12,16 +12,21 @@ export interface AnalyzeBacklinkOptions {
   onLog?: (entry: LogEntry) => void
 }
 
+function checkAbort(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+}
+
 export async function analyzeBacklink(
   options: AnalyzeBacklinkOptions
 ): Promise<BacklinkAnalysisResult> {
-  const { url, onProgress, onLog } = options
+  const { url, signal, onProgress, onLog } = options
   let logId = 0
   const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown) => {
     onLog?.({ id: ++logId, timestamp: Date.now(), level, phase, message, data })
   }
 
   // Step 1: Fetch form analysis via background service worker
+  checkAbort(signal)
   onProgress?.('loading')
   log('info', 'analyze', '正在获取页面内容...')
 
@@ -29,6 +34,7 @@ export async function analyzeBacklink(
     type: 'FETCH_PAGE_CONTENT',
     url,
   })
+  checkAbort(signal)
 
   if (!fetchResponse?.ok) {
     throw new Error(fetchResponse?.error || `无法获取页面内容: ${url}`)
