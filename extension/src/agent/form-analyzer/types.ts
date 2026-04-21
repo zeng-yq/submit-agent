@@ -47,3 +47,8 @@ export interface FormGroup {
   field_count: number
   filtered: boolean
 }
+
+export interface CommentSystemResult {
+  name: string
+  boost: number
+}

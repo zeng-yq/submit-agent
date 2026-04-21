@@ -138,6 +138,7 @@ export interface BacklinkAnalysisResult {
 	cmsType: 'wordpress' | 'blogger' | 'discuz' | 'custom' | 'unknown'
 	detectedFields: string[]
 	confidence: number
+	commentSystem?: string
 }
 
 /** Backlink record imported from Semrush CSV, stored in IndexedDB */
