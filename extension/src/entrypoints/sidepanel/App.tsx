@@ -6,7 +6,8 @@ import { SettingsPanel } from '@/components/SettingsPanel'
 import { useProduct } from '@/hooks/useProduct'
 import { useSites } from '@/hooks/useSites'
 import { useFormFillEngine } from '@/hooks/useFormFillEngine'
-import { useBacklinkAgent } from '@/hooks/useBacklinkAgent'
+import { useBacklinkState } from '@/hooks/useBacklinkState'
+import { useBacklinkAnalysis } from '@/hooks/useBacklinkAnalysis'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { matchCurrentPage, filterSubmittable } from '@/lib/sites'
@@ -27,19 +28,14 @@ export default function App() {
 		},
 		[deleteSite]
 	)
+	const backlinkState = useBacklinkState()
 	const {
 		analyzingId,
-		backlinks,
 		isRunning: isBacklinkRunning,
 		startAnalysis,
 		analyzeOne: analyzeBacklink,
 		stop: stopBacklinkAnalysis,
-		reset: resetBacklinkAgent,
-		reload: reloadBacklinks,
-		addUrl,
-		logs: backlinkLogs,
-		clearLogs: clearBacklinkLogs,
-	} = useBacklinkAgent()
+	} = useBacklinkAnalysis(backlinkState)
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 	const [pendingUnmatchedUrl, setPendingUnmatchedUrl] = useState<string | null>(null)
 	const dashboardRunningRef = useRef(false)
@@ -237,9 +233,9 @@ export default function App() {
 	// Reload backlinks from DB when entering the analysis tab
 	useEffect(() => {
 		if (tab === 'analysis') {
-			reloadBacklinks()
+			backlinkState.reload()
 		}
-	}, [tab, reloadBacklinks])
+	}, [tab, backlinkState.reload])
 
 	const isLoading = productLoading || sitesLoading
 
@@ -370,17 +366,17 @@ export default function App() {
 				{tab === 'submit' && renderSubmitTab()}
 				{tab === 'analysis' && (
 					<BacklinkAnalysis
-						backlinks={backlinks}
+						backlinks={backlinkState.backlinks}
 						analyzingId={analyzingId}
 						isRunning={isBacklinkRunning}
 						onImportCsv={importBacklinksFromCsv}
-						onReload={reloadBacklinks}
+						onReload={backlinkState.reload}
 						onStartAnalysis={startAnalysis}
 						onAnalyzeOne={analyzeBacklink}
-						onAddUrl={addUrl}
+						onAddUrl={backlinkState.addUrl}
 						onStop={stopBacklinkAnalysis}
-						logs={backlinkLogs}
-						onClearLogs={clearBacklinkLogs}
+						logs={backlinkState.logs}
+						onClearLogs={backlinkState.clearLogs}
 					/>
 				)}
 				{tab === 'settings' && <SettingsPanel />}
