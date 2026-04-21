@@ -23,19 +23,32 @@ export function BacklinkToolbar({
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
-	const [importMsg, setImportMsg] = useState<string | null>(null)
+	const [importMsg, setImportMsg] = useState<{ text: string; isError: boolean } | null>(null)
 	const [urlInput, setUrlInput] = useState('')
 	const [adding, setAdding] = useState(false)
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
 		if (!file) return
-		const text = await file.text()
-		const result = await onImportCsv(text)
-		await onReload()
-		setImportMsg(`成功导入 ${result.imported} 条新外链，${result.skipped} 条重复被跳过`)
-		if (fileInputRef.current) fileInputRef.current.value = ''
-		setTimeout(() => setImportMsg(null), 5000)
+		try {
+			const text = await file.text()
+			if (!text.trim()) {
+				setImportMsg({ text: '文件内容为空', isError: true })
+				return
+			}
+			const result = await onImportCsv(text)
+			await onReload()
+			if (result.imported === 0 && result.skipped === 0) {
+				setImportMsg({ text: '未找到有效的 Source url 列，请检查 CSV 格式', isError: true })
+			} else {
+				setImportMsg({ text: `成功导入 ${result.imported} 条新外链，${result.skipped} 条重复被跳过`, isError: false })
+			}
+		} catch (err) {
+			setImportMsg({ text: `导入失败：${err instanceof Error ? err.message : String(err)}`, isError: true })
+		} finally {
+			if (fileInputRef.current) fileInputRef.current.value = ''
+			setTimeout(() => setImportMsg(null), 5000)
+		}
 	}
 
 	const handleAddUrl = useCallback(async () => {
@@ -52,7 +65,7 @@ export function BacklinkToolbar({
 			setUrlInput('')
 			urlInputRef.current?.focus()
 			if (added > 0) {
-				setImportMsg(`已添加 ${added} 条`)
+				setImportMsg({ text: `已添加 ${added} 条`, isError: false })
 				setTimeout(() => setImportMsg(null), 3000)
 			}
 		} finally {
@@ -107,7 +120,7 @@ export function BacklinkToolbar({
 
 				{/* Inline messages */}
 				{importMsg && (
-					<p className="text-xs text-green-400 pl-0.5">{importMsg}</p>
+					<p className={`text-xs pl-0.5 ${importMsg.isError ? 'text-red-400' : 'text-green-400'}`}>{importMsg.text}</p>
 				)}
 			</div>
 

@@ -3,6 +3,11 @@ import { getBacklinkByUrl, saveBacklink } from './db'
 
 /** Parse a CSV string into rows (handles quoted fields per RFC 4180) */
 function parseCsv(csvText: string): Record<string, string>[] {
+	// Strip UTF-8 BOM if present (common in Windows-exported CSVs)
+	if (csvText.charCodeAt(0) === 0xFEFF) {
+		csvText = csvText.slice(1)
+	}
+
 	const rows: Record<string, string>[] = []
 	let currentRow: string[] = []
 	let currentField = ''

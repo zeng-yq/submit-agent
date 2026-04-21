@@ -46,7 +46,7 @@ let dbPromise: Promise<IDBPDatabase<SubmitAgentDB>> | null = null
 function getDB() {
 	if (!dbPromise) {
 		dbPromise = openDB<SubmitAgentDB>(DB_NAME, DB_VERSION, {
-			upgrade(db, oldVersion) {
+			upgrade(db, oldVersion, _newVersion, tx) {
 				if (oldVersion < 1) {
 					const products = db.createObjectStore('products', { keyPath: 'id' })
 					products.createIndex('by-updated', 'updatedAt')
@@ -72,11 +72,8 @@ function getDB() {
 					// Schema-less: new optional fields (error, failedAt) need no index changes
 				}
 				if (oldVersion < 6) {
-					const sites = db.objectStoreNames.contains('sites')
-						? db.transaction('sites').objectStore('sites')
-						: null
-					if (sites) {
-						sites.createIndex('by-domain', 'domain')
+					if (db.objectStoreNames.contains('sites')) {
+						tx.objectStore('sites').createIndex('by-domain', 'domain')
 					}
 				}
 			},
