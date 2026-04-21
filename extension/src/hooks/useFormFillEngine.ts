@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import type { SiteData } from '@/lib/types'
 import { getLLMConfig, getActiveProductId } from '@/lib/storage'
 import { getProduct, listSubmissionsByProduct } from '@/lib/db'
-import { loadSites, matchCurrentPage, getRandomUnsubmitted, filterSubmittable } from '@/lib/sites'
+import { reloadSites, matchCurrentPage, getRandomUnsubmitted, filterSubmittable } from '@/lib/sites'
 import type { FillEngineStatus, FillResult, SiteType, LogEntry } from '@/agent/types'
 import { executeFormFill } from '@/agent/FormFillEngine'
 
@@ -118,7 +118,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			}
 
 			// Find matching site or pick random unsubmitted
-			const allSites = await loadSites()
+			const allSites = await reloadSites()
 			const submittable = filterSubmittable(allSites)
 
 			const matched = matchCurrentPage(submittable, currentUrl)
