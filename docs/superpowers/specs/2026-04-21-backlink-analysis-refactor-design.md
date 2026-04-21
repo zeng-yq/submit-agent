@@ -51,7 +51,7 @@
 ### 1.1 清理 `lib/backlinks.ts`
 
 - 移除 `importBacklinksFromCsv` 和 `useBacklinkAgent.ts` 中传递的 `targetUrl: ''` 死字段
-- 替换手写 CSV 解析器为正则表达式版本，正确处理引号内的换行符
+- 替换手写 CSV 解析器：使用 `String.split` + 状态机方式处理带引号的字段，支持引号内换行符（参考 RFC 4180）
 
 ### 1.2 优化 `lib/db.ts`
 
@@ -72,6 +72,8 @@
 
 ### 2.1 拆分 `FormAnalyzer.ts`
 
+将 `agent/FormAnalyzer.ts` 重构为 `agent/form-analyzer/` 目录，内含以下文件。原 `FormAnalyzer.ts` 改为 barrel re-export，保持外部 import 路径兼容。
+
 | 新文件 | 职责 | 提取的函数 | 预估行数 |
 |--------|------|-----------|---------|
 | `form-scanner.ts` | DOM 扫描、字段提取、蜜罐去重 | `findLabel()`, `deduplicateFields()`, 选择器常量 | ~200 |
@@ -81,11 +83,16 @@
 | `field-list-builder.ts` | LLM 字段列表构建 | `buildFieldList()` | ~50 |
 | `index.ts` | 公共 API 入口 + `analyzeForms()` 编排 | 统一 re-export | ~120 |
 
+所有子模块共享 `agent/types.ts` 中已有的 `FormField`、`FormGroup`、`FormRole` 等类型，不在子模块内重复定义。
+
 ### 2.2 消除字段检测重复
 
-- 提取 `classifyFields()` 纯函数到 `field-resolver.ts`
-- `backlink-analyzer.ts` 和 `FormAnalyzer.ts` 都调用这个共享函数
-- 消除 `backlink-analyzer.ts` 第 45-53 行与第 118-133 行的重复逻辑
+当前 `backlink-analyzer.ts` 中 `analyzeBacklink()` 和 `calculateConfidence()` 各自独立检测 `commentFields` 和 `textareaFields`，逻辑重复。
+
+解决方案：
+- 提取 `classifyFields(fields: FormField[]): { commentFields, textareaFields, urlFields, authorFields, emailFields }` 纯函数到 `field-resolver.ts`
+- `backlink-analyzer.ts` 的两个函数都调用此共享函数
+- 分类标准基于现有的字段名称/类型/ARIA 属性匹配规则
 
 ### 2.3 模块依赖关系
 
@@ -97,16 +104,19 @@ field-resolver ← field-list-builder
 index.ts ← 所有模块
 ```
 
-### 2.4 公共接口
+### 2.4 公共接口与兼容性
 
-对外保持与现有代码兼容的导出：
+原 `agent/FormAnalyzer.ts` 改为 barrel re-export 文件：
 
 ```typescript
-export { analyzeForms } from './index'
-export type { FormField, PageInfo, FormAnalysisResult, CommentLinkResult } from './types'
+// agent/FormAnalyzer.ts (重构后，仅 re-export)
+export { analyzeForms, detectCommentLinks, classifyForm, inferFieldPurpose,
+         inferEffectiveType, buildFieldList, resolveField } from './form-analyzer'
+export type { FormField, PageInfo, FormAnalysisResult, CommentLinkResult,
+              FormRole, FormConfidence, FormGroup } from './types'
 ```
 
-外部调用方（`content.ts`、`FormFillEngine.ts`）无需修改 import 路径。
+外部调用方（`content.ts`、`FormFillEngine.ts`）保持 `from '../agent/FormAnalyzer'` 不变，无需修改 import 路径。
 
 ---
 
