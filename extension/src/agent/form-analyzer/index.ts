@@ -164,6 +164,6 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
     forms: formGroups,
     page_info: extractPageInfo(doc),
     commentLinks: detectCommentLinks(doc),
-    commentSystem: detectCommentSystem(doc),
+    commentSystem: detectCommentSystem(doc) ?? undefined,
   };
 }
