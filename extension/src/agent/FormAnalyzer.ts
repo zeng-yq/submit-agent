@@ -42,6 +42,33 @@ export interface CommentLinkResult {
 
 const EXTERNAL_LINK_DOMAIN_THRESHOLD = 10;
 
+const COMMENT_CONTAINER_SELECTORS = [
+  '#comments',
+  '.comments-area',
+  '.comments',
+  '#comment-list',
+  '.comment-list',
+];
+
+const COMMENT_META_SELECTORS = [
+  '.reply',
+  '.comment-reply',
+  '.comment-meta',
+  '.comment-metadata',
+  '.comment-author',
+  '.vcard',
+  '.says',
+  '.must-log-in',
+  'nav',
+  '.navigation',
+  '.nav-links',
+  '.comment-navigation',
+  '.comment-reply-login',
+  '.comment-actions',
+  '.blog-admin',
+  '.comment-replybox-single',
+].join(', ');
+
 export type FormRole = 'search' | 'login' | 'newsletter' | 'unknown'
 export type FormConfidence = 'high' | 'medium' | 'low'
 
@@ -628,33 +655,6 @@ export function resolveField(
  * Returns hasExternalLinks: true when >= 10 unique external domains are found.
  */
 export function detectCommentLinks(doc: Document): CommentLinkResult {
-  const COMMENT_CONTAINER_SELECTORS = [
-    '#comments',
-    '.comments-area',
-    '.comments',
-    '#comment-list',
-    '.comment-list',
-  ];
-
-  const METADATA_SELECTORS = [
-    '.reply',
-    '.comment-reply',
-    '.comment-meta',
-    '.comment-metadata',
-    '.comment-author',
-    '.vcard',
-    '.says',
-    '.must-log-in',
-    'nav',
-    '.navigation',
-    '.nav-links',
-    '.comment-navigation',
-    '.comment-reply-login',
-    '.comment-actions',
-    '.blog-admin',
-    '.comment-replybox-single',
-  ].join(', ');
-
   // 1. Find comment container
   let container: Element | null = null;
   for (const selector of COMMENT_CONTAINER_SELECTORS) {
@@ -677,7 +677,7 @@ export function detectCommentLinks(doc: Document): CommentLinkResult {
 
   for (const link of allLinks) {
     // 5. Skip links inside metadata areas
-    if (METADATA_SELECTORS && link.closest(METADATA_SELECTORS)) {
+    if (link.closest(COMMENT_META_SELECTORS)) {
       continue;
     }
 
