@@ -1,5 +1,4 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
-import type { AnalysisStep } from '@/lib/backlink-analyzer'
 import type { BatchRecord } from '@/hooks/useBacklinkAgent'
 import type { LogEntry } from '@/agent/types'
 import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
@@ -9,9 +8,6 @@ import { ActivityLog } from './ActivityLog'
 interface BacklinkAnalysisProps {
 	backlinks: BacklinkRecord[]
 	analyzingId: string | null
-	currentStep: AnalysisStep | null
-	currentIndex: number
-	batchSize: number
 	isRunning: boolean
 	onImportCsv: (csvText: string) => Promise<{ imported: number; skipped: number }>
 	onReload: () => void
@@ -25,12 +21,6 @@ interface BacklinkAnalysisProps {
 	onDismissBatch: (id: string) => void
 	logs: LogEntry[]
 	onClearLogs: () => void
-}
-
-const STEP_LABELS: Record<string, string> = {
-	loading: '正在获取页面...',
-	analyzing: '正在分析内容...',
-	done: '完成',
 }
 
 const BATCH_STATUS_LABELS: Record<string, string> = {
@@ -60,9 +50,6 @@ const STATUS_COLORS: Record<BacklinkStatus, string> = {
 export function BacklinkAnalysis({
 	backlinks,
 	analyzingId,
-	currentStep,
-	currentIndex,
-	batchSize,
 	isRunning,
 	onImportCsv,
 	onReload,
@@ -125,8 +112,6 @@ export function BacklinkAnalysis({
 	const getDomain = (url: string) => {
 		try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
 	}
-
-	const analyzingBacklink = analyzingId ? backlinks.find(b => b.id === analyzingId) : null
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
@@ -217,7 +202,11 @@ export function BacklinkAnalysis({
 				<div className="shrink-0 h-px bg-border/60 mx-4" />
 
 				<div className="shrink-0 px-4 py-2 flex items-center gap-2">
-					{!isRunning && (
+					{isRunning ? (
+						<Button variant="destructive" size="xs" onClick={onStop}>
+							{'停止分析'}
+						</Button>
+						) : (
 						<>
 							<select
 								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
@@ -245,42 +234,6 @@ export function BacklinkAnalysis({
 						)}
 					</div>
 				</div>
-
-			{/* ── Progress bar (shown during analysis) ── */}
-			{(isRunning || analyzingId) && (
-				<div className="shrink-0 px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground bg-blue-500/[0.03]">
-					<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
-					{analyzingBacklink ? (
-						<>
-							{isRunning
-								? `分析中 (${currentIndex + 1}/${batchSize})...`
-								: `正在分析 — ${getDomain(analyzingBacklink.sourceUrl)}`
-							}
-							{isRunning && (
-								<span className="text-muted-foreground/70 truncate">
-									{' — '}
-									{getDomain(analyzingBacklink.sourceUrl)}
-								</span>
-							)}
-							{currentStep && (
-								<span className="text-muted-foreground/50 shrink-0">
-									{' — '}
-									{STEP_LABELS[currentStep] ?? currentStep}
-								</span>
-							)}
-						</>
-					) : isRunning ? (
-						'分析进行中...'
-					) : null}
-					{isRunning && (
-						<div className="ml-auto">
-							<Button variant="destructive" size="xs" onClick={onStop}>
-								{'停止'}
-							</Button>
-						</div>
-					)}
-				</div>
-			)}
 
 			{/* ── Batch controls + Filter tabs ── */}
 			<div className="shrink-0 border-t border-border/60">

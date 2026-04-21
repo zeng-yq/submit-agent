@@ -29,9 +29,6 @@ export default function App() {
 	)
 	const {
 		analyzingId,
-		currentStep: backlinkStep,
-		currentIndex,
-		batchSize,
 		backlinks,
 		isRunning: isBacklinkRunning,
 		startAnalysis,
@@ -379,9 +376,6 @@ export default function App() {
 					<BacklinkAnalysis
 						backlinks={backlinks}
 						analyzingId={analyzingId}
-						currentStep={backlinkStep}
-						currentIndex={currentIndex}
-						batchSize={batchSize}
 						isRunning={isBacklinkRunning}
 						onImportCsv={importBacklinksFromCsv}
 						onReload={reloadBacklinks}
