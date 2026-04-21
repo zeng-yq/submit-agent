@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { SiteData, SubmissionRecord } from '@/lib/types'
+import type { SiteData, SubmissionRecord, SiteCategory } from '@/lib/types'
 import { reloadSites } from '@/lib/sites'
-import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite } from '@/lib/db'
+import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, updateSiteCategory } from '@/lib/db'
 
 export interface UseSitesResult {
 	sites: SiteData[]
@@ -14,6 +14,7 @@ export interface UseSitesResult {
 	resetSubmission: (siteName: string) => Promise<void>
 	updateStatus: (record: SubmissionRecord) => Promise<void>
 	deleteSite: (siteName: string) => Promise<void>
+	updateSiteCategory: (siteName: string, category: SiteCategory) => Promise<void>
 }
 
 export function useSites(productId: string | null): UseSitesResult {
@@ -131,6 +132,14 @@ export function useSites(productId: string | null): UseSitesResult {
 		[refresh]
 	)
 
+	const handleUpdateSiteCategory = useCallback(
+		async (siteName: string, category: SiteCategory) => {
+			await updateSiteCategory(siteName, category)
+			await refresh()
+		},
+		[refresh]
+	)
+
 	return {
 		sites,
 		submissions,
@@ -142,5 +151,6 @@ export function useSites(productId: string | null): UseSitesResult {
 		resetSubmission,
 		updateStatus,
 		deleteSite: handleDeleteSite,
+		updateSiteCategory: handleUpdateSiteCategory,
 	}
 }
