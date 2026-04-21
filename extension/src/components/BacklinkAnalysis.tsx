@@ -5,7 +5,6 @@ import type { LogEntry } from '@/agent/types'
 import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
 import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
-import { ScrollText } from 'lucide-react'
 
 interface BacklinkAnalysisProps {
 	backlinks: BacklinkRecord[]
@@ -206,20 +205,6 @@ export function BacklinkAnalysis({
 						</Button>
 					</div>
 
-					{/* 日志按钮 — 从 header 移入 */}
-					<button
-						type="button"
-						className="relative p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer shrink-0"
-						onClick={() => setLogPanelOpen(prev => !prev)}
-						title="活动日志"
-					>
-						<ScrollText className="w-4 h-4" />
-						{logs.length > 0 && (
-							<span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-medium bg-primary text-primary-foreground rounded-full px-0.5">
-								{logs.length > 99 ? '99+' : logs.length}
-							</span>
-						)}
-					</button>
 				</div>
 
 				{/* Inline messages */}
@@ -227,16 +212,39 @@ export function BacklinkAnalysis({
 					<p className="text-xs text-green-400 pl-0.5">{importMsg}</p>
 				)}
 
-				{/* 统计信息 — 从 header 移入 */}
-				<div className="flex items-center gap-2 text-xs text-muted-foreground">
-					<span className="tabular-nums">{stats.analyzed}/{stats.total}</span>
-					{stats.publishable > 0 && (
-						<span className="text-green-400 tabular-nums">{`${stats.publishable} 条可发布`}</span>
-					)}
 				</div>
-			</div>
 
-			<div className="shrink-0 h-px bg-border/60 mx-4" />
+				<div className="shrink-0 h-px bg-border/60 mx-4" />
+
+				<div className="shrink-0 px-4 py-2 flex items-center gap-2">
+					{!isRunning && (
+						<>
+							<select
+								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
+								value={batchCount}
+								onChange={e => setBatchCount(Number(e.target.value))}
+							>
+								<option value={10}>10</option>
+								<option value={20}>20</option>
+								<option value={50}>50</option>
+							</select>
+							<Button
+								variant="default"
+								size="xs"
+								onClick={() => onStartAnalysis(batchCount)}
+								disabled={stats.total === 0 || stats.analyzed === stats.total}
+							>
+								{'开始分析'}
+							</Button>
+						</>
+					)}
+					<div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+						<span className="tabular-nums">{'已分析 '}{stats.analyzed}{'/'}{stats.total}</span>
+						{stats.publishable > 0 && (
+							<span className="text-green-400 tabular-nums">{`${stats.publishable} 条可发布`}</span>
+						)}
+					</div>
+				</div>
 
 			{/* ── Progress bar (shown during analysis) ── */}
 			{(isRunning || analyzingId) && (
@@ -362,32 +370,28 @@ export function BacklinkAnalysis({
 							<span className="ml-1 text-[10px] text-muted-foreground">{tabItem.count}</span>
 						</button>
 					))}
-					{!isRunning && (
-						<div className="ml-auto flex items-center gap-1.5 py-1">
-							<select
-								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
-								value={batchCount}
-								onChange={e => setBatchCount(Number(e.target.value))}
-							>
-								<option value={10}>10</option>
-								<option value={20}>20</option>
-								<option value={50}>50</option>
-							</select>
-							<Button
-								variant="default"
-								size="xs"
-								onClick={() => onStartAnalysis(batchCount)}
-								disabled={stats.total === 0 || stats.analyzed === stats.total}
-							>
-								{'开始分析'}
-							</Button>
-						</div>
-					)}
+					<button
+						type="button"
+						onClick={() => setLogPanelOpen(prev => !prev)}
+						className={"ml-auto px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer " + (
+							logPanelOpen
+								? "bg-primary text-primary-foreground"
+								: "bg-muted hover:bg-muted/80 text-foreground"
+						)}
+					>
+						{'活动日志'}
+						{logs.length > 0 && (
+							<span className="ml-1 text-[10px] opacity-70">{logs.length > 99 ? '99+' : logs.length}</span>
+						)}
+					</button>
 				</div>
 			</div>
 
-			{/* Table */}
-			<div className="flex-1 overflow-y-auto">
+			{/* ── Content: ActivityLog or Table ── */}
+			{logPanelOpen ? (
+				<ActivityLog logs={logs} onClear={onClearLogs} className="flex-1" />
+			) : (
+				<div className="flex-1 overflow-y-auto">
 				{filteredBacklinks.length === 0 ? (
 					<div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
 						{'暂无外链数据。请导入 Semrush 导出的 CSV 文件。'}
@@ -479,36 +483,6 @@ export function BacklinkAnalysis({
 						</tbody>
 					</table>
 				)}
-			</div>
-			{logPanelOpen && (
-				<div className="shrink-0 border-t border-border/60" style={{ height: '40%', minHeight: 120, maxHeight: '70%' }}>
-					<div
-						className="h-2 cursor-row-resize flex items-center justify-center hover:bg-accent/30 transition-colors"
-						onMouseDown={(e) => {
-							e.preventDefault()
-							const panel = e.currentTarget.parentElement
-							if (!panel) return
-							const startY = e.clientY
-							const startHeight = panel.offsetHeight
-
-							const onMouseMove = (moveE: MouseEvent) => {
-								const delta = startY - moveE.clientY
-								const newHeight = Math.max(120, Math.min(window.innerHeight * 0.7, startHeight + delta))
-								panel.style.height = `${newHeight}px`
-							}
-							const onMouseUp = () => {
-								document.removeEventListener('mousemove', onMouseMove)
-								document.removeEventListener('mouseup', onMouseUp)
-							}
-							document.addEventListener('mousemove', onMouseMove)
-							document.addEventListener('mouseup', onMouseUp)
-						}}
-					>
-						<div className="w-8 h-1 rounded-full bg-border" />
-					</div>
-					<div className="flex-1 overflow-hidden" style={{ height: 'calc(100% - 8px)' }}>
-						<ActivityLog logs={logs} onClear={onClearLogs} className="h-full border-0 rounded-none" />
-					</div>
 				</div>
 			)}
 		</div>
