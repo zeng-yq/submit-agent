@@ -37,10 +37,6 @@ export default function App() {
 		reset: resetBacklinkAgent,
 		reload: reloadBacklinks,
 		addUrl,
-		batchHistory,
-		activeBatchId,
-		selectBatch,
-		dismissBatch,
 		logs: backlinkLogs,
 		clearLogs: clearBacklinkLogs,
 	} = useBacklinkAgent()
@@ -383,10 +379,6 @@ export default function App() {
 						onAnalyzeOne={analyzeBacklink}
 						onAddUrl={addUrl}
 						onStop={stopBacklinkAnalysis}
-						batchHistory={batchHistory}
-						activeBatchId={activeBatchId}
-						onSelectBatch={selectBatch}
-						onDismissBatch={dismissBatch}
 						logs={backlinkLogs}
 						onClearLogs={clearBacklinkLogs}
 					/>

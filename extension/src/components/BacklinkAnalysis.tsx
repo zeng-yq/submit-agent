@@ -1,5 +1,4 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
-import type { BatchRecord } from '@/hooks/useBacklinkAgent'
 import type { LogEntry } from '@/agent/types'
 import { useRef, useState, Fragment, useEffect, useCallback } from 'react'
 import { Button } from './ui/Button'
@@ -15,19 +14,11 @@ interface BacklinkAnalysisProps {
 	onAnalyzeOne: (backlink: BacklinkRecord) => void
 	onAddUrl: (url: string) => Promise<{ success: boolean; error?: string }>
 	onStop: () => void
-	batchHistory: BatchRecord[]
-	activeBatchId: string | null
-	onSelectBatch: (id: string | null) => void
-	onDismissBatch: (id: string) => void
 	logs: LogEntry[]
 	onClearLogs: () => void
 }
 
-const BATCH_STATUS_LABELS: Record<string, string> = {
-	running: '进行中',
-	completed: '已完成',
-	stopped: '已停止',
-}
+type Tab = 'all' | 'done' | 'failed' | 'log'
 
 const BACKLINK_STATUS_LABELS: Record<string, string> = {
 	pending: '待分析',
@@ -57,10 +48,6 @@ export function BacklinkAnalysis({
 	onAnalyzeOne,
 	onAddUrl,
 	onStop,
-	batchHistory,
-	activeBatchId,
-	onSelectBatch,
-	onDismissBatch,
 	logs,
 	onClearLogs,
 }: BacklinkAnalysisProps) {
@@ -68,18 +55,22 @@ export function BacklinkAnalysis({
 	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
-	const [statusFilter, setStatusFilter] = useState<'all' | 'done' | 'failed'>('all')
+	const [tab, setTab] = useState<Tab>('all')
 	const [urlInput, setUrlInput] = useState('')
 	const [adding, setAdding] = useState(false)
 	const [expandedId, setExpandedId] = useState<string | null>(null)
-	const [logPanelOpen, setLogPanelOpen] = useState(false)
 	const lastAnalyzedRef = useRef<string | null>(null)
+
+	useEffect(() => {
+		if (isRunning) {
+			setTab('log')
+		}
+	}, [isRunning])
 
 	useEffect(() => {
 		if (analyzingId) {
 			lastAnalyzedRef.current = analyzingId
 		} else if (lastAnalyzedRef.current) {
-			// Analysis just completed — auto-expand if not in batch mode
 			if (!isRunning) {
 				setExpandedId(lastAnalyzedRef.current)
 			}
@@ -87,12 +78,10 @@ export function BacklinkAnalysis({
 		}
 	}, [analyzingId, isRunning])
 
-	const activeBatch = activeBatchId ? batchHistory.find(b => b.id === activeBatchId) : null
-	const batchFiltered = backlinks.filter(b => activeBatch ? activeBatch.itemIds.includes(b.id) : true)
-	const filteredBacklinks = [...batchFiltered
+	const filteredBacklinks = [...backlinks
 		.filter(b => {
-			if (statusFilter === 'all') return true
-			if (statusFilter === 'done') return DONE_STATUSES.includes(b.status)
+			if (tab === 'all' || tab === 'log') return true
+			if (tab === 'done') return DONE_STATUSES.includes(b.status)
 			return b.status === 'error'
 		})
 	].sort((a, b) => b.pageAscore - a.pageAscore)
@@ -103,15 +92,11 @@ export function BacklinkAnalysis({
 		publishable: backlinks.filter(b => b.status === 'publishable').length,
 	}
 
-	const tabs: { id: 'all' | 'done' | 'failed'; label: string; count: number }[] = [
-		{ id: 'all', label: '全部', count: batchFiltered.length },
-		{ id: 'done', label: '已完成', count: batchFiltered.filter(b => DONE_STATUSES.includes(b.status)).length },
-		{ id: 'failed', label: '失败', count: batchFiltered.filter(b => b.status === 'error').length },
+	const tabs: { id: Tab; label: string; count: number }[] = [
+		{ id: 'all', label: '全部', count: backlinks.length },
+		{ id: 'done', label: '已完成', count: backlinks.filter(b => DONE_STATUSES.includes(b.status)).length },
+		{ id: 'failed', label: '失败', count: backlinks.filter(b => b.status === 'error').length },
 	]
-
-	const getDomain = (url: string) => {
-		try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
-	}
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
@@ -197,124 +182,54 @@ export function BacklinkAnalysis({
 					<p className="text-xs text-green-400 pl-0.5">{importMsg}</p>
 				)}
 
-				</div>
+			</div>
 
-				<div className="shrink-0 h-px bg-border/60 mx-4" />
+			<div className="shrink-0 h-px bg-border/60 mx-4" />
 
-				<div className="shrink-0 px-4 py-2 flex items-center gap-2">
-					{isRunning ? (
-						<Button variant="destructive" size="xs" onClick={onStop}>
-							{'停止分析'}
+			<div className="shrink-0 px-4 py-2 flex items-center gap-2">
+				{isRunning ? (
+					<Button variant="destructive" size="xs" onClick={onStop}>
+						{'停止分析'}
+					</Button>
+				) : (
+					<>
+						<select
+							className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
+							value={batchCount}
+							onChange={e => setBatchCount(Number(e.target.value))}
+						>
+							<option value={10}>10</option>
+							<option value={20}>20</option>
+							<option value={50}>50</option>
+						</select>
+						<Button
+							variant="default"
+							size="xs"
+							onClick={() => onStartAnalysis(batchCount)}
+							disabled={stats.total === 0 || stats.analyzed === stats.total}
+						>
+							{'开始分析'}
 						</Button>
-						) : (
-						<>
-							<select
-								className="text-xs bg-background border border-border rounded-md px-2 py-1 h-7"
-								value={batchCount}
-								onChange={e => setBatchCount(Number(e.target.value))}
-							>
-								<option value={10}>10</option>
-								<option value={20}>20</option>
-								<option value={50}>50</option>
-							</select>
-							<Button
-								variant="default"
-								size="xs"
-								onClick={() => onStartAnalysis(batchCount)}
-								disabled={stats.total === 0 || stats.analyzed === stats.total}
-							>
-								{'开始分析'}
-							</Button>
-						</>
-					)}
-					<div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-						<span className="tabular-nums">{'已分析 '}{stats.analyzed}{'/'}{stats.total}</span>
-						{stats.publishable > 0 && (
-							<span className="text-green-400 tabular-nums">{`${stats.publishable} 条可发布`}</span>
-						)}
-					</div>
-				</div>
-
-			{/* ── Batch controls + Filter tabs ── */}
-			<div className="shrink-0 border-t border-border/60">
-				{batchHistory.length > 0 && (
-					<div className="px-4 pt-2.5 pb-1.5 space-y-1">
-						{batchHistory.map(batch => {
-							const isActive = activeBatchId === batch.id
-							const time = new Date(batch.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-							const analyzed = batch.stats.total
-							return (
-								<div
-									key={batch.id}
-									className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md transition-colors ${
-										isActive ? 'bg-accent/50' : 'bg-muted/30'
-									}`}
-								>
-									<span className="text-muted-foreground tabular-nums">{time}</span>
-									{batch.status === 'running' && (
-										<span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
-									)}
-									{batch.status === 'completed' && (
-										<span className="text-green-400 shrink-0">&#10003;</span>
-									)}
-									{batch.status === 'stopped' && (
-										<span className="text-yellow-400 shrink-0">&#9646;&#9646;</span>
-									)}
-									<span className="text-muted-foreground truncate">
-										{batch.status === 'running'
-											? `${analyzed}/${batch.itemIds.length}`
-											: BATCH_STATUS_LABELS[batch.status] ?? batch.status
-										}
-									</span>
-									<div className="flex items-center gap-1.5 shrink-0">
-										{batch.stats.publishable > 0 && (
-											<span className="text-green-400">{`${batch.stats.publishable} 可发布`}</span>
-										)}
-										{batch.stats.not_publishable > 0 && (
-											<span className="text-red-400">{`${batch.stats.not_publishable} 不可发布`}</span>
-										)}
-										{batch.stats.skipped > 0 && (
-											<span className="text-yellow-400">{`${batch.stats.skipped} 已跳过`}</span>
-										)}
-										{batch.stats.error > 0 && (
-											<span className="text-destructive">{`${batch.stats.error} 错误`}</span>
-										)}
-									</div>
-									<div className="ml-auto flex items-center gap-1 shrink-0">
-										<button
-											type="button"
-											className={`text-xs px-2 py-0.5 rounded cursor-pointer transition-colors ${
-												isActive
-													? 'bg-primary text-primary-foreground'
-													: 'text-muted-foreground hover:text-foreground hover:bg-accent'
-											}`}
-											onClick={() => onSelectBatch(isActive ? null : batch.id)}
-										>
-											{isActive ? '查看全部' : '查看'}
-										</button>
-										<button
-											type="button"
-											className="text-muted-foreground hover:text-foreground cursor-pointer text-xs px-1"
-											onClick={() => onDismissBatch(batch.id)}
-										>
-											&times;
-										</button>
-									</div>
-								</div>
-							)
-						})}
-					</div>
+					</>
 				)}
+				<div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+					<span className="tabular-nums">{'已分析 '}{stats.analyzed}{'/'}{stats.total}</span>
+					{stats.publishable > 0 && (
+						<span className="text-green-400 tabular-nums">{`${stats.publishable} 条可发布`}</span>
+					)}
+				</div>
+			</div>
 
-				{/* Filter tabs + batch controls on same row */}
+			{/* ── Filter tabs ── */}
+			<div className="shrink-0 border-t border-border/60">
 				<div className="flex items-center gap-0 border-b px-4">
 					{tabs.map((tabItem) => (
 						<button
 							key={tabItem.id}
 							type="button"
-							onClick={() => { setStatusFilter(tabItem.id); setLogPanelOpen(false) }}
+							onClick={() => setTab(tabItem.id)}
 							className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${
-								statusFilter === tabItem.id
+								tab === tabItem.id
 									? 'border-primary text-foreground'
 									: 'border-transparent text-muted-foreground hover:text-foreground'
 							}`}
@@ -324,9 +239,9 @@ export function BacklinkAnalysis({
 						</button>
 					))}
 					<Button
-						variant={logPanelOpen ? 'default' : 'ghost'}
+						variant={tab === 'log' ? 'default' : 'ghost'}
 						size="xs"
-						onClick={() => setLogPanelOpen(prev => !prev)}
+						onClick={() => setTab('log')}
 						className="ml-auto"
 					>
 						{'活动日志'}
@@ -335,7 +250,7 @@ export function BacklinkAnalysis({
 			</div>
 
 			{/* ── Content: ActivityLog or Table ── */}
-			{logPanelOpen ? (
+			{tab === 'log' ? (
 				<ActivityLog logs={logs} onClear={onClearLogs} className="flex-1" />
 			) : (
 				<div className="flex-1 overflow-y-auto">
