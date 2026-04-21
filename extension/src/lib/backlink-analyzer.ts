@@ -67,6 +67,12 @@ export async function analyzeBacklink(
   const formActions = unfilteredForms.map(f => f.form_action || '').join(' ')
   if (formActions.includes('wp-comments-post') || formActions.includes('wp-admin')) {
     cmsType = 'wordpress'
+  } else if (formActions.includes('blogger.com/comment')) {
+    cmsType = 'blogger'
+  } else if (formActions.includes('forum.php?mod=post') || formActions.includes('forum.php?mod=misc')) {
+    cmsType = 'discuz'
+  } else if (hasUnfilteredForm && hasCommentArea) {
+    cmsType = 'custom'
   }
 
   const commentSystem = analysis.commentSystem?.name
