@@ -24,12 +24,14 @@ export function BacklinkToolbar({
 	const urlInputRef = useRef<HTMLInputElement>(null)
 	const [batchCount, setBatchCount] = useState(20)
 	const [importMsg, setImportMsg] = useState<{ text: string; isError: boolean } | null>(null)
+	const [isImporting, setIsImporting] = useState(false)
 	const [urlInput, setUrlInput] = useState('')
 	const [adding, setAdding] = useState(false)
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
 		if (!file) return
+		setIsImporting(true)
 		try {
 			const text = await file.text()
 			if (!text.trim()) {
@@ -46,6 +48,7 @@ export function BacklinkToolbar({
 		} catch (err) {
 			setImportMsg({ text: `导入失败：${err instanceof Error ? err.message : String(err)}`, isError: true })
 		} finally {
+			setIsImporting(false)
 			if (fileInputRef.current) fileInputRef.current.value = ''
 			setTimeout(() => setImportMsg(null), 5000)
 		}
@@ -88,9 +91,17 @@ export function BacklinkToolbar({
 						variant="outline"
 						size="xs"
 						onClick={() => fileInputRef.current?.click()}
-						disabled={isRunning}
+						disabled={isRunning || isImporting}
 					>
-						{'导入 CSV'}
+						{isImporting ? (
+							<>
+								<svg className="w-3 h-3 animate-spin mr-1.5" viewBox="0 0 24 24" fill="none">
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+									<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7 7 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+								</svg>
+								{'导入中...'}
+							</>
+						) : '导入 CSV'}
 					</Button>
 
 					<div className="w-px h-5 bg-border/60" />

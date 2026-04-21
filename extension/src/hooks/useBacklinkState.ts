@@ -27,8 +27,9 @@ export function useBacklinkState() {
 	const currentBatchIdRef = useRef<string | null>(null)
 
 	const handleLog = useCallback((entry: LogEntry) => {
+		const id = ++logIdRef.current
 		setLogs(prev => {
-			const next = [...prev, entry]
+			const next = [...prev, { ...entry, id }]
 			return next.length > 200 ? next.slice(-200) : next
 		})
 	}, [])
