@@ -87,7 +87,6 @@ export const SHEET_DEFS: Record<string, SheetDef> = {
       { header: 'name', key: 'name' },
       { header: 'submit_url', key: 'submit_url' },
       { header: 'category', key: 'category' },
-      { header: 'lang', key: 'lang' },
       { header: 'dr', key: 'dr' },
       { header: 'status', key: 'status' },
       { header: 'createdAt', key: 'createdAt', encode: 'date' },

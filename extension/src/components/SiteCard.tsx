@@ -48,14 +48,12 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 	const [formUrl, setFormUrl] = useState('')
 	const [formCategory, setFormCategory] = useState<SiteCategory>('others')
 	const [formDr, setFormDr] = useState('')
-	const [formLang, setFormLang] = useState('')
 	const [formNotes, setFormNotes] = useState('')
 
 	const openEdit = () => {
 		setFormUrl(site.submit_url ?? '')
 		setFormCategory(site.category)
 		setFormDr(site.dr != null ? String(site.dr) : '')
-		setFormLang(site.lang ?? '')
 		setFormNotes(site.notes ?? '')
 		setEditOpen(true)
 	}
@@ -66,7 +64,6 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 			submit_url: formUrl.trim() || null,
 			category: formCategory,
 			dr: formDr.trim() && !isNaN(Number(formDr)) ? Number(formDr) : null,
-			lang: formLang.trim() || undefined,
 			notes: formNotes.trim() || undefined,
 		}
 		try {
@@ -218,12 +215,6 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 						value={formDr}
 						onChange={(e) => setFormDr(e.target.value)}
 						placeholder="留空表示未知"
-					/>
-					<Input
-						label="语言"
-						value={formLang}
-						onChange={(e) => setFormLang(e.target.value)}
-						placeholder="如 en, zh, ja"
 					/>
 					<Textarea
 						label="备注"

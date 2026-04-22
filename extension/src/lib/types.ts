@@ -68,7 +68,6 @@ export interface SiteData {
 	name: string
 	submit_url: string | null
 	category: SiteCategory
-	lang?: string
 	dr: number | null
 	status?: string
 	monthly_traffic?: number
