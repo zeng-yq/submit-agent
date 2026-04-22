@@ -45,7 +45,6 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 	const bar = statusBar[status]
 	const labelKey = statusLabelKey[status]
 
-	const [formName, setFormName] = useState('')
 	const [formUrl, setFormUrl] = useState('')
 	const [formCategory, setFormCategory] = useState<SiteCategory>('others')
 	const [formDr, setFormDr] = useState('')
@@ -53,7 +52,6 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 	const [formNotes, setFormNotes] = useState('')
 
 	const openEdit = () => {
-		setFormName(site.name)
 		setFormUrl(site.submit_url ?? '')
 		setFormCategory(site.category)
 		setFormDr(site.dr != null ? String(site.dr) : '')
@@ -62,18 +60,21 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 		setEditOpen(true)
 	}
 
-	const handleSave = () => {
+	const handleSave = async () => {
 		if (!onSave) return
 		const data: Partial<SiteData> = {
-			name: formName.trim() || site.name,
 			submit_url: formUrl.trim() || null,
 			category: formCategory,
-			dr: formDr.trim() ? Number(formDr) : null,
+			dr: formDr.trim() && !isNaN(Number(formDr)) ? Number(formDr) : null,
 			lang: formLang.trim() || undefined,
 			notes: formNotes.trim() || undefined,
 		}
-		onSave(site.name, data)
-		setEditOpen(false)
+		try {
+			await onSave(site.name, data)
+			setEditOpen(false)
+		} catch {
+			// 保存失败时保持弹窗打开，用户可重试
+		}
 	}
 
 	return (
@@ -199,11 +200,6 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 					<DialogCloseButton onClose={() => setEditOpen(false)} />
 				</DialogHeader>
 				<DialogContent>
-					<Input
-						label="站点名称"
-						value={formName}
-						onChange={(e) => setFormName(e.target.value)}
-					/>
 					<Input
 						label="提交 URL"
 						value={formUrl}

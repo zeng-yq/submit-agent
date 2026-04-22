@@ -244,15 +244,6 @@ export async function updateSite(site: SiteRecord): Promise<SiteRecord> {
 	return updated
 }
 
-export async function updateSiteCategory(name: string, category: SiteCategory): Promise<SiteRecord> {
-	const db = await getDB()
-	const site = await db.get('sites', name)
-	if (!site) throw new Error(`Site not found: ${name}`)
-	const updated = { ...site, category, updatedAt: Date.now() }
-	await db.put('sites', updated)
-	return updated
-}
-
 export async function deleteSite(name: string): Promise<void> {
 	const db = await getDB()
 	await db.delete('sites', name)
