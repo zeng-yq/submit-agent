@@ -14,7 +14,7 @@ interface DashboardProps {
 	onRetrySite?: (site: SiteData) => void
 	onResetStatus?: (siteName: string) => void
 	onDeleteSite?: (siteName: string) => void
-	onCategoryChange?: (siteName: string, category: SiteCategory) => void
+	onSaveSite?: (siteName: string, data: Partial<SiteData>) => void
 	engineStatus: FillEngineStatus
 	engineLogs: LogEntry[]
 	onClearEngineLogs: () => void
@@ -32,7 +32,7 @@ export function Dashboard({
 	onRetrySite,
 	onResetStatus,
 	onDeleteSite,
-	onCategoryChange,
+	onSaveSite,
 	engineStatus,
 	engineLogs,
 	onClearEngineLogs,
@@ -254,7 +254,7 @@ export function Dashboard({
 									onSelect={onSelectSite}
 									onDelete={onDeleteSite}
 									onResetStatus={onResetStatus}
-									onCategoryChange={onCategoryChange}
+									onSave={onSaveSite}
 									disabled={hasActive && site.name !== activeSiteName}
 									isActive={hasActive && site.name === activeSiteName}
 								/>
