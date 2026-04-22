@@ -174,7 +174,7 @@ export function BacklinkToolbar({
 					size="xs"
 					onClick={() => {
 						if (window.confirm('确定要清空所有外链分析缓存吗？此操作不可撤销。')) {
-							onClearAll()
+							onClearAll().catch(err => console.error("Clear cache failed:", err))
 						}
 					}}
 					disabled={isRunning || stats.total === 0}

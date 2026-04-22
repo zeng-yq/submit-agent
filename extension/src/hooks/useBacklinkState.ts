@@ -101,7 +101,11 @@ export function useBacklinkState() {
 	}, [])
 
 	const clearAll = useCallback(async () => {
-		await clearBacklinks()
+		try {
+			await clearBacklinks()
+		} catch (err) {
+			console.error("Failed to clear backlinks from DB:", err)
+		}
 		setBacklinks([])
 		setBatchHistory([])
 		setActiveBatchId(null)
