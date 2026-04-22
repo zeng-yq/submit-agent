@@ -19,7 +19,7 @@ export default function App() {
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
-	const { sites, submissions, loading: sitesLoading, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSite } = useSites(activeProduct?.id ?? null)
+	const { sites, submissions, loading: sitesLoading, refresh: refreshSites, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSite } = useSites(activeProduct?.id ?? null)
 	const { status: engineStatus, result: engineResult, error: engineError, logs: engineLogs, startSubmission, stop, reset, clearLogs } = useFormFillEngine()
 
 	const handleDeleteSite = useCallback(
@@ -119,6 +119,13 @@ export default function App() {
 			backlinkState.reload()
 		}
 	}, [tab, backlinkState.reload])
+
+	// Reload sites from DB when entering the submit tab
+	useEffect(() => {
+		if (tab === 'submit') {
+			refreshSites()
+		}
+	}, [tab, refreshSites])
 
 	const isLoading = productLoading || sitesLoading
 
