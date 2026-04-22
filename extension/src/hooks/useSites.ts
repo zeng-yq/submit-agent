@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SiteData, SubmissionRecord, SiteCategory } from '@/lib/types'
 import { reloadSites } from '@/lib/sites'
-import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, updateSiteCategory } from '@/lib/db'
+import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, updateSiteCategory, getDB } from '@/lib/db'
 
 export interface UseSitesResult {
 	sites: SiteData[]
@@ -15,6 +15,7 @@ export interface UseSitesResult {
 	updateStatus: (record: SubmissionRecord) => Promise<void>
 	deleteSite: (siteName: string) => Promise<void>
 	updateSiteCategory: (siteName: string, category: SiteCategory) => Promise<void>
+	updateSite: (siteName: string, data: Partial<SiteData>) => Promise<void>
 }
 
 export function useSites(productId: string | null): UseSitesResult {
@@ -140,6 +141,18 @@ export function useSites(productId: string | null): UseSitesResult {
 		[refresh]
 	)
 
+	const handleUpdateSite = useCallback(
+		async (siteName: string, data: Partial<SiteData>) => {
+			const db = await getDB()
+			const site = await db.get('sites', siteName)
+			if (!site) throw new Error(`Site not found: ${siteName}`)
+			const updated = { ...site, ...data, updatedAt: Date.now() }
+			await db.put('sites', updated)
+			await refresh()
+		},
+		[refresh]
+	)
+
 	return {
 		sites,
 		submissions,
@@ -152,5 +165,6 @@ export function useSites(productId: string | null): UseSitesResult {
 		updateStatus,
 		deleteSite: handleDeleteSite,
 		updateSiteCategory: handleUpdateSiteCategory,
+		updateSite: handleUpdateSite,
 	}
 }

@@ -43,7 +43,7 @@ interface SubmitAgentDB extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<SubmitAgentDB>> | null = null
 
-function getDB() {
+export function getDB() {
 	if (!dbPromise) {
 		dbPromise = openDB<SubmitAgentDB>(DB_NAME, DB_VERSION, {
 			upgrade(db, oldVersion, _newVersion, tx) {
