@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { BacklinkRecord } from '@/lib/types'
-import { listBacklinks, saveBacklink, getBacklinkByUrl } from '@/lib/db'
+import { listBacklinks, saveBacklink, getBacklinkByUrl, clearBacklinks } from '@/lib/db'
 import type { LogEntry } from '@/agent/types'
 
 export interface BatchRecord {
@@ -100,6 +100,17 @@ export function useBacklinkState() {
 		setActiveBatchId(prev => prev === id ? null : prev)
 	}, [])
 
+	const clearAll = useCallback(async () => {
+		await clearBacklinks()
+		setBacklinks([])
+		setBatchHistory([])
+		setActiveBatchId(null)
+		currentBatchIdRef.current = null
+		setLogs([])
+		setTotalLogCount(0)
+		logIdRef.current = 0
+	}, [])
+
 	return {
 		backlinks,
 		setBacklinks,
@@ -111,6 +122,7 @@ export function useBacklinkState() {
 		setActiveBatchId,
 		selectBatch,
 		dismissBatch,
+		clearAll,
 		logs,
 		totalLogCount,
 		handleLog,

@@ -16,6 +16,7 @@ interface BacklinkAnalysisProps {
 	logs: LogEntry[]
 	totalLogCount?: number
 	onClearLogs: () => void
+	onClearAll: () => void
 }
 
 export function BacklinkAnalysis({
@@ -31,6 +32,7 @@ export function BacklinkAnalysis({
 	logs,
 	totalLogCount,
 	onClearLogs,
+	onClearAll,
 }: BacklinkAnalysisProps) {
 	const stats = {
 		total: backlinks.length,
@@ -48,6 +50,7 @@ export function BacklinkAnalysis({
 				onStartAnalysis={onStartAnalysis}
 				onAddUrl={onAddUrl}
 				onStop={onStop}
+				onClearAll={onClearAll}
 			/>
 			<BacklinkTable
 				backlinks={backlinks}

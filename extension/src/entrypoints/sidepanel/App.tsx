@@ -262,6 +262,7 @@ export default function App() {
 						logs={backlinkState.logs}
 						totalLogCount={backlinkState.totalLogCount}
 						onClearLogs={backlinkState.clearLogs}
+						onClearAll={backlinkState.clearAll}
 					/>
 				)}
 				{tab === 'settings' && <SettingsPanel />}

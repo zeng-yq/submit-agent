@@ -9,6 +9,7 @@ interface BacklinkToolbarProps {
 	onStartAnalysis: (count: number) => void
 	onAddUrl: (url: string) => Promise<{ success: boolean; error?: string }>
 	onStop: () => void
+	onClearAll: () => void
 }
 
 export function BacklinkToolbar({
@@ -19,6 +20,7 @@ export function BacklinkToolbar({
 	onStartAnalysis,
 	onAddUrl,
 	onStop,
+	onClearAll,
 }: BacklinkToolbarProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const urlInputRef = useRef<HTMLInputElement>(null)
@@ -167,6 +169,18 @@ export function BacklinkToolbar({
 						</Button>
 					</>
 				)}
+				<Button
+					variant="outline"
+					size="xs"
+					onClick={() => {
+						if (window.confirm('确定要清空所有外链分析缓存吗？此操作不可撤销。')) {
+							onClearAll()
+						}
+					}}
+					disabled={isRunning || stats.total === 0}
+				>
+					{'清空缓存'}
+				</Button>
 				<div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
 					<span className="tabular-nums">{'已分析 '}{stats.analyzed}{'/'}{stats.total}</span>
 					{stats.publishable > 0 && (
