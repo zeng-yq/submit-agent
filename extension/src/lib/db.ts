@@ -315,6 +315,20 @@ export async function getSiteByDomain(domain: string): Promise<SiteRecord | unde
 	return db.getFromIndex('sites', 'by-domain', domain)
 }
 
+export async function getExistingDomains(): Promise<Set<string>> {
+	const db = await getDB()
+	const tx = db.transaction('sites', 'readonly')
+	const index = tx.store.index('by-domain')
+	const domains = new Set<string>()
+	let cursor = await index.openCursor()
+	while (cursor) {
+		domains.add(cursor.key as string)
+		cursor = await cursor.continue()
+	}
+	await tx.done
+	return domains
+}
+
 export async function listBacklinks(): Promise<BacklinkRecord[]> {
 	const db = await getDB()
 	const all = await db.getAllFromIndex('backlinks', 'by-updated')

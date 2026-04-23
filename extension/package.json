@@ -24,6 +24,7 @@
 		"@types/react-dom": "^19.0.0",
 		"@wxt-dev/module-react": "^1.2.0",
 		"clsx": "^2.1.1",
+		"fake-indexeddb": "^6.2.5",
 		"jsdom": "^26.0.0",
 		"tailwind-merge": "^3.0.0",
 		"tailwindcss": "^4.1.0",
