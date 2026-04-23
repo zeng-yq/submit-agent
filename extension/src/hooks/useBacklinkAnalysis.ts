@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { BacklinkRecord, BacklinkStatus, SiteRecord } from '@/lib/types'
-import { updateBacklink, listBacklinksByStatus, listBacklinks, addSite, getSiteByDomain } from '@/lib/db'
+import { updateBacklink, listBacklinksByStatus, listBacklinks, addSite, getSiteByDomain, getExistingDomains } from '@/lib/db'
 import { extractDomain } from '@/lib/backlinks'
 import { analyzeBacklink, type AnalysisStep } from '@/lib/backlink-analyzer'
 import type { LogEntry, LogLevel } from '@/agent/types'
@@ -129,12 +129,12 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 				const pending = await listBacklinksByStatus('pending')
 
 				// 预过滤：排除资源库中已有域名的 backlink
+				const existingDomains = await getExistingDomains()
 				const filtered: BacklinkRecord[] = []
 				const toSkip: BacklinkRecord[] = []
 				for (const bl of pending) {
 					const domain = extractDomain(bl.sourceUrl)
-					const exists = await getSiteByDomain(domain)
-					if (exists) {
+					if (existingDomains.has(domain)) {
 						toSkip.push(bl)
 					} else {
 						filtered.push(bl)
