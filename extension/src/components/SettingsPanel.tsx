@@ -6,8 +6,6 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { SyncPanel } from './SyncPanel'
 
-interface SettingsPanelProps {}
-
 const PROVIDER_LABELS: Record<ProviderKey, string> = {
 	openrouter: 'OpenRouter',
 	openai: 'OpenAI',
@@ -65,7 +63,7 @@ function SpinnerIcon() {
 	)
 }
 
-export function SettingsPanel({}: SettingsPanelProps) {
+export function SettingsPanel({ onDataImported }: { onDataImported?: () => void }) {
 	const [activeProvider, setActiveProvider] = useState<ProviderKey>('openrouter')
 	const [configs, setConfigs] = useState<Record<ProviderKey, LLMSettings>>({
 		openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
@@ -154,7 +152,7 @@ export function SettingsPanel({}: SettingsPanelProps) {
 		<div className="flex flex-col h-full">
 			<div className="flex-1 overflow-y-auto p-3 space-y-4">
 				{/* Data Sync */}
-				<SyncPanel />
+				<SyncPanel onDataImported={onDataImported} />
 
 				{/* AI Model Configuration */}
 				<div className="rounded-lg border border-border bg-card p-3 space-y-3">

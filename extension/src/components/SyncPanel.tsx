@@ -46,7 +46,7 @@ type SyncStatus =
   | { type: 'success'; message: string; detail?: string }
   | { type: 'error'; message: string }
 
-export function SyncPanel() {
+export function SyncPanel({ onDataImported }: { onDataImported?: () => void }) {
   const [sheetUrl, setSheetUrlState] = useState('')
   const [status, setStatus] = useState<SyncStatus>({ type: 'idle' })
   const [loaded, setLoaded] = useState(false)
@@ -235,13 +235,14 @@ export function SyncPanel() {
         }
 
         setStatus({ type: 'success', message: '导入完成', detail })
+        onDataImported?.()
       } else {
         setStatus({ type: 'error', message: result.error ?? `同步错误: Unknown` })
       }
     } catch (err) {
       setStatus({ type: 'error', message: `同步错误: ${String(err)}` })
     }
-  }, [sheetUrl, saConfigured])
+  }, [sheetUrl, saConfigured, onDataImported])
 
   const isWorking = status.type === 'exporting' || status.type === 'importing'
   const isExporting = status.type === 'exporting'

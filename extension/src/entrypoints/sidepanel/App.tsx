@@ -18,7 +18,7 @@ export default function App() {
 	const [tab, setTab] = useState<Tab>('submit')
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
-	const { products, activeProduct, loading: productLoading, createProduct, setActive } = useProduct()
+	const { products, activeProduct, loading: productLoading, createProduct, setActive, refresh: refreshProducts } = useProduct()
 	const { sites, submissions, loading: sitesLoading, refresh: refreshSites, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSite } = useSites(activeProduct?.id ?? null)
 	const { status: engineStatus, result: engineResult, error: engineError, logs: engineLogs, startSubmission, stop, reset, clearLogs } = useFormFillEngine()
 
@@ -126,6 +126,11 @@ export default function App() {
 			refreshSites()
 		}
 	}, [tab, refreshSites])
+
+	const handleDataImported = useCallback(() => {
+		refreshProducts()
+		refreshSites()
+	}, [refreshProducts, refreshSites])
 
 	const isLoading = productLoading || sitesLoading
 
@@ -272,7 +277,7 @@ export default function App() {
 						onClearAll={backlinkState.clearAll}
 					/>
 				)}
-				{tab === 'settings' && <SettingsPanel />}
+				{tab === 'settings' && <SettingsPanel onDataImported={handleDataImported} />}
 			</div>
 
 			{/* Confirm dialog for unmatched page */}
