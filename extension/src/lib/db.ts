@@ -3,7 +3,7 @@ import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRe
 import { extractDomain } from './backlinks'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 6
+const DB_VERSION = 7
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
@@ -74,6 +74,23 @@ export function getDB() {
 				if (oldVersion < 6) {
 					if (db.objectStoreNames.contains('sites')) {
 						tx.objectStore('sites').createIndex('by-domain', 'domain')
+					}
+				}
+				if (oldVersion < 7) {
+					if (db.objectStoreNames.contains('sites')) {
+						const store = tx.objectStore('sites')
+						const request = store.openCursor()
+						request.onsuccess = () => {
+							const cursor = request.result
+							if (cursor) {
+								const record = cursor.value
+								if (!record.domain && record.submit_url) {
+									record.domain = extractDomain(record.submit_url)
+									cursor.update(record)
+								}
+								cursor.continue()
+							}
+						}
 					}
 				}
 			},
