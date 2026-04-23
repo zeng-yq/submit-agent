@@ -63,16 +63,19 @@ export function BacklinkToolbar({
 		try {
 			const urls = raw.split(',').map(u => u.trim()).filter(Boolean)
 			let added = 0
+			let skipped = 0
 			for (const url of urls) {
 				const result = await onAddUrl(url)
 				if (result.success) added++
+				else skipped++
 			}
 			setUrlInput('')
 			urlInputRef.current?.focus()
-			if (added > 0) {
-				setImportMsg({ text: `已添加 ${added} 条`, isError: false })
-				setTimeout(() => setImportMsg(null), 3000)
-			}
+			setImportMsg({
+				text: `共 ${urls.length} 条，成功添加 ${added} 条${skipped > 0 ? `，${skipped} 条重复被跳过` : ''}`,
+				isError: added === 0,
+			})
+			setTimeout(() => setImportMsg(null), 5000)
 		} finally {
 			setAdding(false)
 		}
