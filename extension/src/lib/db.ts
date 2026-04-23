@@ -259,6 +259,9 @@ export async function bulkPutSites(records: SiteRecord[]): Promise<void> {
 	const tx = db.transaction('sites', 'readwrite')
 	await tx.store.clear()
 	for (const record of records) {
+		if (!record.domain && record.submit_url) {
+			record.domain = extractDomain(record.submit_url)
+		}
 		await tx.store.put(record)
 	}
 	await tx.done

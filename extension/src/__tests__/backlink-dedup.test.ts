@@ -63,4 +63,49 @@ describe('getExistingDomains', () => {
     expect(domains.has('undefined')).toBe(false)
     expect(domains.has('')).toBe(false)
   })
+
+  it('bulkPutSites 为缺少 domain 的记录自动回填', async () => {
+    const records: SiteRecord[] = [
+      {
+        name: 'Missing Domain',
+        submit_url: 'https://www.auto-fill.com/page',
+        category: 'blog_comment',
+        dr: null,
+        status: 'alive',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      } as SiteRecord,
+      {
+        name: 'Has Domain',
+        submit_url: 'https://has-domain.com/page',
+        domain: 'has-domain.com',
+        category: 'blog_comment',
+        dr: null,
+        status: 'alive',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ]
+    await bulkPutSites(records)
+
+    const domains = await getExistingDomains()
+    expect(domains.has('auto-fill.com')).toBe(true)
+    expect(domains.has('has-domain.com')).toBe(true)
+    expect(domains.size).toBe(2)
+  })
+
+  it('bulkPutSites 对 submit_url 为 null 的记录不崩溃', async () => {
+    const records: SiteRecord[] = [
+      {
+        name: 'Null URL',
+        submit_url: null,
+        category: 'blog_comment',
+        dr: null,
+        status: 'alive',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      } as SiteRecord,
+    ]
+    await expect(bulkPutSites(records)).resolves.not.toThrow()
+  })
 })
