@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { BacklinkRecord } from '@/lib/types'
-import { listBacklinks, saveBacklink, getBacklinkByUrl, clearBacklinks } from '@/lib/db'
+import { listBacklinks, saveBacklink, getBacklinkByUrl, getSiteByDomain, clearBacklinks } from '@/lib/db'
+import { extractDomain } from '@/lib/backlinks'
 import type { LogEntry } from '@/agent/types'
 
 export interface BatchRecord {
@@ -57,6 +58,12 @@ export function useBacklinkState() {
 			const existing = await getBacklinkByUrl(url)
 			if (existing) {
 				return { success: false, error: 'Duplicate URL' }
+			}
+
+			const domain = extractDomain(url)
+			const existingSite = await getSiteByDomain(domain)
+			if (existingSite) {
+				return { success: false, error: '该域名已在外链资源库中' }
 			}
 
 			const record = await saveBacklink({

@@ -1,5 +1,5 @@
 import type { BacklinkRecord } from './types'
-import { getBacklinkByUrl, saveBacklink } from './db'
+import { getBacklinkByUrl, saveBacklink, getSiteByDomain } from './db'
 
 /** Parse a CSV string into rows (handles quoted fields per RFC 4180) */
 function parseCsv(csvText: string): Record<string, string>[] {
@@ -86,6 +86,13 @@ export async function importBacklinksFromCsv(csvText: string): Promise<ImportRes
 		// Dedup by exact URL
 		const existing = await getBacklinkByUrl(sourceUrl)
 		if (existing) {
+			skipped++
+			continue
+		}
+
+		const domain = extractDomain(sourceUrl)
+		const existingSite = await getSiteByDomain(domain)
+		if (existingSite) {
 			skipped++
 			continue
 		}

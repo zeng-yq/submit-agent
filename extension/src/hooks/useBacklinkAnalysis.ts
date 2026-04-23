@@ -68,6 +68,7 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 					const siteRecord: SiteRecord = {
 						name: backlink.sourceTitle || extractDomain(backlink.sourceUrl),
 						submit_url: backlink.sourceUrl,
+						domain: extractDomain(backlink.sourceUrl),
 						category: 'blog_comment',
 						dr: null,
 						status: 'alive',
@@ -126,7 +127,30 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 
 				state.setBacklinks(await listBacklinks())
 				const pending = await listBacklinksByStatus('pending')
-				const batch = pending.slice(0, count)
+
+				// 预过滤：排除资源库中已有域名的 backlink
+				const filtered: BacklinkRecord[] = []
+				const toSkip: BacklinkRecord[] = []
+				for (const bl of pending) {
+					const domain = extractDomain(bl.sourceUrl)
+					const exists = await getSiteByDomain(domain)
+					if (exists) {
+						toSkip.push(bl)
+					} else {
+						filtered.push(bl)
+					}
+				}
+				for (const bl of toSkip) {
+					const updated = await updateBacklink({
+						...bl,
+						status: 'skipped',
+						analysisLog: ['跳过: 该域名已在外链资源库中'],
+					})
+					state.setBacklinks(prev => prev.map(b => b.id === bl.id ? updated : b))
+					state.updateBatchStats(bl.id, 'skipped')
+				}
+
+				const batch = filtered.slice(0, count)
 				setBatchSize(batch.length)
 
 				for (let i = 0; i < batch.length; i++) {
