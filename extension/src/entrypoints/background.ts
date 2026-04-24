@@ -37,9 +37,26 @@ function handleSubmitControl(
 				sendResponse({ error: 'No URL provided' })
 				return
 			}
-			chrome.tabs.create({ url, active: true }).then((tab) => {
-				sendResponse({ ok: true, tabId: tab.id })
-			})
+			;(async () => {
+				try {
+					const tab = await chrome.tabs.create({ url, active: true })
+					if (!tab.id) {
+						sendResponse({ error: 'Failed to create tab' })
+						return
+					}
+					// 等待页面加载完成，确保内容脚本（document_end 注入）
+					// 在 sidepanel 发送消息前已就绪
+					const loaded = await waitForTabLoad(tab.id, TAB_COMPLETE_TIMEOUT_MS)
+					if (loaded) {
+						await new Promise((resolve) => setTimeout(resolve, JS_RENDER_DELAY_MS))
+					} else {
+						await new Promise((resolve) => setTimeout(resolve, FALLBACK_DELAY_MS))
+					}
+					sendResponse({ ok: true, tabId: tab.id })
+				} catch (err) {
+					sendResponse({ error: err instanceof Error ? err.message : String(err) })
+				}
+			})()
 			return true
 		}
 		default:
