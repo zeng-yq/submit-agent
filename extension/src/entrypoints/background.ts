@@ -1,5 +1,7 @@
-import { setFloatButtonEnabled } from '@/lib/storage'
+import { getActiveProductId, setFloatButtonEnabled } from '@/lib/storage'
+import { listSubmissionsByProduct } from '@/lib/db'
 import { loadSites, matchCurrentPage } from '@/lib/sites'
+import type { SubmissionStatus } from '@/lib/types'
 
 export default defineBackground(() => {
 	console.log('[Submit Agent] Background service worker started')
@@ -258,6 +260,13 @@ function handleFloatButtonToggle(
 	return true
 }
 
+/** Map SubmissionStatus (DB) to the float button's 3-state toggle */
+function toToggleState(status: SubmissionStatus): 'not_started' | 'submitted' | 'failed' {
+	if (status === 'submitted' || status === 'approved') return 'submitted'
+	if (status === 'failed' || status === 'rejected') return 'failed'
+	return 'not_started'
+}
+
 function handleCheckSiteMatch(
 	message: { type: string; payload: { url: string } },
 	sendResponse: (response: unknown) => void
@@ -268,14 +277,31 @@ function handleCheckSiteMatch(
 		return true
 	}
 
-	loadSites()
-		.then((sites) => {
+	(async () => {
+		try {
+			const sites = await loadSites()
 			const matched = matchCurrentPage(sites, url)
-			sendResponse({ isKnownSite: matched !== undefined })
-		})
-		.catch(() => {
+			if (!matched) {
+				sendResponse({ isKnownSite: false })
+				return
+			}
+
+			const activeProductId = await getActiveProductId()
+			let submissionStatus: 'not_started' | 'submitted' | 'failed' = 'not_started'
+
+			if (activeProductId) {
+				const subs = await listSubmissionsByProduct(activeProductId)
+				const sub = subs.find(s => s.siteName === matched.name)
+				if (sub) {
+					submissionStatus = toToggleState(sub.status)
+				}
+			}
+
+			sendResponse({ isKnownSite: true, submissionStatus })
+		} catch {
 			sendResponse({ isKnownSite: false })
-		})
+		}
+	})()
 
 	return true
 }

@@ -417,6 +417,9 @@ export async function initFloatButton(enabled: boolean) {
 			payload: { url: window.location.href },
 		})
 		isKnownSite = response?.isKnownSite === true
+		if (isKnownSite && response?.submissionStatus) {
+			currentSubmissionState = response.submissionStatus
+		}
 	} catch {
 		isKnownSite = false
 	}
