@@ -54,6 +54,7 @@ export function useFloatFill({
 						}
 						setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
 					} catch (err) {
+						chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
 						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
 						setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
 					}
@@ -119,6 +120,7 @@ export function useFloatFill({
 			if (r.failed === 0 && r.filled > 0) markSubmitted(virtualSite.name, activeProduct.id)
 			setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
 		} catch (err) {
+			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
 			markFailed(virtualSite.name, activeProduct.id, err instanceof Error ? err.message : String(err))
 			setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
 		}

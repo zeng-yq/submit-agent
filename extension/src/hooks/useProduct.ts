@@ -27,7 +27,14 @@ export function useProduct(): UseProductResult {
 	const refresh = useCallback(async () => {
 		const [prods, id] = await Promise.all([listProducts(), getActiveProductId()])
 		setProducts(prods)
-		setActiveId(id)
+		if (id && prods.some((p) => p.id === id)) {
+			setActiveId(id)
+		} else if (prods.length > 0) {
+			await setActiveProductId(prods[0].id)
+			setActiveId(prods[0].id)
+		} else {
+			setActiveId(null)
+		}
 		setLoading(false)
 	}, [])
 
@@ -59,12 +66,9 @@ export function useProduct(): UseProductResult {
 	const deleteProduct = useCallback(
 		async (id: string) => {
 			await dbDeleteProduct(id)
-			if (activeId === id) {
-				await setActiveProductId(null)
-			}
 			await refresh()
 		},
-		[activeId, refresh]
+		[refresh]
 	)
 
 	const setActive = useCallback(
