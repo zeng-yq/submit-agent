@@ -229,7 +229,7 @@ export default function App() {
 									</div>
 								</CardHeader>
 								<CardContent>
-									<div className="text-foreground">{product.description.slice(0, 100)}{product.description.length > 100 ? '...' : ''}</div>
+									<div className="text-foreground">{(product.description || '').slice(0, 100)}{(product.description || '').length > 100 ? '...' : ''}</div>
 									<div className="mt-1">
 										<a
 											href={product.url}
