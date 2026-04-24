@@ -10,7 +10,7 @@ import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
 import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel } from './types'
 import { callLLM, parseLLMJson } from './llm-utils'
-import { buildProductContext } from './prompts/product-context'
+import { buildProductContext, pickAnchorText } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
 import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
 
@@ -209,7 +209,8 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		}, 5000).catch(() => {})
 
 		// Step 2: Build prompt and call LLM
-		const productContext = buildProductContext(product)
+		const selectedAnchor = pickAnchorText(product)
+		const productContext = buildProductContext(product, selectedAnchor)
 		let systemPrompt: string
 
 		if (siteType === 'blog_comment' && pageContent) {
