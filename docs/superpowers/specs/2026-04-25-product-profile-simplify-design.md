@@ -196,6 +196,7 @@ products: {
 **文件**: `extension/src/entrypoints/options/App.tsx`
 
 - 移除产品卡片中的分类徽章（Badge）显示
+- 移除产品卡片中的 tagline（标语）显示
 
 ---
 
