@@ -29,6 +29,7 @@ export function useFloatFill({
 	const runFloatFill = useCallback(async () => {
 		if (floatFillRunningRef.current) return
 		floatFillRunningRef.current = true
+		chrome.storage.session.remove('floatFillPending').catch(() => {})
 		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
 		try {
 			if (!activeProduct) {
