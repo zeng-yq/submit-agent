@@ -229,7 +229,7 @@ export default function App() {
 									</div>
 								</CardHeader>
 								<CardContent>
-									<div className="text-foreground">{product.tagline}</div>
+									<div className="text-foreground">{product.description.slice(0, 100)}{product.description.length > 100 ? '...' : ''}</div>
 									<div className="mt-1">
 										<a
 											href={product.url}
@@ -240,15 +240,6 @@ export default function App() {
 											{product.url}
 										</a>
 									</div>
-									{product.categories.length > 0 && (
-										<div className="flex gap-1 mt-2 flex-wrap">
-											{product.categories.map((cat) => (
-												<Badge key={cat} variant="outline">
-													{cat}
-												</Badge>
-											))}
-										</div>
-									)}
 								</CardContent>
 							</Card>
 						)
