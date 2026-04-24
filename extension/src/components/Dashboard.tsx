@@ -170,11 +170,11 @@ export function Dashboard({
 											<div className="text-sm font-bold tabular-nums">{site.dr}</div>
 											<div className="text-[9px] text-muted-foreground uppercase tracking-wide">DR</div>
 										</div>
-										<div className="flex-1 min-w-0">
+										<div className="flex-1 min-w-0 overflow-hidden">
 											{site.submit_url ? (
 												<button
 													type="button"
-													className="text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors"
+													className="w-full text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors"
 													onClick={() => window.open(site.submit_url!, '_blank')}
 													title={site.submit_url!}
 												>
