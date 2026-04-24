@@ -17,14 +17,11 @@ interface ProductFormProps {
 const EMPTY_FORM: FormData = {
 	name: '',
 	url: '',
-	tagline: '',
-	shortDesc: '',
-	longDesc: '',
-	categories: [],
+	description: '',
+	anchorTexts: '',
 	screenshots: [],
 	founderName: '',
 	founderEmail: '',
-	socialLinks: {},
 }
 
 export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }: ProductFormProps) {
@@ -76,42 +73,21 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 				required
 			/>
 
-			<Input
-				label={'一句话介绍'}
-				placeholder={'一句话描述你的产品'}
-				value={form.tagline}
-				onChange={(e) => update('tagline', e.target.value)}
-				required
-			/>
-
 			<Textarea
-				label={'简短描述（约 50 词）'}
-				placeholder={'用于目录的简要产品描述...'}
-				value={form.shortDesc}
-				onChange={(e) => update('shortDesc', e.target.value)}
-				rows={textareaRows ?? 3}
-				required
-			/>
-
-			<Textarea
-				label={'详细描述（约 150 词）'}
+				label={'产品描述（约 150 词）'}
 				placeholder={'详细的产品描述...'}
-				value={form.longDesc}
-				onChange={(e) => update('longDesc', e.target.value)}
+				value={form.description}
+				onChange={(e) => update('description', e.target.value)}
 				rows={textareaRows ?? 5}
 				required
 			/>
 
-			<Input
-				label={'分类（逗号分隔）'}
-				placeholder={'AI, 效率工具, SaaS'}
-				value={form.categories.join(', ')}
-				onChange={(e) =>
-					update(
-						'categories',
-						e.target.value.split(',').map((s) => s.trim()).filter(Boolean)
-					)
-				}
+			<Textarea
+				label={'锚文本列表（用英文逗号分隔）'}
+				placeholder={'AI工具, 效率提升, 任务管理, 项目管理软件, team collaboration tool, ...'}
+				value={form.anchorTexts}
+				onChange={(e) => update('anchorTexts', e.target.value)}
+				rows={textareaRows ?? 3}
 			/>
 
 			{compact ? (
@@ -121,7 +97,7 @@ export function ProductForm({ initial, compact, onSave, onCancel, submitLabel }:
 						className="text-xs text-primary hover:underline"
 						onClick={() => setShowMore((v) => !v)}
 					>
-						{showMore ? '隐藏额外信息' : '更多信息（创始人、社交链接）'}
+						{showMore ? '隐藏额外信息' : '更多信息（创始人信息）'}
 					</button>
 					{showMore && <ExtraFields form={form} update={update} />}
 				</>
@@ -168,23 +144,6 @@ function ExtraFields({
 						value={form.founderEmail}
 						onChange={(e) => update('founderEmail', e.target.value)}
 					/>
-				</div>
-			</div>
-
-			<div className="border-t border-border pt-4 mt-4">
-				<div className="text-xs font-semibold mb-3">{'社交链接'}</div>
-				<div className="space-y-3">
-					{['twitter', 'github', 'linkedin', 'producthunt'].map((platform) => (
-						<Input
-							key={platform}
-							label={platform.charAt(0).toUpperCase() + platform.slice(1)}
-							placeholder={`https://${platform}.com/...`}
-							value={form.socialLinks[platform] ?? ''}
-							onChange={(e) =>
-								update('socialLinks', { ...form.socialLinks, [platform]: e.target.value })
-							}
-						/>
-					))}
 				</div>
 			</div>
 		</>

@@ -157,14 +157,11 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 		const initial = {
 			name: profile.name,
 			url: profile.url || url,
-			tagline: profile.tagline,
-			shortDesc: profile.shortDesc,
-			longDesc: profile.longDesc,
-			categories: profile.categories,
+			description: profile.description,
+			anchorTexts: profile.anchorTexts,
 			screenshots: [],
 			founderName: '',
 			founderEmail: '',
-			socialLinks: {},
 		}
 		return (
 			<div className="flex flex-col h-full">
