@@ -100,7 +100,7 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 						{hasSubmitUrl ? (
 							<button
 								type="button"
-								className="text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors"
+								className="text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors cursor-pointer"
 								onClick={(e) => {
 									e.stopPropagation()
 									window.open(site.submit_url!, '_blank')
