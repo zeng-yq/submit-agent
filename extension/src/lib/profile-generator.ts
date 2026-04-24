@@ -1,7 +1,7 @@
 import type { LLMSettings, ProductProfile } from './types'
 import { getLLMConfig } from './storage'
 
-export type GeneratedProfile = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt' | 'screenshots' | 'founderName' | 'founderEmail' | 'socialLinks' | 'logoSquare' | 'logoBanner'>
+export type GeneratedProfile = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt' | 'screenshots' | 'founderName' | 'founderEmail' | 'logoSquare' | 'logoBanner'>
 
 export type GenerateProgressStep =
 	| 'fetching'
@@ -10,24 +10,25 @@ export type GenerateProgressStep =
 	| 'generating'
 	| 'done'
 
-const SYSTEM_PROMPT = `You are a product analyst. Given a product's webpage content, generate a structured profile for directory submission.
+const SYSTEM_PROMPT = `You are a product analyst and SEO expert. Given a product's webpage content, generate a structured profile for directory submission and link building.
 
 Return ONLY valid JSON with these exact fields:
 {
   "name": "Product Name",
   "url": "the canonical product URL",
-  "tagline": "One concise sentence describing the product",
-  "shortDesc": "A 40-60 word description suitable for directory listings",
-  "longDesc": "A 120-180 word detailed description covering what the product does, who it's for, and key benefits",
-  "categories": ["Category1", "Category2", "Category3"]
+  "description": "A 120-180 word detailed product description covering what the product does, who it's for, and key benefits",
+  "anchorTexts": "keyword1, keyword2, keyword3, ..."
 }
 
 Rules:
 - name: The official product/brand name (from the page title or og:title, not the domain)
-- tagline: Max one sentence, punchy and clear
-- shortDesc: Written for SEO-friendly directory listings, natural tone
-- longDesc: Detailed but not salesy, covers features, target audience, and value proposition
-- categories: 2-5 relevant categories (e.g. "AI", "Productivity", "Developer Tools", "SaaS", "Marketing")
+- description: Detailed but not salesy, covers features, target audience, and value proposition. 120-180 words.
+- anchorTexts: A comma-separated list of SEO anchor texts for this product page. Include:
+  - 3-5 core keywords (the main terms this product should rank for)
+  - 3-5 secondary keywords (related terms, alternative phrasings)
+  - 2-3 potential synonyms (words users might search instead of the core terms)
+  - 2-3 long-tail keywords (specific phrases, e.g. "best AI tool for task management")
+  Total approximately 10-15 keywords/phrases, separated by commas.
 - All text in English
 - Base your analysis on the actual page content provided, not assumptions
 - Return ONLY the JSON object, no markdown fences, no explanation`
@@ -116,10 +117,8 @@ function parseJsonResponse(text: string): GeneratedProfile {
 	return {
 		name: typeof parsed.name === 'string' ? parsed.name : '',
 		url: typeof parsed.url === 'string' ? parsed.url : '',
-		tagline: typeof parsed.tagline === 'string' ? parsed.tagline : '',
-		shortDesc: typeof parsed.shortDesc === 'string' ? parsed.shortDesc : '',
-		longDesc: typeof parsed.longDesc === 'string' ? parsed.longDesc : '',
-		categories: Array.isArray(parsed.categories) ? parsed.categories.filter((c): c is string => typeof c === 'string') : [],
+		description: typeof parsed.description === 'string' ? parsed.description : '',
+		anchorTexts: typeof parsed.anchorTexts === 'string' ? parsed.anchorTexts : '',
 	}
 }
 

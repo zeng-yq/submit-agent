@@ -3,16 +3,13 @@ export interface ProductProfile {
 	id: string
 	name: string
 	url: string
-	tagline: string
-	shortDesc: string
-	longDesc: string
-	categories: string[]
+	description: string
+	anchorTexts: string
 	logoSquare?: string
 	logoBanner?: string
 	screenshots: string[]
 	founderName: string
 	founderEmail: string
-	socialLinks: Record<string, string>
 	createdAt: number
 	updatedAt: number
 }
