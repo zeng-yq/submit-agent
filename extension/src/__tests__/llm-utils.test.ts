@@ -67,14 +67,15 @@ describe('parseLLMJson', () => {
 
 	it('handles real-world blog comment response', () => {
 		const raw = `{
-  "field_0": "Alex Chen",
-  "field_1": "alex@example.com",
-  "field_2": "https://myproduct.com",
-  "field_3": "Great insights on API design! We've seen similar patterns when building our tool — pagination strategies really do make or break the UX."
+  "field_0": "Sarah Mitchell",
+  "field_1": "founder@productai.com",
+  "field_2": "https://productai.com",
+  "field_3": "The latency benchmarks in your comparison are spot-on. For teams scaling inference, <a href=\\"https://productai.com\\" rel=\\"dofollow\\">AI optimization tools</a> can cut cold-start latency significantly."
 }`
 		const result = parseLLMJson(raw) as Record<string, unknown>
-		expect(result.field_0).toBe('Alex Chen')
-		expect(result.field_3).toContain('API design')
+		expect(result.field_0).toBe('Sarah Mitchell')
+		expect(result.field_3).toContain('latency benchmarks')
+		expect(result.field_3).toContain('dofollow')
 	})
 
 	it('handles JSON with whitespace and newlines', () => {

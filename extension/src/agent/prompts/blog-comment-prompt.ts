@@ -1,7 +1,7 @@
 /**
  * 博客评论 prompt 构建器。
- * 生成中文指令 prompt，指导 LLM 撰写带有反向链接的相关评论。
- * 从页面提取的内容保持原文，生成内容语种与页面语种一致。
+ * 指导 LLM 生成"肯定+补充+锚文本链接"结构的高质量评论。
+ * 评论正文始终包含 HTML 链接，name 字段使用随机英文姓名。
  */
 
 import type { PageContent } from '../PageContentExtractor'
@@ -20,17 +20,17 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
 
   const fieldList = buildFieldList(fields, forms)
 
-  const exampleWithUrl = JSON.stringify({
-    field_0: 'ProductAI',
+  const example = JSON.stringify({
+    field_0: 'Sarah Mitchell',
     field_1: 'founder@example.com',
     field_2: 'https://productai.com',
-    field_3: 'Great insights on AI adoption! The section about latency reduction really resonated with our experience — we\'ve seen similar improvements when deploying edge inference.',
+    field_3: 'The latency benchmarks in your comparison are spot-on — we observed nearly identical patterns when testing edge deployment. For teams scaling inference, <a href="https://productai.com" rel="dofollow">real-time AI optimization tools</a> can cut cold-start latency by another 40%.',
   }, null, 2)
 
-  const exampleFallback = JSON.stringify({
-    field_0: 'Alex',
+  const exampleNoUrl = JSON.stringify({
+    field_0: 'Alex Chen',
     field_1: 'founder@example.com',
-    field_2: 'Really appreciate the breakdown of inference optimization strategies. We\'ve been tackling similar challenges at <a href="https://productai.com" rel="dofollow">ProductAI</a> and found that model distillation works even better than quantization for our use case.',
+    field_2: 'Your breakdown of quantization tradeoffs is exactly what we needed — the accuracy loss at INT4 was the elephant in the room nobody talked about. We\'ve been exploring <a href="https://productai.com" rel="dofollow">model compression workflows</a> that balance speed and precision, and distillation came out ahead for our use case.',
   }, null, 2)
 
   return [
@@ -52,28 +52,32 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '## 规则',
     '',
-    '1. 页面可能包含多个表单。只填写目标评论表单中的字段（上面标记为 [Form N] 的表单）。忽略标记为 "filtered" 的表单——这些是无关表单，不应接收任何值。评论和个人信息仅填写到评论表单中。',
-    '2. 仔细阅读页面内容，撰写相关的、听起来真实的评论（不要泛泛的赞美）。',
-    '3. 评论结构：约 30 个字符的真实价值肯定 + 约 50 个字符的补充见解。自然地将产品名称或相关关键词融入评论中。',
-    '4. 链接放置优先级（按以下顺序）:',
-    '   - 首选：有 "URL" / "website" / "homepage" 字段 → 直接填入产品 URL。',
-    '   - 次选：有 "name" / "author" 字段 → 如果产品数据中有"本次使用的锚文本"，使用该锚文本作为显示名称；否则使用产品名称。',
-    '   - 备选：如果既没有 URL/website 字段，也没有 name/author 字段，则在评论正文中使用 HTML 放置链接：`<a href="{product_url}" rel="dofollow">{anchor_text}</a>`。链接文字使用产品数据中提供的"本次使用的锚文本"（如果有的话），必须与评论内容语义连贯。',
-    '5. 如果在评论正文中放置链接（仅限备选方案）:',
-    '   - 使用 HTML 格式：`<a href="{product_url}" rel="dofollow">{keyword}</a>`',
-    '   - 锚文本必须与周围评论文本自然关联',
-    '   - 不要使用 "最好的工具"、"必须尝试"、"强烈推荐" 等推广性措辞',
-    '6. "email" 字段：如果产品数据中有创始人邮箱则使用，否则留空。',
-    '7. 填写所有必填字段。可选字段仅在有相关产品数据时才填写。',
-    '8. 生成的内容语种必须与页面内容的语种保持一致。例如页面是英文，则输出英文评论；页面是中文，则输出中文评论。',
-    '9. 评论必须让人感觉是真实的贡献——不要发垃圾评论、泛泛的赞美或明显的推广。目标是让评论被博客作者审核通过。',
-    '10. 评论质量要求:',
-    '    - 必须引用页面内容中的具体概念、论点或示例',
-    '    - 禁止使用以下开头："Great post"、"Nice article"、"Wonderful content"、"Amazing"、"Excellent" 等通用开头',
-    '    - 评论正文中产品名称最多出现一次',
-    '    - 链接锚文本（使用备选 HTML 链接时）必须是自然短语，不能是精确的产品名称或 URL',
-    '    - 长度：最少 80 个字符，最多 300 个字符（不含 HTML 标签）',
-    '    - 必须读起来像真实读者写的，而不是营销人员或 AI',
+    '### 一、评论内容',
+    '',
+    '1. 结构：肯定文章价值(~30字符) + 补充观点并自然植入锚文本链接(~50字符)。',
+    '2. 前半段引用文章中的具体观点、数据或论点，表达真实认同——不要泛泛赞美。',
+    '3. 后半段补充自己的见解，同时以 HTML 链接自然植入锚文本：',
+    '   <a href="{product_url}" rel="dofollow">{anchor_text}</a>',
+    '4. 锚文本必须与周围文本语义连贯，不能是突兀的关键词堆砌。',
+    '5. 评论总长度：80-300 字符（不含 HTML 标签）。',
+    '',
+    '### 二、字段填写',
+    '',
+    '6. name/author 字段：随机生成一个常见的英文姓名（名+姓，如 "Alex Chen"、"Sarah Mitchell"）。不要使用产品名称或锚文本。',
+    '7. URL/website/homepage 字段：填写产品 URL。',
+    '8. email 字段：使用产品数据中的创始人邮箱，没有则留空。',
+    '9. 其他字段：仅在有对应产品数据时填写。',
+    '',
+    '### 三、质量要求',
+    '',
+    '10. 生成内容的语种必须与页面内容一致。',
+    '11. 禁止使用 "Great post"、"Nice article"、"Amazing" 等通用开头。',
+    '12. 评论必须读起来像真实读者写的，不要营销腔或 AI 腔。',
+    '13. 只使用产品上下文中提供的数据，不要编造信息。',
+    '',
+    '### 四、表单选择',
+    '',
+    '14. 只填写目标评论表单（标记为 [Form N]）中的字段，忽略标记为 "filtered" 的表单。',
     '',
     '## 输出格式',
     '',
@@ -88,10 +92,10 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '格式: { "<canonical_id>": "<value>", ... }',
     '',
-    '示例（有 URL 字段——评论正文不含链接）:',
-    exampleWithUrl,
+    '示例（有 URL 字段）:',
+    example,
     '',
-    '示例（无 URL 字段——评论正文包含备选链接）:',
-    exampleFallback,
+    '示例（无 URL 字段——评论正文仍包含链接）:',
+    exampleNoUrl,
   ].join('\n')
 }
