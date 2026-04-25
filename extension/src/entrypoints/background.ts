@@ -19,6 +19,8 @@ export default defineBackground(() => {
 			return handleFloatFill(message, sender, sendResponse)
 		} else if (message.type === 'STATUS_UPDATE') {
 			return handleStatusUpdate(message, sender)
+		} else if (message.type === 'SUBMISSION_STATUS_CHANGED') {
+			return handleSubmissionStatusChanged(message)
 		} else if (message.type === 'CHECK_SITE_MATCH') {
 			return handleCheckSiteMatch(message, sendResponse)
 		} else {
@@ -267,6 +269,20 @@ function toToggleState(status: SubmissionStatus): 'not_started' | 'submitted' | 
 	return 'not_started'
 }
 
+function handleSubmissionStatusChanged(
+	message: { type: string; payload: { siteName: string; toggleState: string } }
+): undefined {
+	// Forward status changes from sidepanel to all content script tabs
+	chrome.tabs.query({}, (tabs) => {
+		for (const tab of tabs) {
+			if (tab.id) {
+				chrome.tabs.sendMessage(tab.id, message).catch(() => {})
+			}
+		}
+	})
+	return
+}
+
 function handleCheckSiteMatch(
 	message: { type: string; payload: { url: string } },
 	sendResponse: (response: unknown) => void
@@ -297,7 +313,7 @@ function handleCheckSiteMatch(
 				}
 			}
 
-			sendResponse({ isKnownSite: true, submissionStatus })
+			sendResponse({ isKnownSite: true, siteName: matched.name, submissionStatus })
 		} catch {
 			sendResponse({ isKnownSite: false })
 		}

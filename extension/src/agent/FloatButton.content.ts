@@ -38,6 +38,7 @@ let currentState: ButtonState = 'idle'
 let currentSubmissionState: SubmissionState = 'not_started'
 let userEnabled = true
 let isKnownSite = false
+let matchedSiteName: string | null = null
 
 function setState(state: ButtonState) {
 	if (!mainBtn) return
@@ -71,7 +72,7 @@ function positionIndicator() {
 	indicator.style.background = seg?.indicatorBg || '#E7E5E4'
 }
 
-function setSubmissionState(state: SubmissionState) {
+function updateToggleVisual(state: SubmissionState) {
 	if (!isKnownSite) return
 	currentSubmissionState = state
 
@@ -82,10 +83,12 @@ function setSubmissionState(state: SubmissionState) {
 		seg.classList.toggle('active', isActive)
 	}
 
-	// Reposition the sliding indicator
 	requestAnimationFrame(() => positionIndicator())
+}
 
-	// Send status update to background
+function setSubmissionState(state: SubmissionState) {
+	updateToggleVisual(state)
+
 	chrome.runtime.sendMessage({
 		type: 'STATUS_UPDATE',
 		payload: { status: state },
@@ -417,6 +420,7 @@ export async function initFloatButton(enabled: boolean) {
 			payload: { url: window.location.href },
 		})
 		isKnownSite = response?.isKnownSite === true
+		matchedSiteName = response?.siteName ?? null
 		if (isKnownSite && response?.submissionStatus) {
 			currentSubmissionState = response.submissionStatus
 		}
@@ -438,11 +442,11 @@ export async function initFloatButton(enabled: boolean) {
 					break
 				case 'done':
 					updateButtonState('done')
-					setSubmissionState('submitted')
+					updateToggleVisual('submitted')
 					break
 				case 'error':
 					updateButtonState('error')
-					setSubmissionState('failed')
+					updateToggleVisual('failed')
 					break
 				case 'no-match':
 					updateButtonState('error')
@@ -452,10 +456,18 @@ export async function initFloatButton(enabled: boolean) {
 					break
 				case 'all-done':
 					updateButtonState('done')
+					updateToggleVisual('submitted')
 					break
 				case 'reset':
 					updateButtonState('idle')
+					updateToggleVisual('not_started')
 					break
+			}
+		}
+		if (message.type === 'SUBMISSION_STATUS_CHANGED') {
+			const { siteName, toggleState } = message.payload ?? {}
+			if (siteName && siteName === matchedSiteName) {
+				updateToggleVisual(toggleState)
 			}
 		}
 	})

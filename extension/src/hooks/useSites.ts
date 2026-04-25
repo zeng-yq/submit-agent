@@ -58,6 +58,7 @@ export function useSites(productId: string | null): UseSitesResult {
 				})
 			}
 			await refresh()
+			chrome.runtime.sendMessage({ type: 'SUBMISSION_STATUS_CHANGED', payload: { siteName, toggleState: 'submitted' } }).catch(() => {})
 		},
 		[submissions, refresh]
 	)
@@ -100,6 +101,7 @@ export function useSites(productId: string | null): UseSitesResult {
 				})
 			}
 			await refresh()
+			chrome.runtime.sendMessage({ type: 'SUBMISSION_STATUS_CHANGED', payload: { siteName, toggleState: 'failed' } }).catch(() => {})
 		},
 		[submissions, refresh]
 	)
@@ -118,6 +120,7 @@ export function useSites(productId: string | null): UseSitesResult {
 			if (existing) {
 				await deleteSubmission(existing.id)
 				await refresh()
+				chrome.runtime.sendMessage({ type: 'SUBMISSION_STATUS_CHANGED', payload: { siteName, toggleState: 'not_started' } }).catch(() => {})
 			}
 		},
 		[submissions, refresh]
