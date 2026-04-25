@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Trash2, Info, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { ChevronRight, ChevronDown, Trash2, Info, CheckCircle2, AlertTriangle, XCircle, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import type { LogEntry, LogLevel, LogPhase } from '@/agent/types'
+import type { LogEntry, LogLevel, LogPhase, LLMFieldData } from '@/agent/types'
 
 interface ActivityLogProps {
 	logs: LogEntry[]
 	totalLogCount?: number
 	onClear?: () => void
+	llmFieldData?: LLMFieldData | null
 	className?: string
 }
 
@@ -105,7 +106,36 @@ function LogItem({ entry, expanded, onToggle }: { entry: LogEntry; expanded: boo
 	)
 }
 
-export function ActivityLog({ logs, totalLogCount, onClear, className }: ActivityLogProps) {
+function LLMFieldValueItem({ label, value }: { label: string; value: string }) {
+	const [copied, setCopied] = useState(false)
+
+	const handleCopy = useCallback(async () => {
+		await navigator.clipboard.writeText(value)
+		setCopied(true)
+		setTimeout(() => setCopied(false), 1500)
+	}, [value])
+
+	return (
+		<div className="px-3 py-1.5 hover:bg-accent/30 transition-colors cursor-pointer border-b border-border/20 last:border-b-0" onClick={handleCopy}>
+			<div className="text-[10px] text-muted-foreground mb-0.5">{label}</div>
+			<div className="flex items-start gap-1.5">
+				<div className="flex-1 text-xs text-foreground whitespace-pre-wrap break-all min-w-0">{value}</div>
+				<span className="shrink-0 text-[10px] text-muted-foreground/60 mt-0.5 flex items-center gap-0.5">
+					{copied ? (
+						<>
+							<Check className="w-3 h-3 text-green-500" />
+							{'已复制'}
+						</>
+					) : (
+						<Copy className="w-3 h-3" />
+					)}
+				</span>
+			</div>
+		</div>
+	)
+}
+
+export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, className }: ActivityLogProps) {
 	const displayCount = totalLogCount ?? logs.length
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const userScrolledRef = useRef(false)
@@ -161,6 +191,20 @@ export function ActivityLog({ logs, totalLogCount, onClear, className }: Activit
 					logs.map((entry) => (
 						<LogItem key={entry.id} entry={entry} expanded={expandedId === entry.id} onToggle={() => toggleEntry(entry.id)} />
 					))
+				)}
+				{llmFieldData && llmFieldData.fields.length > 0 && (
+					<div className="border-t border-border/60">
+						<div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/40 border-b border-border/30">
+							<svg className="w-3 h-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z" />
+							</svg>
+							<span className="text-[10px] font-medium text-muted-foreground">{'LLM 字段值'}</span>
+							<span className="text-[9px] text-muted-foreground/60 ml-auto">{'点击复制'}</span>
+						</div>
+						{llmFieldData.fields.map((field, i) => (
+							<LLMFieldValueItem key={i} label={field.label} value={field.value} />
+						))}
+					</div>
 				)}
 			</div>
 		</div>
