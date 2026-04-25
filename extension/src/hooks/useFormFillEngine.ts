@@ -3,7 +3,7 @@ import type { SiteData } from '@/lib/types'
 import { getLLMConfig, getActiveProductId } from '@/lib/storage'
 import { getProduct, listSubmissionsByProduct } from '@/lib/db'
 import { reloadSites, matchCurrentPage, getRandomUnsubmitted, filterSubmittable } from '@/lib/sites'
-import type { FillEngineStatus, FillResult, SiteType, LogEntry } from '@/agent/types'
+import type { FillEngineStatus, FillResult, SiteType, LogEntry, LLMFieldData } from '@/agent/types'
 import { executeFormFill } from '@/agent/FormFillEngine'
 
 const MAX_LOG_ENTRIES = 200
@@ -18,6 +18,7 @@ export interface UseFormFillEngineResult {
 	stop: () => void
 	reset: () => void
 	clearLogs: () => void
+	llmFieldData: LLMFieldData | null
 }
 
 export function useFormFillEngine(): UseFormFillEngineResult {
@@ -26,6 +27,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 	const [result, setResult] = useState<FillResult | null>(null)
 	const [error, setError] = useState<Error | null>(null)
 	const [logs, setLogs] = useState<LogEntry[]>([])
+	const [llmFieldData, setLLMFieldData] = useState<LLMFieldData | null>(null)
 
 	const handleLog = useCallback((entry: LogEntry) => {
 		setLogs(prev => {
@@ -34,8 +36,13 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		})
 	}, [])
 
+	const handleLLMFields = useCallback((data: LLMFieldData) => {
+		setLLMFieldData(data)
+	}, [])
+
 	const clearLogs = useCallback(() => {
 		setLogs([])
+		setLLMFieldData(null)
 	}, [])
 
 	const stop = useCallback(() => {
@@ -48,6 +55,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		setStatus('idle')
 		setResult(null)
 		setError(null)
+		setLLMFieldData(null)
 	}, [stop])
 
 	const startSubmission = useCallback(
@@ -85,13 +93,14 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 					onStatusChange: setStatus,
 					onError: setError,
 					onLog: handleLog,
+					onLLMFields: handleLLMFields,
 				},
 			})
 
 			setResult(fillResult)
 			return fillResult
 		},
-		[stop, handleLog]
+		[stop, handleLog, handleLLMFields]
 	)
 
 	const startFloatFill = useCallback(
@@ -152,13 +161,14 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 					onStatusChange: setStatus,
 					onError: setError,
 					onLog: handleLog,
+					onLLMFields: handleLLMFields,
 				},
 			})
 
 			setResult(fillResult)
 			return fillResult
 		},
-		[stop, handleLog]
+		[stop, handleLog, handleLLMFields]
 	)
 
 	return {
@@ -171,5 +181,6 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		stop,
 		reset,
 		clearLogs,
+		llmFieldData,
 	}
 }
