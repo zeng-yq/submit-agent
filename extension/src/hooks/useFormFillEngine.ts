@@ -55,7 +55,6 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		setStatus('idle')
 		setResult(null)
 		setError(null)
-		setLLMFieldData(null)
 	}, [stop])
 
 	const startSubmission = useCallback(
