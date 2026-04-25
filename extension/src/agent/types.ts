@@ -54,3 +54,16 @@ export interface LogEntry {
   message: string
   data?: unknown
 }
+
+/** LLM 返回的按字段级别展示的数据 */
+export interface LLMFieldValue {
+  /** 字段的 label（如 "Name"、"Email"、"Comment"） */
+  label: string
+  /** LLM 返回的值 */
+  value: string
+}
+
+/** LLM 字段值展示数据，传递给 ActivityLog 组件 */
+export interface LLMFieldData {
+  fields: LLMFieldValue[]
+}
