@@ -14,7 +14,7 @@ function defaultProviderConfigs(): ProviderConfigs {
 	return {
 		active: 'openrouter',
 		configs: {
-			openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
+			openrouter: { apiKey: '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', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001' },
 			openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
 			deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
 			custom: { ...EMPTY_LLM },

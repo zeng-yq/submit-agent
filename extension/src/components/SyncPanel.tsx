@@ -12,6 +12,7 @@ import {
 import {
   setServiceAccountKey,
   getServiceAccountEmail,
+  getServiceAccountJson,
   isOAuthConfigured,
   clearServiceAccountKey,
   removeCachedToken,
@@ -23,7 +24,7 @@ const SHEET_URL_KEY = 'submitAgent_sheetUrl'
 
 async function getSheetUrl(): Promise<string> {
   const result = await chrome.storage.local.get(SHEET_URL_KEY)
-  return (result[SHEET_URL_KEY] as string) ?? ''
+  return (result[SHEET_URL_KEY] as string) ?? 'https://docs.google.com/spreadsheets/d/1bNHx-9ArYgfyigme7I6A3enH6ZUgrELYpCevv_gFZkU/edit?gid=335758461#gid=335758461'
 }
 
 async function setSheetUrl(url: string): Promise<void> {
@@ -64,10 +65,12 @@ export function SyncPanel({ onDataImported }: { onDataImported?: () => void }) {
       getSheetUrl(),
       isOAuthConfigured(),
       getServiceAccountEmail(),
-    ]).then(([url, configured, email]) => {
+      getServiceAccountJson(),
+    ]).then(([url, configured, email, json]) => {
       setSheetUrlState(url)
       setSaConfigured(configured)
       setSaEmail(email)
+      if (configured && !saJsonInput) setSaJsonInput(json)
       if (!configured) setShowSaConfig(true)
       setLoaded(true)
     })
