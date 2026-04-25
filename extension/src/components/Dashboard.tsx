@@ -1,6 +1,6 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory } from '@/lib/types'
 import { SITE_CATEGORIES } from '@/lib/types'
-import type { FillEngineStatus, LogEntry } from '@/agent/types'
+import type { FillEngineStatus, LogEntry, LLMFieldData } from '@/agent/types'
 import { useMemo, useState, useEffect } from 'react'
 import { Play, Trash2, Loader2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
@@ -18,6 +18,7 @@ interface DashboardProps {
 	engineStatus: FillEngineStatus
 	engineLogs: LogEntry[]
 	onClearEngineLogs: () => void
+	llmFieldData: LLMFieldData | null
 	activeSiteName: string | null
 }
 
@@ -36,6 +37,7 @@ export function Dashboard({
 	engineStatus,
 	engineLogs,
 	onClearEngineLogs,
+	llmFieldData,
 	activeSiteName,
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
@@ -128,6 +130,7 @@ export function Dashboard({
 				<ActivityLog
 					logs={engineLogs}
 					onClear={onClearEngineLogs}
+					llmFieldData={llmFieldData}
 					className="flex-1"
 				/>
 			) : (
