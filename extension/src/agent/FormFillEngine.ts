@@ -8,7 +8,7 @@ import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
-import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel } from './types'
+import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel, LLMFieldData, LLMFieldValue } from './types'
 import { callLLM, parseLLMJson } from './llm-utils'
 import { buildProductContext, pickAnchorText } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
@@ -104,6 +104,7 @@ export interface FormFillEngineCallbacks {
 	onStatusChange: (status: FillEngineStatus) => void
 	onError: (error: Error) => void
 	onLog?: (entry: LogEntry) => void
+	onLLMFields?: (data: LLMFieldData) => void
 }
 
 export interface FormFillEngineConfig {
@@ -138,7 +139,7 @@ function sendToTab<T>(tabId: number, message: unknown, timeoutMs: number): Promi
 
 export async function executeFormFill(config: FormFillEngineConfig): Promise<FillResult> {
 	const { llmConfig, product, site, siteType, tabId, callbacks, signal } = config
-	const { onStatusChange, onError, onLog } = callbacks
+	const { onStatusChange, onError, onLog, onLLMFields } = callbacks
 
 	let logId = 0
 	const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown) => {
@@ -251,6 +252,18 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			rawResponse,
 			responseLength: rawResponse.length,
 		})
+
+		// 构建 LLM 字段值展示数据
+		if (onLLMFields && valueCount > 0) {
+			const fieldLabelMap = new Map(analysis.fields.map(f => [f.canonical_id, f.label || f.inferred_purpose || f.name || f.canonical_id]))
+			const llmFields: LLMFieldValue[] = Object.entries(fieldValues).map(([key, value]) => ({
+				label: fieldLabelMap.get(key) || key,
+				value: typeof value === 'string' ? value : String(value),
+			}))
+			if (llmFields.length > 0) {
+				onLLMFields({ fields: llmFields })
+			}
+		}
 
 		// Map canonical_ids to selectors for content script
 		let fieldsToFill = analysis.fields
