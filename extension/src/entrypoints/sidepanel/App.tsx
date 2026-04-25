@@ -88,7 +88,6 @@ export default function App() {
 				if (response?.ok && response.tabId) {
 					await chrome.storage.session.set({
 						floatFillTabId: response.tabId,
-						floatFillPending: true,
 					})
 				}
 			}
