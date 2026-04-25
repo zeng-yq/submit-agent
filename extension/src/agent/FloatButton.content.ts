@@ -438,8 +438,12 @@ export async function initFloatButton(enabled: boolean) {
 					break
 				case 'done':
 					updateButtonState('done')
+					setSubmissionState('submitted')
 					break
 				case 'error':
+					updateButtonState('error')
+					setSubmissionState('failed')
+					break
 				case 'no-match':
 					updateButtonState('error')
 					break
