@@ -1,7 +1,7 @@
 import type { LLMSettings, ProductProfile } from './types'
 import { getLLMConfig } from './storage'
 
-export type GeneratedProfile = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt' | 'screenshots' | 'founderName' | 'founderEmail' | 'logoSquare' | 'logoBanner'>
+export type GeneratedProfile = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt' | 'founderName' | 'founderEmail'>
 
 export type GenerateProgressStep =
 	| 'fetching'

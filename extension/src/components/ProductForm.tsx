@@ -19,7 +19,6 @@ const EMPTY_FORM: FormData = {
 	url: '',
 	description: '',
 	anchorTexts: '',
-	screenshots: [],
 	founderName: '',
 	founderEmail: '',
 }

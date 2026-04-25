@@ -5,9 +5,6 @@ export interface ProductProfile {
 	url: string
 	description: string
 	anchorTexts: string
-	logoSquare?: string
-	logoBanner?: string
-	screenshots: string[]
 	founderName: string
 	founderEmail: string
 	createdAt: number

@@ -159,7 +159,6 @@ export function QuickCreate({ onSave, onSkip, onOpenSettings }: QuickCreateProps
 			url: profile.url || url,
 			description: profile.description,
 			anchorTexts: profile.anchorTexts,
-			screenshots: [],
 			founderName: '',
 			founderEmail: '',
 		}
