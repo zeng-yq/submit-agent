@@ -8,6 +8,8 @@ import {
 } from '@/lib/db'
 import { getActiveProductId, setActiveProductId } from '@/lib/storage'
 
+const PRODUCTS_CHANGED = 'PRODUCTS_CHANGED'
+
 export interface UseProductResult {
 	products: ProductProfile[]
 	activeProduct: ProductProfile | null
@@ -42,6 +44,21 @@ export function useProduct(): UseProductResult {
 		refresh()
 	}, [refresh])
 
+	// 监听其他页面的产品变更广播
+	useEffect(() => {
+		const handler = (message: any) => {
+			if (message.type === PRODUCTS_CHANGED) {
+				refresh()
+			}
+		}
+		chrome.runtime.onMessage.addListener(handler)
+		return () => chrome.runtime.onMessage.removeListener(handler)
+	}, [refresh])
+
+	const broadcastChange = useCallback(() => {
+		chrome.runtime.sendMessage({ type: PRODUCTS_CHANGED }).catch(() => {})
+	}, [])
+
 	const activeProduct = products.find((p) => p.id === activeId) ?? products[0] ?? null
 
 	const createProduct = useCallback(
@@ -51,32 +68,36 @@ export function useProduct(): UseProductResult {
 				await setActiveProductId(created.id)
 			}
 			await refresh()
+			broadcastChange()
 		},
-		[products.length, refresh]
+		[products.length, refresh, broadcastChange]
 	)
 
 	const editProduct = useCallback(
 		async (product: ProductProfile) => {
 			await updateProduct(product)
 			await refresh()
+			broadcastChange()
 		},
-		[refresh]
+		[refresh, broadcastChange]
 	)
 
 	const deleteProduct = useCallback(
 		async (id: string) => {
 			await dbDeleteProduct(id)
 			await refresh()
+			broadcastChange()
 		},
-		[refresh]
+		[refresh, broadcastChange]
 	)
 
 	const setActive = useCallback(
 		async (id: string) => {
 			await setActiveProductId(id)
 			setActiveId(id)
+			broadcastChange()
 		},
-		[]
+		[broadcastChange]
 	)
 
 	return {
