@@ -238,7 +238,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			config: llmConfig,
 			systemPrompt,
 			userPrompt,
-			temperature: 0.3,
+			temperature: siteType === 'blog_comment' ? 1.0 : 0.3,
 			maxTokens: 2048,
 			signal,
 			jsonMode: true,
