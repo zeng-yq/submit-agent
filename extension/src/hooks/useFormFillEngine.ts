@@ -17,6 +17,7 @@ export interface UseFormFillEngineResult {
 	startFloatFill: (tabId: number, currentUrl: string) => Promise<FillResult>
 	stop: () => void
 	reset: () => void
+	resetUI: () => void
 	clearLogs: () => void
 	llmFieldData: LLMFieldData | null
 }
@@ -56,6 +57,12 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		setResult(null)
 		setError(null)
 	}, [stop])
+
+	const resetUI = useCallback(() => {
+		setStatus('idle')
+		setResult(null)
+		setError(null)
+	}, [])
 
 	const startSubmission = useCallback(
 		async (site: SiteData): Promise<FillResult> => {
@@ -181,6 +188,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 		startFloatFill,
 		stop,
 		reset,
+		resetUI,
 		clearLogs,
 		llmFieldData,
 	}

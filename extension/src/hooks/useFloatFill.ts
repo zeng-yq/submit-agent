@@ -10,6 +10,7 @@ interface UseFloatFillOptions {
 	markFailed: (siteName: string, productId: string, error: string) => Promise<void>
 	resetSubmission: (siteName: string) => Promise<void>
 	reset: () => void
+	resetUI: () => void
 	setCurrentEngineSite: (site: SiteData | null) => void
 }
 
@@ -21,12 +22,15 @@ export function useFloatFill({
 	markFailed,
 	resetSubmission,
 	reset,
+	resetUI,
 	setCurrentEngineSite,
 }: UseFloatFillOptions) {
 	const floatFillRunningRef = useRef(false)
 	const [pendingUnmatchedUrl, setPendingUnmatchedUrl] = useState<string | null>(null)
 
-	const runFloatFill = useCallback(async () => {
+	// 用 ref 持有最新实现，每轮渲染同步更新，保持回调身份稳定
+	const runFloatFillRef = useRef<() => Promise<void>>(async () => {})
+	runFloatFillRef.current = async () => {
 		if (floatFillRunningRef.current) return
 		floatFillRunningRef.current = true
 		chrome.storage.session.remove('floatFillPending').catch(() => {})
@@ -53,11 +57,11 @@ export function useFloatFill({
 						if (r.failed === 0 && r.filled > 0) {
 							markSubmitted(matched.name, activeProduct.id)
 						}
-						setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
+						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					} catch (err) {
 						chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
 						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
-						setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
+						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					}
 				} else {
 					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
@@ -69,7 +73,17 @@ export function useFloatFill({
 		} finally {
 			floatFillRunningRef.current = false
 		}
-	}, [activeProduct, sites, startSubmission, markSubmitted, reset, markFailed])
+	}
+
+	// 稳定身份的回调，通过 ref 委托执行
+	const runFloatFill = useCallback(async () => {
+		await runFloatFillRef.current()
+	}, [])
+
+	// 挂载时清理残留的 floatFillPending，避免后续误触发
+	useEffect(() => {
+		chrome.storage.session.remove('floatFillPending').catch(() => {})
+	}, [])
 
 	useEffect(() => {
 		if (!activeProduct || sites.length === 0) return
@@ -119,13 +133,13 @@ export function useFloatFill({
 		try {
 			const r = await startSubmission(virtualSite)
 			if (r.failed === 0 && r.filled > 0) markSubmitted(virtualSite.name, activeProduct.id)
-			setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
+			setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 		} catch (err) {
 			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
 			markFailed(virtualSite.name, activeProduct.id, err instanceof Error ? err.message : String(err))
-			setTimeout(() => { setCurrentEngineSite(null); reset() }, 3000)
+			setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 		}
-	}, [pendingUnmatchedUrl, activeProduct, startSubmission, markSubmitted, reset, markFailed])
+	}, [pendingUnmatchedUrl, activeProduct, startSubmission, markSubmitted, reset, resetUI, markFailed])
 
 	const cancelUnmatched = useCallback(() => {
 		setPendingUnmatchedUrl(null)

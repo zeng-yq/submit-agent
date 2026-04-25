@@ -20,7 +20,7 @@ export default function App() {
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive, refresh: refreshProducts } = useProduct()
 	const { sites, submissions, loading: sitesLoading, refresh: refreshSites, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSite } = useSites(activeProduct?.id ?? null)
-	const { status: engineStatus, result: engineResult, error: engineError, logs: engineLogs, startSubmission, stop, reset, clearLogs, llmFieldData } = useFormFillEngine()
+	const { status: engineStatus, result: engineResult, error: engineError, logs: engineLogs, startSubmission, stop, reset, resetUI, clearLogs, llmFieldData } = useFormFillEngine()
 
 	const handleDeleteSite = useCallback(
 		async (siteName: string) => {
@@ -48,6 +48,7 @@ export default function App() {
 		markFailed,
 		resetSubmission,
 		reset,
+		resetUI,
 		setCurrentEngineSite,
 	})
 
@@ -105,7 +106,7 @@ export default function App() {
 
 		resetTimerRef.current = setTimeout(() => {
 			setCurrentEngineSite(null)
-			reset()
+			resetUI()
 			resetTimerRef.current = null
 		}, 3000)
 
