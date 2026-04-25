@@ -64,6 +64,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			setError(null)
 			setResult(null)
 			setLogs([])
+			setLLMFieldData(null)
 
 			const abort = new AbortController()
 			abortRef.current = abort
@@ -109,6 +110,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			setError(null)
 			setResult(null)
 			setLogs([])
+			setLLMFieldData(null)
 
 			const abort = new AbortController()
 			abortRef.current = abort

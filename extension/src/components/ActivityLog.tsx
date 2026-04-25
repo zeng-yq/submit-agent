@@ -110,9 +110,13 @@ function LLMFieldValueItem({ label, value }: { label: string; value: string }) {
 	const [copied, setCopied] = useState(false)
 
 	const handleCopy = useCallback(async () => {
-		await navigator.clipboard.writeText(value)
-		setCopied(true)
-		setTimeout(() => setCopied(false), 1500)
+		try {
+			await navigator.clipboard.writeText(value)
+			setCopied(true)
+			setTimeout(() => setCopied(false), 1500)
+		} catch {
+			// 剪贴板访问被拒绝或不可用
+		}
 	}, [value])
 
 	return (
@@ -202,7 +206,7 @@ export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, classN
 							<span className="text-[9px] text-muted-foreground/60 ml-auto">{'点击复制'}</span>
 						</div>
 						{llmFieldData.fields.map((field, i) => (
-							<LLMFieldValueItem key={i} label={field.label} value={field.value} />
+							<LLMFieldValueItem key={field.label} label={field.label} value={field.value} />
 						))}
 					</div>
 				)}
