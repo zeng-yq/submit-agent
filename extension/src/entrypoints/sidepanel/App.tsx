@@ -112,6 +112,14 @@ export default function App() {
 		dashboardRunningRef.current = false
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
 
+	// 当提交引擎激活时，自动切到外链提交标签页
+	useEffect(() => {
+		const isActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling'
+		if (isActive) {
+			setTab('submit')
+		}
+	}, [engineStatus])
+
 	// Reload backlinks from DB when entering the analysis tab
 	useEffect(() => {
 		if (tab === 'analysis') {
