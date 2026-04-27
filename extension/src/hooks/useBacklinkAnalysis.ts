@@ -127,12 +127,14 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 
 				state.setBacklinks(await listBacklinks())
 				const pending = await listBacklinksByStatus('pending')
+				// 只截取本次批次，避免预过滤全部 pending 导致数字飙升
+				const batchPool = pending.slice(0, count)
 
 				// 预过滤：排除资源库中已有域名的 backlink
 				const existingDomains = await getExistingDomains()
 				const filtered: BacklinkRecord[] = []
 				const toSkip: BacklinkRecord[] = []
-				for (const bl of pending) {
+				for (const bl of batchPool) {
 					const domain = extractDomain(bl.sourceUrl)
 					if (existingDomains.has(domain)) {
 						toSkip.push(bl)
@@ -150,7 +152,7 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 					state.updateBatchStats(bl.id, 'skipped')
 				}
 
-				const batch = filtered.slice(0, count)
+				const batch = filtered
 				setBatchSize(batch.length)
 
 				for (let i = 0; i < batch.length; i++) {
