@@ -1,7 +1,7 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory } from '@/lib/types'
 import { SITE_CATEGORIES } from '@/lib/types'
 import type { FillEngineStatus, LogEntry, LLMFieldData } from '@/agent/types'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { Play, Trash2, Loader2 } from 'lucide-react'
 import { SiteCard } from './SiteCard'
 import { Button } from './ui/Button'
@@ -22,7 +22,7 @@ interface DashboardProps {
 	activeSiteName: string | null
 }
 
-type Tab = 'all' | 'done' | 'failed' | 'log'
+type Tab = 'all' | 'undone' | 'done' | 'failed' | 'log'
 
 const DONE_STATUSES: SubmissionStatus[] = ['submitted', 'approved', 'skipped']
 
@@ -57,36 +57,58 @@ export function Dashboard({
 		return { submitted, total: submittableSites.length }
 	}, [submittableSites, submissions])
 
-	const allSites = useMemo(() => {
+	const matchesSearch = useCallback((s: SiteData) => {
 		const q = search.toLowerCase()
+		return !q || s.name.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q)
+	}, [search])
+
+	const allSites = useMemo(() => {
 		return sites
-			.filter((s) => !q || s.name.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q))
+			.filter(matchesSearch)
 			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
-				.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
-		}, [sites, search, categoryFilter])
+			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
+	}, [sites, matchesSearch, categoryFilter])
 
 	const doneSites = useMemo(() => {
-		return sites.filter((s) => {
-			const status = submissions.get(s.name)?.status
-			return status && DONE_STATUSES.includes(status)
-		})
-	}, [sites, submissions])
+		return sites
+			.filter((s) => {
+				const status = submissions.get(s.name)?.status
+				return status && DONE_STATUSES.includes(status)
+			})
+			.filter(matchesSearch)
+			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
+	}, [sites, submissions, matchesSearch, categoryFilter])
 
 	const failedSites = useMemo(() => {
-		return sites.filter((s) => {
-			const status = submissions.get(s.name)?.status
-			return status === 'failed'
-		})
-	}, [sites, submissions])
+		return sites
+			.filter((s) => {
+				const status = submissions.get(s.name)?.status
+				return status === 'failed'
+			})
+			.filter(matchesSearch)
+			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
+	}, [sites, submissions, matchesSearch, categoryFilter])
+
+	const undoneSites = useMemo(() => {
+		return sites
+			.filter((s) => {
+				const status = submissions.get(s.name)?.status
+				return !status || (!DONE_STATUSES.includes(status) && status !== 'failed')
+			})
+			.filter(matchesSearch)
+			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
+			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
+	}, [sites, submissions, matchesSearch, categoryFilter])
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
 		{ id: 'all', label: '全部', count: allSites.length },
+		{ id: 'undone', label: '未完成', count: undoneSites.length },
 		{ id: 'done', label: '已完成', count: doneSites.length },
 		{ id: 'failed', label: '失败', count: failedSites.length },
 	]
 
 	const displaySites =
-		tab === 'all' ? allSites : tab === 'done' ? doneSites : failedSites
+		tab === 'all' ? allSites : tab === 'undone' ? undoneSites : tab === 'done' ? doneSites : failedSites
 
 	const isEngineActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling'
 	const hasActive = !!activeSiteName
@@ -135,28 +157,26 @@ export function Dashboard({
 				/>
 			) : (
 				<>
-					{/* Search (All tab only) */}
-					{tab === 'all' && (
-						<div className="flex items-center gap-2">
-							<select
-								value={categoryFilter}
-								onChange={(e) => setCategoryFilter(e.target.value as SiteCategory | 'all')}
-								className="shrink-0 px-2 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-							>
-								<option value="all">全部分类</option>
-								{SITE_CATEGORIES.map((c) => (
-									<option key={c.value} value={c.value}>{c.label}</option>
-								))}
-							</select>
-							<input
-								type="text"
-								placeholder={'搜索站点...'}
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-								className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-							/>
-						</div>
-					)}
+					{/* Category filter & search */}
+					<div className="flex items-center gap-2">
+						<select
+							value={categoryFilter}
+							onChange={(e) => setCategoryFilter(e.target.value as SiteCategory | 'all')}
+							className="shrink-0 px-2 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+						>
+							<option value="all">全部分类</option>
+							{SITE_CATEGORIES.map((c) => (
+								<option key={c.value} value={c.value}>{c.label}</option>
+							))}
+						</select>
+						<input
+							type="text"
+							placeholder={'搜索站点...'}
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+						/>
+					</div>
 
 					{/* Site list */}
 					<div className="flex-1 overflow-y-auto space-y-1.5">
@@ -266,6 +286,7 @@ export function Dashboard({
 						{displaySites.length === 0 && (
 							<div className="text-center text-xs text-muted-foreground py-8">
 								{tab === 'all' && '没有匹配的站点'}
+								{tab === 'undone' && '所有站点均已完成或失败'}
 								{tab === 'done' && '暂无已提交或跳过的站点'}
 								{tab === 'failed' && '暂无失败记录'}
 							</div>
