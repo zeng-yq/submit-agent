@@ -277,6 +277,31 @@ function createButton() {
 			background: #EF4444;
 			transform: scale(1.1);
 		}
+
+		/* Delete button — appears alongside status switch for known sites */
+		.delete-btn {
+			width: 28px;
+			height: 28px;
+			border: none;
+			border-radius: 7px;
+			background: transparent;
+			color: #DC2626;
+			font-size: 14px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+			transition: background 0.15s ease, color 0.15s ease;
+			outline: none;
+		}
+		.delete-btn:hover {
+			background: rgba(220, 38, 38, 0.1);
+			color: #B91C1C;
+		}
+		.delete-btn:active {
+			background: rgba(220, 38, 38, 0.2);
+		}
 	`
 	shadow.appendChild(style)
 
@@ -310,6 +335,15 @@ function createButton() {
 
 		container.appendChild(statusSwitch)
 		container.appendChild(separator)
+
+		// Delete button
+		const deleteBtn = document.createElement('button')
+		deleteBtn.className = 'delete-btn'
+		deleteBtn.title = '从外链库删除'
+		deleteBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`
+		deleteBtn.addEventListener('click', handleDeleteClick)
+
+		container.appendChild(deleteBtn)
 	}
 
 	// Action button
@@ -393,6 +427,24 @@ function handleMainClick() {
 		.catch(() => {
 			setState('error')
 		})
+}
+
+function handleDeleteClick() {
+	if (!matchedSiteName) return
+
+	const confirmed = confirm(`确定要从外链库中删除「${matchedSiteName}」吗？`)
+	if (!confirmed) return
+
+	chrome.runtime.sendMessage({
+		type: 'DELETE_SITE',
+		payload: { siteName: matchedSiteName },
+	}).then((response: any) => {
+		if (response?.success) {
+			removeButton()
+		}
+	}).catch(() => {
+		// 删除失败时静默处理
+	})
 }
 
 function updateButtonState(state: ButtonState) {
