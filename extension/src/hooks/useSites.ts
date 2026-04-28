@@ -3,6 +3,8 @@ import type { SiteData, SubmissionRecord } from '@/lib/types'
 import { reloadSites } from '@/lib/sites'
 import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, getDB } from '@/lib/db'
 
+const SITES_CHANGED = 'SITES_CHANGED'
+
 export interface UseSitesResult {
 	sites: SiteData[]
 	submissions: Map<string, SubmissionRecord>
@@ -34,6 +36,17 @@ export function useSites(productId: string | null): UseSitesResult {
 
 	useEffect(() => {
 		refresh()
+	}, [refresh])
+
+	// 监听其他页面的站点变更广播（如悬浮按钮删除外链）
+	useEffect(() => {
+		const handler = (message: any) => {
+			if (message.type === SITES_CHANGED) {
+				refresh()
+			}
+		}
+		chrome.runtime.onMessage.addListener(handler)
+		return () => chrome.runtime.onMessage.removeListener(handler)
 	}, [refresh])
 
 	const submissions = useMemo(() => {

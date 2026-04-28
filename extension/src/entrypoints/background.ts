@@ -339,6 +339,7 @@ function handleDeleteSite(
 			await deleteSite(siteName)
 			await deleteSubmissionsBySite(siteName)
 			await reloadSites()
+			chrome.runtime.sendMessage({ type: 'SITES_CHANGED' }).catch(() => {})
 			sendResponse({ success: true })
 		} catch (err) {
 			sendResponse({ success: false, error: err instanceof Error ? err.message : String(err) })
