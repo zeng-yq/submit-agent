@@ -8,6 +8,7 @@ const SHEETS_BASE = 'https://sheets.googleapis.com/v4/spreadsheets'
 const CHUNK_SIZE = 500
 const MAX_RETRIES = 3
 const FETCH_TIMEOUT = 30_000
+const TAB_DELAY_MS = 2_000
 
 /**
  * Extract spreadsheet ID from a Google Sheet URL.
@@ -150,6 +151,51 @@ async function ensureSheetTab(token: string, spreadsheetId: string, tabName: str
 }
 
 /**
+ * Ensure a sheet tab has enough rows to hold the data.
+ * Google Sheets defaults to 1000 rows; this expands the grid if needed.
+ */
+async function ensureSheetCapacity(
+  token: string,
+  spreadsheetId: string,
+  tabName: string,
+  requiredRows: number,
+): Promise<void> {
+  const meta = await sheetsFetch(
+    token,
+    `${spreadsheetId}?fields=sheets.properties(sheetId,title,gridProperties)`,
+  )
+  const body = await meta.json()
+  const sheets = body.sheets as Array<{
+    properties: {
+      sheetId: number
+      title: string
+      gridProperties?: { rowCount?: number }
+    }
+  }> | undefined
+
+  const sheet = sheets?.find(s => s.properties.title === tabName)
+  if (!sheet) return
+
+  const currentRows = sheet.properties.gridProperties?.rowCount ?? 1000
+  if (currentRows >= requiredRows) return
+
+  await sheetsFetch(token, `${spreadsheetId}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({
+      requests: [{
+        updateSheetProperties: {
+          properties: {
+            sheetId: sheet.properties.sheetId,
+            gridProperties: { rowCount: requiredRows },
+          },
+          fields: 'gridProperties.rowCount',
+        },
+      }],
+    }),
+  })
+}
+
+/**
  * Read current tab content for backup. Returns empty array if tab doesn't exist.
  */
 async function backupTab(
@@ -178,7 +224,7 @@ async function uploadTabChunked(
   rows: string[][],
   onProgress?: ProgressCallback,
   abortSignal?: AbortSignal,
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string }> {
   // Clear existing data
   try {
     await sheetsFetchWithRetry(
@@ -190,7 +236,7 @@ async function uploadTabChunked(
     // Tab might not exist yet, ignore clear errors
   }
 
-  if (rows.length === 0) return true
+  if (rows.length === 0) return { success: true }
 
   // Split rows into chunks
   const chunks: string[][][] = []
@@ -199,7 +245,7 @@ async function uploadTabChunked(
   }
 
   for (let c = 0; c < chunks.length; c++) {
-    if (abortSignal?.aborted) return false
+    if (abortSignal?.aborted) return { success: false, error: 'Cancelled' }
 
     const chunkRows = chunks[c]
     const startRow = c * CHUNK_SIZE + 1
@@ -218,6 +264,7 @@ async function uploadTabChunked(
     } catch (err) {
       // 401 means auth is gone — re-throw so the caller aborts the entire export
       if (err instanceof Error && err.message === '401') throw err
+      const errMsg = err instanceof Error ? err.message : String(err)
       onProgress?.({
         phase: 'upload',
         currentTab: tabName,
@@ -225,13 +272,13 @@ async function uploadTabChunked(
         completedTabs: 0,
         currentChunk: c + 1,
         totalChunks: chunks.length,
-        error: err instanceof Error ? err.message : String(err),
+        error: errMsg,
       })
-      return false
+      return { success: false, error: errMsg }
     }
   }
 
-  return true
+  return { success: true }
 }
 
 /**
@@ -298,6 +345,7 @@ export async function exportToSheets(
   // ---- Phase 2: Chunked Upload ----
   const counts: Record<string, number> = {}
   const failedTabs: string[] = []
+  const failedTabErrors: Record<string, string> = {}
   const succeededTabs: string[] = []
 
   let authExpired = false
@@ -305,10 +353,16 @@ export async function exportToSheets(
     const { dataType, tabName } = tabEntries[i]
     if (abortSignal?.aborted || authExpired) break
 
+    // 首个 tab 不等待，后续 tab 间添加延迟让 API 配额恢复
+    if (i > 0) await sleep(TAB_DELAY_MS)
+
     const sheetDef = SHEET_DEFS[dataType]!
     const records = data[dataType] ?? []
     const rows = serializeSheet(records, sheetDef)
     const totalChunks = Math.ceil(rows.length / CHUNK_SIZE)
+
+    // 扩展 sheet 网格行数以容纳所有数据（默认上限 1000 行）
+    await ensureSheetCapacity(token, spreadsheetId, tabName, rows.length)
 
     onProgress?.({
       phase: 'upload',
@@ -320,7 +374,7 @@ export async function exportToSheets(
     })
 
     try {
-      const success = await uploadTabChunked(
+      const result = await uploadTabChunked(
         token,
         spreadsheetId,
         tabName,
@@ -329,11 +383,12 @@ export async function exportToSheets(
         abortSignal,
       )
 
-      if (success) {
+      if (result.success) {
         counts[dataType] = records.length
         succeededTabs.push(tabName)
       } else {
         failedTabs.push(tabName)
+        if (result.error) failedTabErrors[tabName] = result.error
       }
     } catch (err) {
       // 401 from uploadTabChunked — abort entire export, proceed to rollback
@@ -403,7 +458,10 @@ export async function exportToSheets(
   const parts: string[] = []
   if (authExpired) parts.push('Authentication expired. Please try again.')
   if (wasCancelled) parts.push('Export cancelled.')
-  if (failedTabs.length > 0) parts.push(`Failed tabs: ${failedTabs.join(', ')}`)
+  if (failedTabs.length > 0) {
+    const details = failedTabs.map(t => failedTabErrors[t] ? `${t} (${failedTabErrors[t]})` : t)
+    parts.push(`Failed tabs: ${details.join(', ')}`)
+  }
   if (rolledBack.length > 0) parts.push(`Rolled back: ${rolledBack.join(', ')}`)
   if (rollbackFailed.length > 0) {
     parts.push(`Rollback failed (check manually): ${rollbackFailed.join(', ')}`)
