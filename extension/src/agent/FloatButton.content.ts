@@ -278,29 +278,39 @@ function createButton() {
 			transform: scale(1.1);
 		}
 
-		/* Delete button — appears alongside status switch for known sites */
+		/* Delete button — matches action-btn style with red gradient */
 		.delete-btn {
-			width: 28px;
-			height: 28px;
+			width: 30px;
+			height: 30px;
 			border: none;
-			border-radius: 7px;
-			background: transparent;
-			color: #DC2626;
+			border-radius: 9px;
+			background: linear-gradient(135deg, #F87171 0%, #DC2626 100%);
+			box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35), 0 1px 2px rgba(220, 38, 38, 0.2);
+			color: #fff;
 			font-size: 14px;
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			cursor: pointer;
 			padding: 0;
-			transition: background 0.15s ease, color 0.15s ease;
+			position: relative;
+			transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+			            box-shadow 0.2s ease;
 			outline: none;
 		}
+		.delete-btn::after {
+			content: '';
+			position: absolute;
+			inset: 0;
+			border-radius: inherit;
+			background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 60%);
+			pointer-events: none;
+		}
 		.delete-btn:hover {
-			background: rgba(220, 38, 38, 0.1);
-			color: #B91C1C;
+			transform: scale(1.1);
 		}
 		.delete-btn:active {
-			background: rgba(220, 38, 38, 0.2);
+			transform: scale(0.95);
 		}
 	`
 	shadow.appendChild(style)
