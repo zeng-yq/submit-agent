@@ -110,6 +110,7 @@ export type MessageType =
 	| 'FLOAT_BUTTON_TOGGLE'
 	| 'FLOAT_FILL'
 	| 'STATUS_UPDATE'
+	| 'CLOSE_TAB'
 
 /** FLOAT_FILL message actions */
 export type FloatFillAction =
