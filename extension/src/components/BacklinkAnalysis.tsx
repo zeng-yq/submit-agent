@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { BacklinkRecord } from '@/lib/types'
 import type { LogEntry } from '@/agent/types'
 import { BacklinkToolbar } from './BacklinkToolbar'
@@ -34,11 +35,15 @@ export function BacklinkAnalysis({
 	onClearLogs,
 	onClearAll,
 }: BacklinkAnalysisProps) {
-	const stats = {
-		total: backlinks.length,
-		analyzed: backlinks.filter(b => b.status !== 'pending').length,
-		publishable: backlinks.filter(b => b.status === 'publishable').length,
-	}
+	const stats = useMemo(() => {
+		let analyzed = 0
+		let publishable = 0
+		for (const b of backlinks) {
+			if (b.status !== 'pending') analyzed++
+			if (b.status === 'publishable') publishable++
+		}
+		return { total: backlinks.length, analyzed, publishable }
+	}, [backlinks])
 
 	return (
 		<div className="flex flex-col h-full">
