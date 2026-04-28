@@ -21,6 +21,7 @@ const TEST_ERROR_KEYS: Record<string, string> = {
 	not_found: '找不到 API 端点，请检查 Base URL 格式。',
 	model_not_found: '找不到该模型，请检查模型名称。',
 	rate_limit: '请求频率过高，API Key 有效但被限流。',
+	server_error: '服务器暂时不可用（502/503/504），请稍后重试。',
 	unknown: '未知错误',
 }
 
@@ -238,11 +239,11 @@ export function SettingsPanel({ onDataImported }: { onDataImported?: () => void 
 						)}
 
 						{testState.status === 'error' && (
-							<div className="text-xs text-destructive bg-destructive/8 rounded-lg px-3 py-2 animate-in fade-in duration-200">
+							<div className="text-xs text-destructive bg-destructive/8 rounded-lg px-3 py-2 animate-in fade-in duration-200 break-all overflow-hidden">
 								<div className="font-medium mb-0.5">{'连接失败'}</div>
 								<div className="text-destructive/80">
-									{testState.result.code === 'unknown'
-										? `${TEST_ERROR_KEYS[testState.result.code]}：${testState.result.detail ?? ""}`
+									{testState.result.detail
+										? `${TEST_ERROR_KEYS[testState.result.code]}：${testState.result.detail}`
 										: TEST_ERROR_KEYS[testState.result.code]}
 								</div>
 							</div>

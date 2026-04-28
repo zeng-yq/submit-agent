@@ -2,7 +2,7 @@ import type { LLMSettings } from './types'
 
 export type TestResult =
 	| { ok: true }
-	| { ok: false; code: 'unreachable' | 'unauthorized' | 'not_found' | 'model_not_found' | 'rate_limit' | 'unknown'; detail?: string }
+	| { ok: false; code: 'unreachable' | 'unauthorized' | 'not_found' | 'model_not_found' | 'rate_limit' | 'server_error' | 'unknown'; detail?: string }
 
 export async function testLLMConnection(config: LLMSettings): Promise<TestResult> {
 	const baseUrl = config.baseUrl.replace(/\/+$/, '')
@@ -58,6 +58,10 @@ export async function testLLMConnection(config: LLMSettings): Promise<TestResult
 			return { ok: false, code: 'not_found', detail: errorBody }
 		case 429:
 			return { ok: false, code: 'rate_limit', detail: errorBody }
+		case 502:
+		case 503:
+		case 504:
+			return { ok: false, code: 'server_error', detail: errorBody }
 		case 400: {
 			const lower = errorBody.toLowerCase()
 			if (lower.includes('model') && (lower.includes('not found') || lower.includes('not exist') || lower.includes('invalid'))) {
