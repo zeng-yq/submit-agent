@@ -152,7 +152,7 @@ describe('buildBlogCommentPrompt', () => {
       forms: mockForms,
     })
     expect(prompt).toContain('HTML 链接')
-    expect(prompt).toContain('dofollow')
+    expect(prompt).not.toContain('dofollow')
   })
 
   it('includes the rule about random English name for name field', () => {
@@ -185,7 +185,7 @@ describe('buildBlogCommentPrompt', () => {
       fields: mockFields,
       forms: mockForms,
     })
-    expect(prompt).toMatch(/<a href=.*rel="dofollow"/)
+    expect(prompt).toMatch(/<a href=.*>.*<\/a>/)
   })
 
   it('includes example with English name (not product name) in name field', () => {

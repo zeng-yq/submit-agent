@@ -70,12 +70,12 @@ describe('parseLLMJson', () => {
   "field_0": "Sarah Mitchell",
   "field_1": "founder@productai.com",
   "field_2": "https://productai.com",
-  "field_3": "The latency benchmarks in your comparison are spot-on. For teams scaling inference, <a href=\\"https://productai.com\\" rel=\\"dofollow\\">AI optimization tools</a> can cut cold-start latency significantly."
+  "field_3": "The latency benchmarks in your comparison are spot-on. For teams scaling inference, <a href=\\"https://productai.com\\">AI optimization tools</a> can cut cold-start latency significantly."
 }`
 		const result = parseLLMJson(raw) as Record<string, unknown>
 		expect(result.field_0).toBe('Sarah Mitchell')
 		expect(result.field_3).toContain('latency benchmarks')
-		expect(result.field_3).toContain('dofollow')
+		expect(result.field_3).toContain('<a href=')
 	})
 
 	it('handles JSON with whitespace and newlines', () => {

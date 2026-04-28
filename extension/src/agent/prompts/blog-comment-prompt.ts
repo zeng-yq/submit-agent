@@ -24,13 +24,13 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     field_0: 'Sarah Mitchell',
     field_1: 'founder@example.com',
     field_2: 'https://productai.com',
-    field_3: 'The latency benchmarks in your comparison are spot-on — we observed nearly identical patterns when testing edge deployment. For teams scaling inference, <a href="https://productai.com" rel="dofollow">real-time AI optimization tools</a> can cut cold-start latency by another 40%.',
+    field_3: 'The latency benchmarks in your comparison are spot-on — we observed nearly identical patterns when testing edge deployment. For teams scaling inference, <a href="https://productai.com">real-time AI optimization tools</a> can cut cold-start latency by another 40%.',
   }, null, 2)
 
   const exampleNoUrl = JSON.stringify({
     field_0: 'Alex Chen',
     field_1: 'founder@example.com',
-    field_2: 'Your breakdown of quantization tradeoffs is exactly what we needed — the accuracy loss at INT4 was the elephant in the room nobody talked about. We\'ve been exploring <a href="https://productai.com" rel="dofollow">model compression workflows</a> that balance speed and precision, and distillation came out ahead for our use case.',
+    field_2: 'Your breakdown of quantization tradeoffs is exactly what we needed — the accuracy loss at INT4 was the elephant in the room nobody talked about. We\'ve been exploring <a href="https://productai.com">model compression workflows</a> that balance speed and precision, and distillation came out ahead for our use case.',
   }, null, 2)
 
   return [
@@ -54,12 +54,12 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '### 一、评论内容',
     '',
-    '1. 结构：肯定文章价值(~30字符) + 补充观点并自然植入锚文本链接(~50字符)。',
+    '1. 结构：肯定文章价值(~50字符) + 补充观点并自然植入锚文本链接(~50字符)，前后两段衔接过渡要自然。',
     '2. 前半段引用文章中的具体观点、数据或论点，表达真实认同——不要泛泛赞美。',
     '3. 后半段补充自己的见解，同时以 HTML 链接自然植入锚文本：',
-    '   <a href="{product_url}" rel="dofollow">{anchor_text}</a>',
+    '   <a href="{product_url}">{anchor_text}</a>',
     '4. 锚文本必须与周围文本语义连贯，不能是突兀的关键词堆砌。',
-    '5. 评论总长度：80-300 字符（不含 HTML 标签）。',
+    '5. 评论总长度：100-300 字符（不含 HTML 标签）。',
     '',
     '### 二、字段填写',
     '',
