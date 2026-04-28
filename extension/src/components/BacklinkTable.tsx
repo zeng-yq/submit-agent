@@ -51,15 +51,16 @@ export function BacklinkTable({
 		}
 	}, [analyzingId, isRunning])
 
+	const sortedBacklinks = useMemo(
+		() => [...backlinks].sort((a, b) => b.pageAscore - a.pageAscore),
+		[backlinks]
+	)
+
 	const filteredBacklinks = useMemo(() => {
-		return [...backlinks
-			.filter(b => {
-				if (tab === 'all' || tab === 'log') return true
-				if (tab === 'done') return DONE_STATUSES.includes(b.status)
-				return b.status === 'error'
-			})
-		].sort((a, b) => b.pageAscore - a.pageAscore)
-	}, [backlinks, tab])
+		if (tab === 'all' || tab === 'log') return sortedBacklinks
+		if (tab === 'done') return sortedBacklinks.filter(b => DONE_STATUSES.includes(b.status))
+		return sortedBacklinks.filter(b => b.status === 'error')
+	}, [sortedBacklinks, tab])
 
 	const tabCounts = useMemo(() => ({
 		all: backlinks.length,
