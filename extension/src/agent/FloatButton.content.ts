@@ -450,6 +450,7 @@ function handleDeleteClick() {
 		payload: { siteName: matchedSiteName },
 	}).then((response: any) => {
 		if (response?.success) {
+			chrome.runtime.sendMessage({ type: 'CLOSE_TAB' })
 			removeButton()
 		}
 	}).catch(() => {
