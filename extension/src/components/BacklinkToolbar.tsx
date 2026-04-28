@@ -24,7 +24,7 @@ export function BacklinkToolbar({
 }: BacklinkToolbarProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const urlInputRef = useRef<HTMLInputElement>(null)
-	const [batchCount, setBatchCount] = useState(20)
+	const [batchCount, setBatchCount] = useState(100)
 	const [importMsg, setImportMsg] = useState<{ text: string; isError: boolean } | null>(null)
 	const [isImporting, setIsImporting] = useState(false)
 	const [urlInput, setUrlInput] = useState('')
@@ -154,15 +154,13 @@ export function BacklinkToolbar({
 							value={batchCount}
 							onChange={e => setBatchCount(Number(e.target.value))}
 						>
-							<option value={10}>10</option>
-							<option value={20}>20</option>
-							<option value={50}>50</option>
 							<option value={100}>100</option>
 							<option value={200}>200</option>
 							<option value={500}>500</option>
 							<option value={1000}>1000</option>
 							<option value={2000}>2000</option>
 							<option value={4000}>4000</option>
+							<option value={8000}>8000</option>
 						</select>
 						<Button
 							variant="default"
