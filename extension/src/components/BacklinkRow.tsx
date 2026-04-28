@@ -37,9 +37,9 @@ export function BacklinkRow({
 }: BacklinkRowProps) {
 	return (
 		<Fragment>
-			<tr className={`border-b border-border/40 transition-colors ${isAnalyzing ? 'bg-blue-500/5' : 'hover:bg-accent/30'}`}>
-				<td className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</td>
-				<td className="px-3 py-1.5 overflow-hidden">
+			<div className={`grid grid-cols-[2.5rem_1fr_5rem_4rem] border-b border-border/40 transition-colors text-xs ${isAnalyzing ? 'bg-blue-500/5' : 'hover:bg-accent/30'}`}>
+				<div className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</div>
+				<div className="px-3 py-1.5 overflow-hidden">
 					<a
 						href={b.sourceUrl}
 						target="_blank"
@@ -49,8 +49,8 @@ export function BacklinkRow({
 					>
 						{b.sourceTitle || b.sourceUrl}
 					</a>
-				</td>
-				<td className="px-3 py-1.5">
+				</div>
+				<div className="px-3 py-1.5">
 					<span
 						className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
 							b.status !== 'pending' ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
@@ -64,8 +64,8 @@ export function BacklinkRow({
 					>
 						{BACKLINK_STATUS_LABELS[b.status] ?? b.status}
 					</span>
-				</td>
-				<td className="px-3 py-1.5 text-right">
+				</div>
+				<div className="px-3 py-1.5 text-right">
 					<Button
 						variant="ghost"
 						size="sm"
@@ -82,23 +82,21 @@ export function BacklinkRow({
 							'分析'
 						)}
 					</Button>
-				</td>
-			</tr>
+				</div>
+			</div>
 			{isExpanded && b.status !== 'pending' && b.analysisLog?.length > 0 && (
-				<tr className="border-b border-border/40">
-					<td colSpan={4} className="px-4 py-2">
-						<div className={`text-xs rounded px-3 py-1.5 border-l-2 ${
-							b.status === 'publishable' ? 'bg-green-500/5 border-green-400 text-green-300'
-								: b.status === 'error' ? 'bg-red-500/5 border-red-400 text-red-300'
-									: b.status === 'skipped' ? 'bg-yellow-500/5 border-yellow-400/70 text-yellow-300/80'
-										: 'bg-red-500/5 border-red-400/70 text-red-300/80'
-						}`}>
-							{b.analysisLog.map((log, i) => (
-								<div key={i}>{typeof log === 'string' ? log : JSON.stringify(log)}</div>
-							))}
-						</div>
-					</td>
-				</tr>
+				<div className="border-b border-border/40 px-4 py-2">
+					<div className={`text-xs rounded px-3 py-1.5 border-l-2 ${
+						b.status === 'publishable' ? 'bg-green-500/5 border-green-400 text-green-300'
+							: b.status === 'error' ? 'bg-red-500/5 border-red-400 text-red-300'
+								: b.status === 'skipped' ? 'bg-yellow-500/5 border-yellow-400/70 text-yellow-300/80'
+									: 'bg-red-500/5 border-red-400/70 text-red-300/80'
+					}`}>
+						{b.analysisLog.map((log, i) => (
+							<div key={i}>{typeof log === 'string' ? log : JSON.stringify(log)}</div>
+						))}
+					</div>
+				</div>
 			)}
 		</Fragment>
 	)
