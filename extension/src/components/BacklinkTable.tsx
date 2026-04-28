@@ -1,6 +1,7 @@
 import type { BacklinkRecord, BacklinkStatus } from '@/lib/types'
 import type { LogEntry } from '@/agent/types'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
 import { BacklinkRow } from './BacklinkRow'
@@ -31,6 +32,7 @@ export function BacklinkTable({
 	const [tab, setTab] = useState<Tab>('all')
 	const [expandedId, setExpandedId] = useState<string | null>(null)
 	const lastAnalyzedRef = useRef<string | null>(null)
+	const scrollRef = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
 		if (isRunning) {
@@ -49,18 +51,37 @@ export function BacklinkTable({
 		}
 	}, [analyzingId, isRunning])
 
-	const filteredBacklinks = [...backlinks
-		.filter(b => {
-			if (tab === 'all' || tab === 'log') return true
-			if (tab === 'done') return DONE_STATUSES.includes(b.status)
-			return b.status === 'error'
-		})
-	].sort((a, b) => b.pageAscore - a.pageAscore)
+	const filteredBacklinks = useMemo(() => {
+		return [...backlinks
+			.filter(b => {
+				if (tab === 'all' || tab === 'log') return true
+				if (tab === 'done') return DONE_STATUSES.includes(b.status)
+				return b.status === 'error'
+			})
+		].sort((a, b) => b.pageAscore - a.pageAscore)
+	}, [backlinks, tab])
+
+	const tabCounts = useMemo(() => ({
+		all: backlinks.length,
+		done: backlinks.filter(b => DONE_STATUSES.includes(b.status)).length,
+		failed: backlinks.filter(b => b.status === 'error').length,
+	}), [backlinks])
+
+	const handleToggleExpand = useCallback((id: string) => {
+		setExpandedId(prev => prev === id ? null : id)
+	}, [])
+
+	const virtualizer = useVirtualizer({
+		count: filteredBacklinks.length,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => 36,
+		overscan: 5,
+	})
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
-		{ id: 'all', label: '全部', count: backlinks.length },
-		{ id: 'done', label: '已完成', count: backlinks.filter(b => DONE_STATUSES.includes(b.status)).length },
-		{ id: 'failed', label: '失败', count: backlinks.filter(b => b.status === 'error').length },
+		{ id: 'all', label: '全部', count: tabCounts.all },
+		{ id: 'done', label: '已完成', count: tabCounts.done },
+		{ id: 'failed', label: '失败', count: tabCounts.failed },
 	]
 
 	return (
@@ -94,41 +115,57 @@ export function BacklinkTable({
 				</div>
 			</div>
 
-			{/* ── Content: ActivityLog or Table ── */}
+			{/* ── Content: ActivityLog or Virtualized Table ── */}
 			{tab === 'log' ? (
 				<ActivityLog logs={logs} totalLogCount={totalLogCount} onClear={onClearLogs} className="flex-1" />
 			) : (
-				<div className="flex-1 overflow-y-auto">
-				{filteredBacklinks.length === 0 ? (
-					<div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-						{'暂无外链数据。请导入 Semrush 导出的 CSV 文件。'}
+				<>
+					{/* Header row — CSS Grid */}
+					<div className="shrink-0 grid grid-cols-[2.5rem_1fr_5rem_4rem] border-b border-border/60 text-muted-foreground text-xs">
+						<span className="px-3 py-1.5 font-normal">{'AS'}</span>
+						<span className="px-3 py-1.5 font-normal">{'来源'}</span>
+						<span className="px-3 py-1.5 font-normal">{'Status'}</span>
+						<span className="text-right px-3 py-1.5 font-normal">{'操作'}</span>
 					</div>
-				) : (
-					<table className="w-full text-xs table-fixed">
-						<thead className="sticky top-0 bg-background">
-							<tr className="border-b border-border/60 text-muted-foreground">
-								<th className="text-left px-3 py-1.5 font-normal w-10">{'AS'}</th>
-								<th className="text-left px-3 py-1.5 font-normal">{'来源'}</th>
-								<th className="text-left px-3 py-1.5 font-normal w-20">Status</th>
-								<th className="text-right px-3 py-1.5 font-normal w-16">{'操作'}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{filteredBacklinks.map(b => (
-								<BacklinkRow
-									key={b.id}
-									backlink={b}
-									isAnalyzing={analyzingId === b.id}
-									isDisabled={analyzingId !== null || isRunning}
-									isExpanded={expandedId === b.id}
-									onToggleExpand={() => setExpandedId(expandedId === b.id ? null : b.id)}
-									onAnalyze={() => onAnalyzeOne(b)}
-								/>
-							))}
-						</tbody>
-					</table>
-				)}
-				</div>
+
+					{/* Virtualized scroll area */}
+					<div ref={scrollRef} className="flex-1 overflow-y-auto">
+						{filteredBacklinks.length === 0 ? (
+							<div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+								{'暂无外链数据。请导入 Semrush 导出的 CSV 文件。'}
+							</div>
+						) : (
+							<div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+								{virtualizer.getVirtualItems().map(virtualRow => {
+									const b = filteredBacklinks[virtualRow.index]
+									return (
+										<div
+											key={virtualRow.key}
+											data-index={virtualRow.index}
+											ref={virtualizer.measureElement}
+											style={{
+												position: 'absolute',
+												top: 0,
+												left: 0,
+												width: '100%',
+												transform: `translateY(${virtualRow.start}px)`,
+											}}
+										>
+											<BacklinkRow
+												backlink={b}
+												isAnalyzing={analyzingId === b.id}
+												isDisabled={analyzingId !== null || isRunning}
+												isExpanded={expandedId === b.id}
+												onToggleExpand={() => handleToggleExpand(b.id)}
+												onAnalyze={() => onAnalyzeOne(b)}
+											/>
+										</div>
+									)
+								})}
+							</div>
+						)}
+					</div>
+				</>
 			)}
 		</>
 	)
