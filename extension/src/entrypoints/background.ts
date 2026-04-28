@@ -25,6 +25,10 @@ export default defineBackground(() => {
 			return handleCheckSiteMatch(message, sendResponse)
 		} else if (message.type === 'DELETE_SITE') {
 			return handleDeleteSite(message, sendResponse)
+		} else if (message.type === 'CLOSE_TAB') {
+			if (sender.tab?.id != null) {
+				chrome.tabs.remove(sender.tab.id).catch(() => {})
+			}
 		} else {
 			sendResponse({ error: 'Unknown message type' })
 			return
