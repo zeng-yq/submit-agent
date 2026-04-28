@@ -1,6 +1,6 @@
 import { getActiveProductId, setFloatButtonEnabled } from '@/lib/storage'
-import { listSubmissionsByProduct } from '@/lib/db'
-import { loadSites, matchCurrentPage } from '@/lib/sites'
+import { deleteSite, deleteSubmissionsBySite, listSubmissionsByProduct } from '@/lib/db'
+import { loadSites, matchCurrentPage, reloadSites } from '@/lib/sites'
 import type { SubmissionStatus } from '@/lib/types'
 
 export default defineBackground(() => {
@@ -23,6 +23,8 @@ export default defineBackground(() => {
 			return handleSubmissionStatusChanged(message)
 		} else if (message.type === 'CHECK_SITE_MATCH') {
 			return handleCheckSiteMatch(message, sendResponse)
+		} else if (message.type === 'DELETE_SITE') {
+			return handleDeleteSite(message, sendResponse)
 		} else {
 			sendResponse({ error: 'Unknown message type' })
 			return
@@ -316,6 +318,30 @@ function handleCheckSiteMatch(
 			sendResponse({ isKnownSite: true, siteName: matched.name, submissionStatus })
 		} catch {
 			sendResponse({ isKnownSite: false })
+		}
+	})()
+
+	return true
+}
+
+function handleDeleteSite(
+	message: { type: string; payload: { siteName: string } },
+	sendResponse: (response: unknown) => void
+): true {
+	const { siteName } = message.payload ?? {}
+	if (!siteName) {
+		sendResponse({ success: false, error: 'No siteName provided' })
+		return true
+	}
+
+	;(async () => {
+		try {
+			await deleteSite(siteName)
+			await deleteSubmissionsBySite(siteName)
+			await reloadSites()
+			sendResponse({ success: true })
+		} catch (err) {
+			sendResponse({ success: false, error: err instanceof Error ? err.message : String(err) })
 		}
 	})()
 
