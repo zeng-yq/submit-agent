@@ -11,6 +11,7 @@
 		"postinstall": "wxt prepare"
 	},
 	"dependencies": {
+		"@tanstack/react-virtual": "^3.13.24",
 		"idb": "^8.0.3",
 		"lucide-react": "^0.469.0",
 		"react": "^19.0.0",
