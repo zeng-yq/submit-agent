@@ -197,4 +197,38 @@ describe('buildBlogCommentPrompt', () => {
     })
     expect(prompt).not.toMatch(/"field_0":\s*"ProductAI"/)
   })
+
+  it('contains mandatory HTML link requirements section', () => {
+    const prompt = buildBlogCommentPrompt({
+      productContext,
+      pageContent: mockPageContent,
+      fields: mockFields,
+      forms: mockForms,
+    })
+    expect(prompt).toContain('硬性要求')
+    expect(prompt).toContain('必须包含一个 HTML 锚标签')
+    expect(prompt).toContain('绝对不能将锚文本作为纯文本输出')
+  })
+
+  it('contains wrong example showing plain text without link', () => {
+    const prompt = buildBlogCommentPrompt({
+      productContext,
+      pageContent: mockPageContent,
+      fields: mockFields,
+      forms: mockForms,
+    })
+    expect(prompt).toContain('错误示范')
+    expect(prompt).toContain('纯文本，无链接')
+  })
+
+  it('contains correct example showing HTML anchor tag', () => {
+    const prompt = buildBlogCommentPrompt({
+      productContext,
+      pageContent: mockPageContent,
+      fields: mockFields,
+      forms: mockForms,
+    })
+    expect(prompt).toContain('正确示范')
+    expect(prompt).toMatch(/正确示范.*<a href=/)
+  })
 })
