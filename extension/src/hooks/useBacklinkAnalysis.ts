@@ -8,7 +8,7 @@ import type { useBacklinkState } from './useBacklinkState'
 
 export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) {
 	const stopRequestedRef = useRef(false)
-	const abortRef = useRef<AbortController | null>(null)
+	const activeControllersRef = useRef(new Set<AbortController>())
 
 	const [currentStep, setCurrentStep] = useState<AnalysisStep | null>(null)
 	const [currentIndex, setCurrentIndex] = useState(0)
@@ -18,9 +18,8 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 
 	const analyzeOne = useCallback(
 		async (backlink: BacklinkRecord, progress?: string): Promise<void> => {
-			abortRef.current?.abort()
 			const ac = new AbortController()
-			abortRef.current = ac
+			activeControllersRef.current.add(ac)
 			setAnalyzingId(backlink.id)
 
 			try {
@@ -97,6 +96,7 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 					console.error('Failed to update backlink error status:', errorMsg)
 				}
 			} finally {
+				activeControllersRef.current.delete(ac)
 				setAnalyzingId(null)
 			}
 		},
@@ -180,7 +180,9 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 
 	const stop = useCallback(() => {
 		stopRequestedRef.current = true
-		abortRef.current?.abort()
+		for (const ac of activeControllersRef.current) {
+			ac.abort()
+		}
 	}, [])
 
 	return {
