@@ -122,11 +122,11 @@ export function BacklinkTable({
 			) : (
 				<>
 					{/* Header row — CSS Grid */}
-					<div className="shrink-0 grid grid-cols-[2.5rem_1fr_5rem_4rem] border-b border-border/60 text-muted-foreground text-xs">
-						<span className="px-3 py-1.5 font-normal">{'AS'}</span>
-						<span className="px-3 py-1.5 font-normal">{'来源'}</span>
-						<span className="px-3 py-1.5 font-normal">{'Status'}</span>
-						<span className="text-right px-3 py-1.5 font-normal">{'操作'}</span>
+					<div className="shrink-0 grid grid-cols-[2.5rem_1fr_5rem_4rem] h-9 items-center border-b border-border/60 text-muted-foreground text-xs">
+						<span className="px-3 font-normal">{'AS'}</span>
+						<span className="px-3 font-normal">{'来源'}</span>
+						<span className="px-3 font-normal">{'Status'}</span>
+						<span className="text-right px-3 font-normal">{'操作'}</span>
 					</div>
 
 					{/* Virtualized scroll area */}

@@ -37,9 +37,9 @@ export function BacklinkRow({
 }: BacklinkRowProps) {
 	return (
 		<Fragment>
-			<div className={`grid grid-cols-[2.5rem_1fr_5rem_4rem] border-b border-border/40 transition-colors text-xs ${isAnalyzing ? 'bg-blue-500/5' : 'hover:bg-accent/30'}`}>
-				<div className="px-3 py-1.5 text-primary font-medium">{b.pageAscore}</div>
-				<div className="px-3 py-1.5 overflow-hidden">
+			<div className={`grid grid-cols-[2.5rem_1fr_5rem_4rem] h-9 items-center border-b border-border/40 transition-colors text-xs ${isAnalyzing ? 'bg-blue-500/5' : 'hover:bg-accent/30'}`}>
+				<div className="px-3 text-primary font-medium">{b.pageAscore}</div>
+				<div className="px-3 overflow-hidden">
 					<a
 						href={b.sourceUrl}
 						target="_blank"
@@ -50,7 +50,7 @@ export function BacklinkRow({
 						{b.sourceTitle || b.sourceUrl}
 					</a>
 				</div>
-				<div className="px-3 py-1.5">
+				<div className="px-3">
 					<span
 						className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
 							b.status !== 'pending' ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
@@ -65,7 +65,7 @@ export function BacklinkRow({
 						{BACKLINK_STATUS_LABELS[b.status] ?? b.status}
 					</span>
 				</div>
-				<div className="px-3 py-1.5 text-right">
+				<div className="px-3 text-right">
 					<Button
 						variant="ghost"
 						size="sm"
@@ -86,7 +86,7 @@ export function BacklinkRow({
 			</div>
 			{isExpanded && b.status !== 'pending' && b.analysisLog?.length > 0 && (
 				<div className="border-b border-border/40 px-4 py-2">
-					<div className={`text-xs rounded px-3 py-1.5 border-l-2 ${
+					<div className={`text-xs rounded px-3 border-l-2 ${
 						b.status === 'publishable' ? 'bg-green-500/5 border-green-400 text-green-300'
 							: b.status === 'error' ? 'bg-red-500/5 border-red-400 text-red-300'
 								: b.status === 'skipped' ? 'bg-yellow-500/5 border-yellow-400/70 text-yellow-300/80'
