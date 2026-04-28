@@ -155,11 +155,21 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 				const batch = filtered
 				setBatchSize(batch.length)
 
-				for (let i = 0; i < batch.length; i++) {
-					if (stopRequestedRef.current) break
-					setCurrentIndex(i)
-					await analyzeOne(batch[i], `${i + 1}/${batch.length}`)
+				let nextIndex = 0
+
+				const runSlot = async (): Promise<void> => {
+					while (!stopRequestedRef.current) {
+						const i = nextIndex
+						if (i >= batch.length) break
+						nextIndex++
+						setCurrentIndex(i)
+						await analyzeOne(batch[i], `${i + 1}/${batch.length}`)
+					}
 				}
+
+				const CONCURRENCY = 3
+				const workers = Array.from({ length: Math.min(CONCURRENCY, batch.length) }, () => runSlot())
+				await Promise.allSettled(workers)
 
 				state.setBacklinks(await listBacklinks())
 			} finally {
