@@ -70,42 +70,21 @@ async function createJwt(sa: ServiceAccountKey): Promise<string> {
 
 // --- Token management ---
 
-const DEFAULT_SERVICE_ACCOUNT_JSON = JSON.stringify({
-  type: 'service_account',
-  project_id: 'gen-lang-client-0494109016',
-  private_key_id: '50997eaa610be9dabca72a375b5eaef41968ae3b',
-  private_key:
-    '-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDbRlvK495g7oU1\nLGmRvADjeGziBZ1yKAKfxEdf5b1ZS1JKBf16f26ekTdO+00xBG69ys0toVHb0aH7\ng77kjWenDZJeouvU4Td9jPR7eTCi/NjTMw7C6JtXrbcm9RRF9ld87EWZqKV9EBw5\nHWGWdw5TZoszRar3qLexbVot50+k/qYSFvK2KK/mwwpwAv1eh2vpO9M05ADdn0Xj\n6A0IqNVP9KN18hLct+IB57QsXF4DTU+96OrsWX4GvWDbDIjlvQVOSozV18jEM10d\nETVc8+d1b705gJb5galoUA7I6LMwFAA44mVeyGH//uQLDoNmN5jz6gniLSCorsSu\nEYlQzjTTAgMBAAECggEACWAjRElk9JZjlLKe8EUZG/YbYGNRaD76Cb8YjCr5uHaG\nK2Br26UqONZzBnSr8sNtQWkz8lZaS9X/9o3wshCyagv5rQPgpdwGsDQVhK1ZsoZc\nIP+nCxdrWPQ2XLs65YOTGbt30wpJH8/6B5560eD/ovpDS8BtVHnezNPPo3R8oncl\nRctKurXYZxIbVxgCOxatCD7UfSE+2wLr9gPvrJdPK8Jw8FJOelFYyYjsvHvpp7Y3\n8NaGpi5+kToPC0OqJJlxXqt537mcNhTMCkkkHbZcXPiNuJU7+0kZ3fxyr/yI9mbq\n7zXMBxOYvm2637l/WaJ67HdqKxJTSGWW10OiA4kP4QKBgQD87PJ01cZ7tH07sa+3\ntsaMGTRpCBhFJ5YBaqebc+AdOvfTZH6Q23VFsDoJTxYsG9fosnH7Q4JjmaixOloM\n9KiQ2FWnR8rI+Vs4Ut+tLBKRMYpieepi4DfhAEfLXOgj0itkv9awBDuFKfUDYUWo\nD0SI+nWCuIb2L3P+V+zFlQrNcwKBgQDd8LJ9evwZ5Jo3Fhace2heLtcv1NesCPLX\ndYAOn3WPOTdHZzqkAleRUjzUtu+a/BoPp+M2Lx+K4fYxhjrj0mvnB0pnV0CyxoEJ\nwWv6xGEvd/4j/1AcY7zCDI3jjDsvnULSq/jKdCZIvh7U8W+ne2Lk8yLD/jlnBgYV\n0OaKKaEjIQKBgQDkJiULSS7ytbvl1gGIucHd7Hp/aALklrHUc03fhyYZl/CnalZU\n+vGNPEsNzJ5WiYM4b4crvRjoGVq3C8jhOOy5Q7v32mXM5knnw7Hq9v+Eo2iOLiVE\nrbcaKnOYuSTZ8yKbjgTt39OE6nUOaHc6AxOycCMCGMv9VI7QVqXJEQmeiwKBgHSu\ncbiEqvuV8vnZFAQq4UD60UklVkns3ncmIDAP54dn5kcU34CQdqdBHBgdITVTKwRm\nGI9JEQU8LOn2jwltfCsW6ygPeEVFFVwio3lQO2Pwat1UAjMawIcogIRMGmW7AQGv\nRfpyPBpsUdtUH4Zm2SRTK0jtZBJk2Vgo3rtujXfhAoGBAMsplu7vW2Ta5xAp1XUF\nWwlvoh8vEHnoTSir5FdR4UflE1iTZPygUUCVZ+D1tDhn5yRnVweQ2cqsWpDm3mcv\nKbXH3cMLEsIROPxlRm5MTZ9PojEqsLc004c0zrNG4FlNG3uQpLuHurW3DvZitC9g\nuW/6ayWnLTpxGXKrYVmW2ZTu\n-----END PRIVATE KEY-----\n',
-  client_email: 'backlink@gen-lang-client-0494109016.iam.gserviceaccount.com',
-  client_id: '114535932967242989757',
-  auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-  token_uri: 'https://oauth2.googleapis.com/token',
-  auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-  client_x509_cert_url:
-    'https://www.googleapis.com/robot/v1/metadata/x509/backlink%40gen-lang-client-0494109016.iam.gserviceaccount.com',
-  universe_domain: 'googleapis.com',
-}, null, 2)
-
-const DEFAULT_SERVICE_ACCOUNT: ServiceAccountKey = JSON.parse(DEFAULT_SERVICE_ACCOUNT_JSON)
-
 export async function getServiceAccountJson(): Promise<string> {
   const result = await chrome.storage.local.get(KEY_SERVICE_ACCOUNT)
-  const raw = result[KEY_SERVICE_ACCOUNT] as string | null
-  if (raw) return raw
-  return DEFAULT_SERVICE_ACCOUNT_JSON
+  return (result[KEY_SERVICE_ACCOUNT] as string) ?? ''
 }
 
 async function getServiceAccountKey(): Promise<ServiceAccountKey | null> {
   const result = await chrome.storage.local.get(KEY_SERVICE_ACCOUNT)
   const raw = result[KEY_SERVICE_ACCOUNT] as string | null
-  if (!raw) return DEFAULT_SERVICE_ACCOUNT
+  if (!raw) return null
   try {
     const parsed = JSON.parse(raw)
     if (parsed.client_email && parsed.private_key) {
       return parsed
     }
   } catch {
-    // Invalid JSON, clear it
     await chrome.storage.local.remove(KEY_SERVICE_ACCOUNT)
   }
   return null

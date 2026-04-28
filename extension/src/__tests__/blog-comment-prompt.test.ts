@@ -151,7 +151,7 @@ describe('buildBlogCommentPrompt', () => {
       fields: mockFields,
       forms: mockForms,
     })
-    expect(prompt).toContain('HTML 链接')
+    expect(prompt).toContain('锚文本链接')
     expect(prompt).not.toContain('dofollow')
   })
 

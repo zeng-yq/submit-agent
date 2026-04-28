@@ -24,7 +24,7 @@ const SHEET_URL_KEY = 'submitAgent_sheetUrl'
 
 async function getSheetUrl(): Promise<string> {
   const result = await chrome.storage.local.get(SHEET_URL_KEY)
-  return (result[SHEET_URL_KEY] as string) ?? 'https://docs.google.com/spreadsheets/d/1bNHx-9ArYgfyigme7I6A3enH6ZUgrELYpCevv_gFZkU/edit?gid=335758461#gid=335758461'
+  return (result[SHEET_URL_KEY] as string) ?? ''
 }
 
 async function setSheetUrl(url: string): Promise<void> {

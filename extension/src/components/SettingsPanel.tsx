@@ -67,7 +67,7 @@ function SpinnerIcon() {
 export function SettingsPanel({ onDataImported }: { onDataImported?: () => void }) {
 	const [activeProvider, setActiveProvider] = useState<ProviderKey>('openrouter')
 	const [configs, setConfigs] = useState<Record<ProviderKey, LLMSettings>>({
-		openrouter: { apiKey: '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', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.5-flash-lite-preview-09-2025' },
+		openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.5-flash-lite-preview-09-2025' },
 		openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
 		deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
 		custom: { apiKey: '', baseUrl: '', model: '' },
