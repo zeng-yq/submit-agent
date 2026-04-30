@@ -2,7 +2,7 @@ import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory } from 
 import { SITE_CATEGORIES } from '@/lib/types'
 import type { FillEngineStatus, LogEntry, LLMFieldData } from '@/agent/types'
 import { useMemo, useState, useEffect, useCallback } from 'react'
-import { Play, Trash2, Loader2 } from 'lucide-react'
+import { Play, Trash2, Loader2, ExternalLink } from 'lucide-react'
 import { SiteCard } from './SiteCard'
 import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
@@ -26,6 +26,17 @@ type Tab = 'all' | 'undone' | 'done' | 'failed' | 'log'
 
 const DONE_STATUSES: SubmissionStatus[] = ['submitted', 'approved', 'skipped']
 
+function shuffle<T>(arr: T[]): T[] {
+	const a = [...arr]
+	for (let i = a.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1))
+		;[a[i], a[j]] = [a[j], a[i]]
+	}
+	return a
+}
+
+const RANDOM_OPEN_COUNT = 10
+
 export function Dashboard({
 	sites,
 	submissions,
@@ -43,6 +54,23 @@ export function Dashboard({
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
 	const [categoryFilter, setCategoryFilter] = useState<SiteCategory | 'all'>('all')
+	const [opening, setOpening] = useState(false)
+
+	const openRandomSites = useCallback(async () => {
+		const candidates = undoneSites.filter((s) => !!s.submit_url)
+		if (candidates.length === 0) return
+
+		const picked = shuffle(candidates).slice(0, RANDOM_OPEN_COUNT)
+
+		setOpening(true)
+		for (let i = 0; i < picked.length; i++) {
+			await chrome.tabs.create({ url: picked[i].submit_url!, active: i === picked.length - 1 })
+			if (i < picked.length - 1) {
+				await new Promise((r) => setTimeout(r, 500))
+			}
+		}
+		setOpening(false)
+	}, [undoneSites])
 
 	const submittableSites = useMemo(
 		() => sites.filter((s) => !!s.submit_url),
@@ -176,6 +204,22 @@ export function Dashboard({
 							onChange={(e) => setSearch(e.target.value)}
 							className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 						/>
+						{tab === 'undone' && (() => {
+							const openableCount = undoneSites.filter((s) => !!s.submit_url).length
+							const count = Math.min(RANDOM_OPEN_COUNT, openableCount)
+							return (
+								<Button
+									variant="outline"
+									size="xs"
+									disabled={openableCount === 0 || opening}
+									onClick={openRandomSites}
+									title={`随机打开 ${count} 个未提交外链`}
+								>
+									{opening ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+									{opening ? '打开中...' : `随机 ${count}`}
+								</Button>
+							)
+						})()}
 					</div>
 
 					{/* Site list */}
