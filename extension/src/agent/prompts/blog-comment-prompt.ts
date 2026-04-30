@@ -1,7 +1,7 @@
 /**
  * 博客评论 prompt 构建器。
  * 指导 LLM 生成"肯定+补充+锚文本链接"结构的高质量评论。
- * 评论正文始终包含 HTML 链接，name 字段使用随机英文姓名。
+ * 评论正文始终包含 HTML 链接，name 字段使用产品数据中的创始人姓名。
  */
 
 import type { PageContent } from '../PageContentExtractor'
@@ -21,14 +21,14 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
   const fieldList = buildFieldList(fields, forms)
 
   const example = JSON.stringify({
-    field_0: 'Sarah Mitchell',
+    field_0: 'John Smith',  // 使用产品数据中的创始人姓名
     field_1: 'founder@example.com',
     field_2: 'https://productai.com',
     field_3: 'finally someone actually benchmarked this properly — the cold-start numbers at the edge match what we saw last quarter. been using <a href="https://productai.com">these inference optimizers</a> for similar workloads and the difference is honestly night and day.',
   }, null, 2)
 
   const exampleNoUrl = JSON.stringify({
-    field_0: 'Alex Chen',
+    field_0: 'John Smith',  // 使用产品数据中的创始人姓名
     field_1: 'founder@example.com',
     field_2: 'that INT4 accuracy drop was exactly what we hit too — nobody talks about it but it\'s real. we ended up going with <a href="https://productai.com">model compression tools</a> + distillation instead and honestly it just worked better for our scale.',
   }, null, 2)
@@ -108,7 +108,7 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '### 字段填写',
     '',
-    '9. name/author 字段：随机生成一个常见的英文姓名（名+姓，如 "Alex Chen"、"Sarah Mitchell"）。不要使用产品名称或锚文本。',
+    '9. name/author 字段：使用产品数据中的创始人姓名。不要使用产品名称或锚文本。',
     '10. URL/website/homepage 字段：填写产品 URL。',
     '11. email 字段：使用产品数据中的创始人邮箱，没有则留空。',
     '12. 其他字段：仅在有对应产品数据时填写。',
