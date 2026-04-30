@@ -56,22 +56,6 @@ export function Dashboard({
 	const [categoryFilter, setCategoryFilter] = useState<SiteCategory | 'all'>('all')
 	const [opening, setOpening] = useState(false)
 
-	const openRandomSites = useCallback(async () => {
-		const candidates = undoneSites.filter((s) => !!s.submit_url)
-		if (candidates.length === 0) return
-
-		const picked = shuffle(candidates).slice(0, RANDOM_OPEN_COUNT)
-
-		setOpening(true)
-		for (let i = 0; i < picked.length; i++) {
-			await chrome.tabs.create({ url: picked[i].submit_url!, active: i === picked.length - 1 })
-			if (i < picked.length - 1) {
-				await new Promise((r) => setTimeout(r, 500))
-			}
-		}
-		setOpening(false)
-	}, [undoneSites])
-
 	const submittableSites = useMemo(
 		() => sites.filter((s) => !!s.submit_url),
 		[sites]
@@ -127,6 +111,22 @@ export function Dashboard({
 			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
 			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
 	}, [sites, submissions, matchesSearch, categoryFilter])
+
+	const openRandomSites = useCallback(async () => {
+		const candidates = undoneSites.filter((s) => !!s.submit_url)
+		if (candidates.length === 0) return
+
+		const picked = shuffle(candidates).slice(0, RANDOM_OPEN_COUNT)
+
+		setOpening(true)
+		for (let i = 0; i < picked.length; i++) {
+			await chrome.tabs.create({ url: picked[i].submit_url!, active: i === picked.length - 1 })
+			if (i < picked.length - 1) {
+				await new Promise((r) => setTimeout(r, 500))
+			}
+		}
+		setOpening(false)
+	}, [undoneSites])
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
 		{ id: 'all', label: '全部', count: allSites.length },
