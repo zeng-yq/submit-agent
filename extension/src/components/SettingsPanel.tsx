@@ -69,7 +69,7 @@ export function SettingsPanel({ onDataImported }: { onDataImported?: () => void 
 	const [configs, setConfigs] = useState<Record<ProviderKey, LLMSettings>>({
 		openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.5-flash-lite-preview-09-2025' },
 		openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-		deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+		deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
 		custom: { apiKey: '', baseUrl: '', model: '' },
 	})
 	const [floatEnabled, setFloatEnabled] = useState(true)
