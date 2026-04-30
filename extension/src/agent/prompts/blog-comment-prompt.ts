@@ -24,13 +24,13 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     field_0: 'John Smith',  // 使用产品数据中的创始人姓名
     field_1: 'founder@example.com',
     field_2: 'https://productai.com',
-    field_3: 'finally someone actually benchmarked this properly — the cold-start numbers at the edge match what we saw last quarter. been using <a href="https://productai.com">these inference optimizers</a> for similar workloads and the difference is honestly night and day.',
+    field_3: 'finally someone actually benchmarked this properly. the cold-start numbers at the edge match what we saw last quarter. been using <a href="https://productai.com">these inference optimizers</a> for similar workloads and the difference is honestly night and day.',
   }, null, 2)
 
   const exampleNoUrl = JSON.stringify({
     field_0: 'John Smith',  // 使用产品数据中的创始人姓名
     field_1: 'founder@example.com',
-    field_2: 'that INT4 accuracy drop was exactly what we hit too — nobody talks about it but it\'s real. we ended up going with <a href="https://productai.com">model compression tools</a> + distillation instead and honestly it just worked better for our scale.',
+    field_2: 'that INT4 accuracy drop was exactly what we hit too. nobody talks about it but it\'s real. we ended up going with <a href="https://productai.com">model compression tools</a> + distillation instead and honestly it just worked better for our scale.',
   }, null, 2)
 
   return [
@@ -38,12 +38,13 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '## 硬性要求',
     '',
-    '1. 评论正文中必须包含一个 HTML 锚标签，格式为：',
+    '1. **语种必须与页面内容一致**：先判断页面内容使用的语言（英语、中文、日语、西班牙语等），然后完全使用该语言生成评论。即使本指令是中文，评论也必须匹配页面语言。英语页面用英语评论，日语页面用日语评论，绝不例外。',
+    '2. 评论正文中必须包含一个 HTML 锚标签，格式为：',
     '   <a href="{product_url}">{anchor_text}</a>',
     '   其中 {product_url} 和 {anchor_text} 由下方产品上下文指定。',
-    '2. 绝对不能将锚文本作为纯文本输出——必须包裹在 <a> 标签内。',
-    '3. 错误示范："check out real-time AI optimization tools"（纯文本，无链接）',
-    '4. 正确示范："check out <a href="https://productai.com">real-time AI optimization tools</a>"',
+    '3. 绝对不能将锚文本作为纯文本输出——必须包裹在 <a> 标签内。',
+    '4. 错误示范："check out real-time AI optimization tools"（纯文本，无链接）',
+    '5. 正确示范："check out <a href="https://productai.com">real-time AI optimization tools</a>"',
     '',
     productContext,
     '',
@@ -71,7 +72,7 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '   - 中文：用"说实话"、"感觉"、"挺有意思的"、"之前也踩过这个坑"、"这确实是个问题"等口语词汇。',
     '   - 英文：用 "honestly"、"tbh"、"fair point"、"ran into this too"、"pretty solid" 等日常用语。',
     '   - 繁体中文/日文等其他语言：同样使用当地网络评论的口语风格。',
-    '2. **句式要短、要有断裂感**：真人评论不会一逗到底。适当用短句、省略主语、用破折号做插入。',
+    '2. **句式要短、要有断裂感**：真人评论不会一逗到底。适当用短句、省略主语、用句号断句。',
     '3. **可以不完美**：允许省略标点、首字母小写（英文）、使用缩写（如 "tbh"、"imo"、"ngl"）。这些是真人评论的标志。',
     '4. **有态度**：可以表达赞同、惊讶、吐槽，但不要过度。语气像朋友之间聊天。',
     '',
@@ -97,6 +98,7 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '- "为我提供了宝贵的见解/给了我很大的启发"',
     '- 任何四字成语的堆砌（如"深入浅出、条理清晰、受益匪浅"）',
     '- 英文的 "As a [role]…"、"This article provides…"、"It\'s worth noting that…"、"I couldn\'t agree more"',
+    '- 使用破折号（—）做插入语（如"这个方案 — 众所周知 — 效果很好"）',
     '',
     '### 好评论 vs 坏评论',
     '',
@@ -115,7 +117,6 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '### 其他要求',
     '',
-    '13. 生成内容的语种必须与页面内容一致。',
     '14. 只使用产品上下文中提供的数据，不要编造信息。',
     '15. 只填写目标评论表单（标记为 [Form N]）中的字段，忽略标记为 "filtered" 的表单。',
     '',

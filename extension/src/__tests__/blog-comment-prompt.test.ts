@@ -155,14 +155,14 @@ describe('buildBlogCommentPrompt', () => {
     expect(prompt).not.toContain('dofollow')
   })
 
-  it('includes the rule about random English name for name field', () => {
+  it('includes the rule about founder name for name field', () => {
     const prompt = buildBlogCommentPrompt({
       productContext,
       pageContent: mockPageContent,
       fields: mockFields,
       forms: mockForms,
     })
-    expect(prompt).toContain('英文姓名')
+    expect(prompt).toContain('创始人姓名')
     expect(prompt).toContain('name/author')
   })
 
