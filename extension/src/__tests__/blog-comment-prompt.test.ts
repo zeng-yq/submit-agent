@@ -231,4 +231,24 @@ describe('buildBlogCommentPrompt', () => {
     expect(prompt).toContain('正确示范')
     expect(prompt).toMatch(/正确示范.*<a href=/)
   })
+
+  it('includes anchor text translation rule for non-English pages', () => {
+    const prompt = buildBlogCommentPrompt({
+      productContext,
+      pageContent: mockPageContent,
+      fields: mockFields,
+      forms: mockForms,
+    })
+    expect(prompt).toContain('锚文本必须与页面内容语种一致')
+  })
+
+  it('includes a non-English anchor text example', () => {
+    const prompt = buildBlogCommentPrompt({
+      productContext,
+      pageContent: mockPageContent,
+      fields: mockFields,
+      forms: mockForms,
+    })
+    expect(prompt).toContain('AI推論最適化ツール')
+  })
 })

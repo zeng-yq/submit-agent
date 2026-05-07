@@ -33,6 +33,13 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     field_2: 'that INT4 accuracy drop was exactly what we hit too. nobody talks about it but it\'s real. we ended up going with <a href="https://productai.com">model compression tools</a> + distillation instead and honestly it just worked better for our scale.',
   }, null, 2)
 
+  const exampleJa = JSON.stringify({
+    field_0: 'John Smith',  // 使用产品数据中的创始人姓名
+    field_1: 'founder@example.com',
+    field_2: 'https://productai.com',
+    field_3: 'この記事のベンチマーク結果は興味深いですね。<a href="https://productai.com">AI推論最適化ツール</a>を使っていますが、エッジでのコールドスタート問題について同じような結果を確認しました。',
+  }, null, 2)
+
   return [
     '你正在填写博客评论表单，目的是建立反向链接。请根据页面内容和产品信息为每个字段生成合适的值。你的评论必须有真实价值，且容易被博客作者通过审核。',
     '',
@@ -42,9 +49,10 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '2. 评论正文中必须包含一个 HTML 锚标签，格式为：',
     '   <a href="{product_url}">{anchor_text}</a>',
     '   其中 {product_url} 和 {anchor_text} 由下方产品上下文指定。',
-    '3. 绝对不能将锚文本作为纯文本输出——必须包裹在 <a> 标签内。',
-    '4. 错误示范："check out real-time AI optimization tools"（纯文本，无链接）',
-    '5. 正确示范："check out <a href="https://productai.com">real-time AI optimization tools</a>"',
+    '3. 锚文本必须与页面内容语种一致。如果提供的锚文本是英文但页面是其他语种，将锚文本翻译为页面语种后使用。翻译时选择该语种中自然且常用的表达。',
+    '4. 绝对不能将锚文本作为纯文本输出——必须包裹在 <a> 标签内。',
+    '5. 错误示范："check out real-time AI optimization tools"（纯文本，无链接）',
+    '6. 正确示范："check out <a href="https://productai.com">real-time AI optimization tools</a>"',
     '',
     productContext,
     '',
@@ -138,5 +146,8 @@ export function buildBlogCommentPrompt(input: BlogCommentPromptInput): string {
     '',
     '示例（无 URL 字段——评论正文仍包含链接）:',
     exampleNoUrl,
+    '',
+    '示例（非英文页面——锚文本已翻译为页面语种）:',
+    exampleJa,
   ].join('\n')
 }
