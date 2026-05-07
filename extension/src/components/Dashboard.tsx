@@ -71,7 +71,7 @@ export function Dashboard({
 
 	const matchesSearch = useCallback((s: SiteData) => {
 		const q = search.toLowerCase()
-		return !q || s.name.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q)
+		return !q || s.name.toLowerCase().includes(q) || s.category?.toLowerCase().includes(q) || s.submit_url?.toLowerCase().includes(q)
 	}, [search])
 
 	const allSites = useMemo(() => {

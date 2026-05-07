@@ -1,6 +1,27 @@
 import type { FormGroup } from './types'
 
 /**
+ * Detect whether a form is a comment form (not a newsletter signup).
+ * Prevents mis-classifying comment forms that contain subscription checkboxes
+ * (e.g. Jetpack's "subscribe_comments" / "subscribe_blog" checkboxes).
+ */
+function hasCommentFormSignals(formEl: HTMLFormElement, fieldNames: string[]): boolean {
+  const id = formEl.id?.toLowerCase() || ''
+  const cls = typeof formEl.className === 'string' ? formEl.className.toLowerCase() : ''
+  const action = formEl.getAttribute('action')?.toLowerCase() || ''
+
+  if (id.includes('commentform') || id.includes('comment-form')) return true
+  if (cls.includes('comment-form')) return true
+  if (action.includes('comment')) return true
+  if (formEl.querySelector('textarea[name="comment"]')) return true
+
+  const commentFields = ['comment', 'author']
+  if (commentFields.filter(s => fieldNames.includes(s)).length >= 2) return true
+
+  return false
+}
+
+/**
  * Classify a <form> element's role (search, login, newsletter, or unknown).
  */
 export function classifyForm(formEl: HTMLFormElement, formIndex: number): FormGroup {
@@ -54,7 +75,8 @@ export function classifyForm(formEl: HTMLFormElement, formIndex: number): FormGr
   if (action && (action.includes('/subscribe') || action.includes('/newsletter'))) {
     return { form_index: formIndex, role: 'newsletter', confidence: 'high', form_id: id, form_action: action, field_count: fieldCount, filtered: true };
   }
-  if (fieldNames.some(n => n.includes('newsletter') || n.includes('subscribe') || n.includes('mailing'))) {
+  if (!hasCommentFormSignals(formEl, fieldNames) &&
+      fieldNames.some(n => n.includes('newsletter') || n.includes('subscribe') || n.includes('mailing'))) {
     return { form_index: formIndex, role: 'newsletter', confidence: 'high', form_id: id, form_action: action, field_count: fieldCount, filtered: true };
   }
   if (fieldCount === 1 && fieldNames.some(n => n.includes('email'))) {
