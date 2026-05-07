@@ -40,6 +40,14 @@ export function buildSelector(el: HTMLElement): string {
 }
 
 /**
+ * Check if a label string is meaningful (contains at least one letter or digit).
+ * Purely symbolic labels like "*", ":", "※" are not useful for field identification.
+ */
+function isMeaningfulLabel(text: string): boolean {
+  return /[a-zA-Z0-9一-鿿぀-ゟ゠-ヿ]/.test(text)
+}
+
+/**
  * Find the associated label text for a form element.
  * Uses a 7-step cascade from most specific to most general.
  */
@@ -88,7 +96,7 @@ export function findLabel(doc: Document, el: HTMLElement): string {
       const labelFor = prev.getAttribute('for');
       if (!labelFor || labelFor === el.id) {
         const text = prev.textContent?.trim();
-        if (text) return text;
+        if (text && isMeaningfulLabel(text)) return text;
       }
     }
     prev = prev.previousElementSibling;
@@ -108,7 +116,7 @@ export function findLabel(doc: Document, el: HTMLElement): string {
           if (labelFor && labelFor !== el.id) continue;
         }
         const text = sibling.textContent?.trim();
-        if (text) return text;
+        if (text && isMeaningfulLabel(text)) return text;
       }
     }
   }
@@ -143,6 +151,10 @@ export function deduplicateFields(fields: FormField[]): FormField[] {
 
     for (const [, sameLabelFields] of byLabel) {
       if (sameLabelFields.length < 2) continue;
+
+      // Skip dedup when label is not meaningful (pure symbols like "*")
+      const key = labelKey(sameLabelFields[0]);
+      if (!isMeaningfulLabel(key)) continue;
 
       const score = (f: FormField): number => {
         let s = 0;

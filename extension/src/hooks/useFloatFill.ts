@@ -80,10 +80,8 @@ export function useFloatFill({
 		await runFloatFillRef.current()
 	}, [])
 
-	// 挂载时清理残留的 floatFillPending，避免后续误触发
-	useEffect(() => {
-		chrome.storage.session.remove('floatFillPending').catch(() => {})
-	}, [])
+	// runFloatFill 内部会清理 floatFillPending，无需在挂载时清除
+	// （挂载时清除会导致 sidepanel 新打开时读不到 pending flag，fallback 失效）
 
 	useEffect(() => {
 		if (!activeProduct || sites.length === 0) return

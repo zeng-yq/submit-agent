@@ -215,14 +215,21 @@ function handleFloatFill(
 	const tabId = sender.tab?.id
 
 	if (message.action === 'start' && tabId) {
-		// Store requesting tab so sidepanel knows which tab to operate on
-		chrome.storage.session.set({ floatFillTabId: tabId, floatFillPending: true }).catch(() => {})
-		// Auto-open sidepanel on this tab
-		chrome.sidePanel.open({ tabId }).catch(() => {})
+		// Ensure floatFillTabId is written before broadcasting, so sidepanel
+		// always reads the correct value instead of a stale one.
+		chrome.storage.session.set({ floatFillTabId: tabId, floatFillPending: true })
+			.then(() => {
+				chrome.sidePanel.open({ tabId }).catch(() => {})
+				chrome.runtime.sendMessage(message).catch(() => {})
+			})
+			.catch(() => {
+				chrome.sidePanel.open({ tabId }).catch(() => {})
+				chrome.runtime.sendMessage(message).catch(() => {})
+			})
+	} else {
+		// Broadcast to sidepanel
+		chrome.runtime.sendMessage(message).catch(() => {})
 	}
-
-	// Broadcast to sidepanel
-	chrome.runtime.sendMessage(message).catch(() => {})
 
 	// Forward to content script tab (chrome.runtime.sendMessage doesn't reach content scripts)
 	if (!tabId) {
