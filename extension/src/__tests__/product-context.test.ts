@@ -10,6 +10,8 @@ const mockProduct: ProductProfile = {
   anchorTexts: 'AI optimization tools, model compression workflows',
   founderName: 'John Smith',
   founderEmail: 'john@productai.com',
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
 }
 
 describe('buildProductContext', () => {
