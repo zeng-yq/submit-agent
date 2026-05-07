@@ -15,6 +15,7 @@ export function buildProductContext(product: ProductProfile, selectedAnchor?: st
 
 	if (selectedAnchor) {
 		lines.push(`**本次使用的锚文本:** ${selectedAnchor}`)
+		lines.push('**锚文本语种要求:** 如果页面语种与锚文本语种不同，必须将锚文本翻译为页面语种后再使用。翻译时应保持关键词的 SEO 价值，选择该语种中对应的常用搜索词。')
 	}
 
 	if (product.founderName) {
