@@ -35,3 +35,11 @@ export function pickAnchorText(product: ProductProfile): string {
 		? list[Math.floor(Math.random() * list.length)]
 		: product.name
 }
+
+/** Randomly select one founder name from the comma-separated list. Falls back to empty string. */
+export function pickFounderName(product: ProductProfile): string {
+	const list = product.founderName.split(',').map(s => s.trim()).filter(Boolean)
+	return list.length > 0
+		? list[Math.floor(Math.random() * list.length)]
+		: ''
+}

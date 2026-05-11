@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildProductContext, pickAnchorText } from '@/agent/prompts/product-context'
+import { buildProductContext, pickAnchorText, pickFounderName } from '@/agent/prompts/product-context'
 import type { ProductProfile } from '@/lib/types'
 
 const mockProduct: ProductProfile = {
@@ -36,5 +36,29 @@ describe('pickAnchorText', () => {
   it('returns one of the anchor texts', () => {
     const result = pickAnchorText(mockProduct)
     expect(['AI optimization tools', 'model compression workflows']).toContain(result)
+  })
+})
+
+describe('pickFounderName', () => {
+  it('returns empty string when founderName is empty', () => {
+    const product = { ...mockProduct, founderName: '' }
+    expect(pickFounderName(product)).toBe('')
+  })
+
+  it('returns the single name when only one is provided', () => {
+    const product = { ...mockProduct, founderName: '张三' }
+    expect(pickFounderName(product)).toBe('张三')
+  })
+
+  it('returns one of the names from comma-separated list', () => {
+    const product = { ...mockProduct, founderName: '张三, John Doe, 李四' }
+    const result = pickFounderName(product)
+    expect(['张三', 'John Doe', '李四']).toContain(result)
+  })
+
+  it('trims whitespace around names', () => {
+    const product = { ...mockProduct, founderName: '  Alice  ,  Bob  ,  Charlie  ' }
+    const result = pickFounderName(product)
+    expect(['Alice', 'Bob', 'Charlie']).toContain(result)
   })
 })
