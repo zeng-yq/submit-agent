@@ -130,11 +130,12 @@ function ExtraFields({
 			<div className="border-t border-border pt-4 mt-4">
 				<div className="text-xs font-semibold mb-3">{'创始人信息'}</div>
 				<div className="space-y-3">
-					<Input
-						label={'姓名'}
-						placeholder="Jane Doe"
+					<Textarea
+						label={'创始人姓名（用英文逗号分隔）'}
+						placeholder="张三, John Doe, 李四"
 						value={form.founderName}
 						onChange={(e) => update('founderName', e.target.value)}
+						rows={2}
 					/>
 					<Input
 						label={'邮箱'}
