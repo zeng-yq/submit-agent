@@ -56,6 +56,9 @@ export function useFloatFill({
 						const r = await startSubmission(matched)
 						if (r.failed === 0 && r.filled > 0) {
 							markSubmitted(matched.name, activeProduct.id)
+						} else if (r.filled === 0) {
+							chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+							markFailed(matched.name, activeProduct.id, '页面未发现可填写的表单字段')
 						}
 						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					} catch (err) {
@@ -130,7 +133,12 @@ export function useFloatFill({
 		setCurrentEngineSite(virtualSite)
 		try {
 			const r = await startSubmission(virtualSite)
-			if (r.failed === 0 && r.filled > 0) markSubmitted(virtualSite.name, activeProduct.id)
+			if (r.failed === 0 && r.filled > 0) {
+				markSubmitted(virtualSite.name, activeProduct.id)
+			} else if (r.filled === 0) {
+				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+				markFailed(virtualSite.name, activeProduct.id, '页面未发现可填写的表单字段')
+			}
 			setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 		} catch (err) {
 			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
