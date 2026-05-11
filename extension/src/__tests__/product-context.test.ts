@@ -25,6 +25,19 @@ describe('buildProductContext', () => {
     const result = buildProductContext(mockProduct)
     expect(result).not.toContain('锚文本语种要求')
   })
+
+  it('injects selected founder name when provided', () => {
+    const product = { ...mockProduct, founderName: '张三, 李四' }
+    const result = buildProductContext(product, 'AI optimization tools', '张三')
+    expect(result).toContain('**创始人姓名:** 张三')
+    expect(result).not.toContain('张三, 李四')
+  })
+
+  it('omits founder name when selectedFounderName is empty', () => {
+    const product = { ...mockProduct, founderName: '张三' }
+    const result = buildProductContext(product, undefined, '')
+    expect(result).not.toContain('创始人姓名')
+  })
 })
 
 describe('pickAnchorText', () => {

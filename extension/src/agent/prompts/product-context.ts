@@ -1,6 +1,6 @@
 import type { ProductProfile } from '@/lib/types'
 
-export function buildProductContext(product: ProductProfile, selectedAnchor?: string): string {
+export function buildProductContext(product: ProductProfile, selectedAnchor?: string, selectedFounderName?: string): string {
 	const lines = [
 		'## 产品信息',
 		'',
@@ -18,8 +18,8 @@ export function buildProductContext(product: ProductProfile, selectedAnchor?: st
 		lines.push('**锚文本语种要求:** 如果页面语种与锚文本语种不同，必须将锚文本翻译为页面语种后再使用。翻译时应保持关键词的 SEO 价值，选择该语种中对应的常用搜索词。')
 	}
 
-	if (product.founderName) {
-		lines.push('', `**创始人姓名:** ${product.founderName}`)
+	if (selectedFounderName) {
+		lines.push('', `**创始人姓名:** ${selectedFounderName}`)
 	}
 	if (product.founderEmail) {
 		lines.push(`**创始人邮箱:** ${product.founderEmail}`)
