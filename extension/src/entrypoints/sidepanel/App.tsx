@@ -17,6 +17,7 @@ type Tab = 'submit' | 'analysis' | 'settings'
 export default function App() {
 	const [tab, setTab] = useState<Tab>('submit')
 	const [dropdownOpen, setDropdownOpen] = useState(false)
+	const [showQuickCreate, setShowQuickCreate] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive, refresh: refreshProducts } = useProduct()
 	const { sites, submissions, loading: sitesLoading, refresh: refreshSites, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSite } = useSites(activeProduct?.id ?? null)
@@ -152,13 +153,14 @@ export default function App() {
 	}, [sites, submissions])
 
 	function renderSubmitTab() {
-		if (!activeProduct) {
+		if (!activeProduct || showQuickCreate) {
 			return (
 				<QuickCreate
 					onSave={async (data) => {
 						await createProduct(data)
+						setShowQuickCreate(false)
 					}}
-					onSkip={() => chrome.runtime.openOptionsPage()}
+					onSkip={() => { setShowQuickCreate(false); chrome.runtime.openOptionsPage() }}
 				/>
 			)
 		}
@@ -197,7 +199,7 @@ export default function App() {
 									<button
 										type="button"
 										className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"
-										onClick={() => { setDropdownOpen(false) }}
+										onClick={() => { setDropdownOpen(false); setShowQuickCreate(true) }}
 									>
 										{'+ 添加产品'}
 									</button>

@@ -312,6 +312,81 @@ function createButton() {
 		.delete-btn:active {
 			transform: scale(0.95);
 		}
+
+		/* Delete confirm popover */
+		.delete-popover {
+			position: absolute;
+			bottom: calc(100% + 10px);
+			right: 0;
+			min-width: 220px;
+			padding: 12px 14px;
+			border-radius: 10px;
+			background: rgba(255, 255, 255, 0.92);
+			backdrop-filter: blur(16px) saturate(1.8);
+			-webkit-backdrop-filter: blur(16px) saturate(1.8);
+			border: 1px solid rgba(0, 0, 0, 0.06);
+			box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
+			z-index: 10;
+			opacity: 0;
+			transform: translateY(4px) scale(0.96);
+			transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+			pointer-events: none;
+		}
+		.delete-popover.visible {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+			pointer-events: auto;
+		}
+		.delete-popover::after {
+			content: '';
+			position: absolute;
+			bottom: -6px;
+			right: 14px;
+			width: 12px;
+			height: 12px;
+			background: rgba(255, 255, 255, 0.92);
+			border-right: 1px solid rgba(0, 0, 0, 0.06);
+			border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+			transform: rotate(45deg);
+		}
+		.delete-popover-text {
+			font-size: 12.5px;
+			color: #44403C;
+			line-height: 1.5;
+			margin-bottom: 10px;
+		}
+		.delete-popover-text strong {
+			color: #1C1917;
+		}
+		.delete-popover-actions {
+			display: flex;
+			justify-content: flex-end;
+			gap: 8px;
+		}
+		.delete-popover-actions button {
+			padding: 4px 14px;
+			border-radius: 6px;
+			font-size: 12px;
+			font-weight: 500;
+			cursor: pointer;
+			border: none;
+			transition: all 0.15s ease;
+			line-height: 1.4;
+		}
+		.popover-cancel {
+			background: rgba(0, 0, 0, 0.05);
+			color: #78716C;
+		}
+		.popover-cancel:hover {
+			background: rgba(0, 0, 0, 0.08);
+		}
+		.popover-confirm {
+			background: linear-gradient(135deg, #F87171, #DC2626);
+			color: #fff;
+		}
+		.popover-confirm:hover {
+			opacity: 0.9;
+		}
 	`
 	shadow.appendChild(style)
 
@@ -353,7 +428,28 @@ function createButton() {
 		deleteBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`
 		deleteBtn.addEventListener('click', handleDeleteClick)
 
+		// Delete confirm popover
+		const popover = document.createElement('div')
+		popover.className = 'delete-popover'
+		popover.innerHTML = `
+			<div class="delete-popover-text">确定要从外链库中删除「<strong>${matchedSiteName}</strong>」吗？</div>
+			<div class="delete-popover-actions">
+				<button class="popover-cancel">取消</button>
+				<button class="popover-confirm">删除</button>
+			</div>
+		`
+		popover.querySelector('.popover-cancel')!.addEventListener('click', (e) => {
+			e.stopPropagation()
+			hideDeletePopover()
+		})
+		popover.querySelector('.popover-confirm')!.addEventListener('click', (e) => {
+			e.stopPropagation()
+			hideDeletePopover()
+			performDelete()
+		})
+
 		container.appendChild(deleteBtn)
+		container.appendChild(popover)
 	}
 
 	// Action button
@@ -384,15 +480,21 @@ function createButton() {
 	container.appendChild(closeBtn)
 
 	shadow.appendChild(container)
-	document.body.appendChild(host)
+		document.body.appendChild(host)
 
-	// Position indicator after layout
-	requestAnimationFrame(() => positionIndicator())
-}
+		// Close popover on outside click or Escape
+		document.addEventListener('click', handleOutsideClick)
+		document.addEventListener('keydown', handleEscapeKey)
+
+		// Position indicator after layout
+		requestAnimationFrame(() => positionIndicator())
+	}
 
 function removeButton() {
 	const existing = document.getElementById(BUTTON_ID)
 	if (existing) existing.remove()
+	document.removeEventListener('click', handleOutsideClick)
+	document.removeEventListener('keydown', handleEscapeKey)
 	host = null
 	shadow = null
 	mainBtn = null
@@ -439,11 +541,35 @@ function handleMainClick() {
 		})
 }
 
+function handleOutsideClick(e: Event) {
+	if (!host) return
+	const composed = e.composedPath()
+	if (!composed.includes(host)) hideDeletePopover()
+}
+
+function handleEscapeKey(e: KeyboardEvent) {
+	if (e.key === 'Escape') hideDeletePopover()
+}
+
 function handleDeleteClick() {
 	if (!matchedSiteName) return
+	showDeletePopover()
+}
 
-	const confirmed = confirm(`确定要从外链库中删除「${matchedSiteName}」吗？`)
-	if (!confirmed) return
+function showDeletePopover() {
+	if (!shadow) return
+	const popover = shadow.querySelector('.delete-popover')
+	if (popover) popover.classList.add('visible')
+}
+
+function hideDeletePopover() {
+	if (!shadow) return
+	const popover = shadow.querySelector('.delete-popover')
+	if (popover) popover.classList.remove('visible')
+}
+
+function performDelete() {
+	if (!matchedSiteName) return
 
 	chrome.runtime.sendMessage({
 		type: 'DELETE_SITE',
@@ -453,9 +579,7 @@ function handleDeleteClick() {
 			chrome.runtime.sendMessage({ type: 'CLOSE_TAB' })
 			removeButton()
 		}
-	}).catch(() => {
-		// 删除失败时静默处理
-	})
+	}).catch(() => {})
 }
 
 function updateButtonState(state: ButtonState) {
