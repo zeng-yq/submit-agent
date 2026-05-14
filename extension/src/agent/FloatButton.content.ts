@@ -480,15 +480,15 @@ function createButton() {
 	container.appendChild(closeBtn)
 
 	shadow.appendChild(container)
-		document.body.appendChild(host)
+	document.body.appendChild(host)
 
-		// Close popover on outside click or Escape
-		document.addEventListener('click', handleOutsideClick)
-		document.addEventListener('keydown', handleEscapeKey)
+	// Close popover on outside click or Escape
+	document.addEventListener('click', handleOutsideClick)
+	document.addEventListener('keydown', handleEscapeKey)
 
-		// Position indicator after layout
-		requestAnimationFrame(() => positionIndicator())
-	}
+	// Position indicator after layout
+	requestAnimationFrame(() => positionIndicator())
+}
 
 function removeButton() {
 	const existing = document.getElementById(BUTTON_ID)
