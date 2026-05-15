@@ -487,16 +487,6 @@ function createButton() {
 		container.appendChild(popover)
 	}
 
-	// Add-to-library button (only for unknown sites)
-	if (!isKnownSite) {
-		const addBtn = document.createElement('button')
-		addBtn.className = 'add-btn'
-		addBtn.title = '添加到外链库'
-		addBtn.textContent = '+'
-		addBtn.addEventListener('click', handleAddClick)
-		container.appendChild(addBtn)
-	}
-
 	// Action button
 	const btnWrap = document.createElement('div')
 	btnWrap.style.position = 'relative'
@@ -522,6 +512,17 @@ function createButton() {
 	})
 
 	container.appendChild(mainBtn)
+
+	// Add-to-library button (only for unknown sites)
+	if (!isKnownSite) {
+		const addBtn = document.createElement('button')
+		addBtn.className = 'add-btn'
+		addBtn.title = '添加到外链库'
+		addBtn.textContent = '+'
+		addBtn.addEventListener('click', handleAddClick)
+		container.appendChild(addBtn)
+	}
+
 	container.appendChild(closeBtn)
 
 	shadow.appendChild(container)
