@@ -56,26 +56,28 @@ export async function analyzeBacklink(
     fields: allFields.length,
   })
 
-  // Determine canComment
-  const hasUnfilteredForm = unfilteredForms.length > 0
-  const hasCommentArea = commentFields.length > 0 || textareaFields.length > 0
-  const hasCommentExternalLinks = analysis.commentLinks?.hasExternalLinks ?? false
-  const canComment = (hasUnfilteredForm && hasCommentArea) || hasCommentExternalLinks
+  const commentSystem = analysis.commentSystem?.name
 
   // Detect CMS
   let cmsType: BacklinkAnalysisResult['cmsType'] = 'unknown'
   const formActions = unfilteredForms.map(f => f.form_action || '').join(' ')
+
   if (formActions.includes('wp-comments-post') || formActions.includes('wp-admin')) {
     cmsType = 'wordpress'
-  } else if (formActions.includes('blogger.com/comment')) {
+  } else if (formActions.includes('blogger.com/comment') || commentSystem === 'blogger') {
     cmsType = 'blogger'
   } else if (formActions.includes('forum.php?mod=post') || formActions.includes('forum.php?mod=misc')) {
     cmsType = 'discuz'
-  } else if (hasUnfilteredForm && hasCommentArea) {
+  } else if (unfilteredForms.length > 0 && (commentFields.length > 0 || textareaFields.length > 0)) {
     cmsType = 'custom'
   }
 
-  const commentSystem = analysis.commentSystem?.name
+  // Determine canComment
+  const hasUnfilteredForm = unfilteredForms.length > 0
+  const hasCommentArea = commentFields.length > 0 || textareaFields.length > 0
+  const hasCommentExternalLinks = analysis.commentLinks?.hasExternalLinks ?? false
+  const hasBloggerComment = commentSystem === 'blogger'
+  const canComment = (hasUnfilteredForm && hasCommentArea) || hasCommentExternalLinks || hasBloggerComment
 
   // Infer formType
   let formType: BacklinkAnalysisResult['formType'] = 'none'

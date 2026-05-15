@@ -27,6 +27,15 @@ const COMMENT_SYSTEM_DETECTORS: CommentSystemDetector[] = [
     selectors: ['.fb-comments', 'iframe[src*="facebook.com/plugins/comments"]'],
     boost: 0.15,
   },
+  {
+    name: 'blogger',
+    selectors: [
+      'iframe#comment-editor[src*="blogger.com/comment"]',
+      'iframe.blogger-comment-from-post',
+      'iframe[src*="blogger.com/comment/frame"]',
+    ],
+    boost: 0.15,
+  },
 ]
 
 export function detectCommentSystem(doc: Document): CommentSystemResult | null {
