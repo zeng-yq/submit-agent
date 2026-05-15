@@ -1,5 +1,5 @@
 import { getActiveProductId, setFloatButtonEnabled } from '@/lib/storage'
-import { deleteSite, deleteSubmissionsBySite, listSubmissionsByProduct } from '@/lib/db'
+import { deleteSite, deleteSubmissionsBySite, listSubmissionsByProduct, getSite, addSite } from '@/lib/db'
 import { loadSites, matchCurrentPage, reloadSites } from '@/lib/sites'
 import type { SubmissionStatus } from '@/lib/types'
 
@@ -25,6 +25,10 @@ export default defineBackground(() => {
 			return handleCheckSiteMatch(message, sendResponse)
 		} else if (message.type === 'DELETE_SITE') {
 			return handleDeleteSite(message, sendResponse)
+		} else if (message.type === 'FLOAT_ADD_SITE') {
+			return handleFloatAddSite(message, sender, sendResponse)
+		} else if (message.type === 'ADD_SITE') {
+			return handleAddSite(message, sendResponse)
 		} else if (message.type === 'CLOSE_TAB') {
 			if (sender.tab?.id != null) {
 				chrome.tabs.remove(sender.tab.id).catch(() => {})
@@ -351,6 +355,66 @@ function handleDeleteSite(
 			await deleteSubmissionsBySite(siteName)
 			await reloadSites()
 			chrome.runtime.sendMessage({ type: 'SITES_CHANGED' }).catch(() => {})
+			sendResponse({ success: true })
+		} catch (err) {
+			sendResponse({ success: false, error: err instanceof Error ? err.message : String(err) })
+		}
+	})()
+
+	return true
+}
+
+function handleFloatAddSite(
+	message: { type: string; url: string },
+	sender: chrome.runtime.MessageSender,
+	sendResponse: (response: unknown) => void
+): true {
+	const tabId = sender.tab?.id
+	if (tabId) {
+		chrome.sidePanel.open({ tabId }).catch(() => {})
+		chrome.runtime.sendMessage({ type: 'FLOAT_ADD_SITE', url: message.url }).catch(() => {})
+	}
+	sendResponse({ ok: true })
+	return true
+}
+
+function handleAddSite(
+	message: { type: string; payload: { name: string; submit_url: string; domain?: string; category: string; dr: number; notes: string } },
+	sendResponse: (response: unknown) => void
+): true {
+	const { name, submit_url, domain, category, dr, notes } = message.payload
+	if (!name) {
+		sendResponse({ success: false, error: 'No name provided' })
+		return true
+	}
+
+	;(async () => {
+		try {
+			const existing = await getSite(name)
+			if (existing) {
+				sendResponse({ success: false, error: '该外链已存在' })
+				return
+			}
+			const now = Date.now()
+			await addSite({
+				name,
+				submit_url,
+				domain,
+				category: category as import('@/lib/types').SiteCategory,
+				dr,
+				notes: notes || undefined,
+				createdAt: now,
+				updatedAt: now,
+			})
+			await reloadSites()
+			chrome.runtime.sendMessage({ type: 'SITES_CHANGED' }).catch(() => {})
+			chrome.tabs.query({}, (tabs) => {
+				for (const tab of tabs) {
+					if (tab.id) {
+						chrome.tabs.sendMessage(tab.id, { type: 'SITE_ADDED', url: submit_url }).catch(() => {})
+					}
+				}
+			})
 			sendResponse({ success: true })
 		} catch (err) {
 			sendResponse({ success: false, error: err instanceof Error ? err.message : String(err) })
