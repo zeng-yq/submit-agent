@@ -53,6 +53,8 @@ export interface LogEntry {
   phase: LogPhase
   message: string
   data?: unknown
+  /** Optional URL to make part of the message clickable */
+  url?: string
 }
 
 /** LLM 返回的按字段级别展示的数据 */

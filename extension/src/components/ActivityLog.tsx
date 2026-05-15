@@ -48,18 +48,34 @@ function formatTime(ts: number): string {
 
 const URL_RE = /https?:\/\/[^\s<>"')\]，】】]+/g
 
-function linkify(text: string) {
+function linkify(text: string, url?: string) {
+	// When a url is provided, try to make the site name in "开始填写: NAME (tab X)" clickable
+	if (url) {
+		const match = text.match(/^(开始填写: )(.+?)( \(tab \d+\))$/)
+		if (match) {
+			return (
+				<>
+					{match[1]}
+					<a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
+						{match[2]}
+					</a>
+					{match[3]}
+				</>
+			)
+		}
+	}
+
 	const parts: (string | JSX.Element)[] = []
 	let lastIndex = 0
 	for (const m of text.matchAll(URL_RE)) {
 		if (m.index! > lastIndex) parts.push(text.slice(lastIndex, m.index!))
-		const url = m[0]
+		const linkUrl = m[0]
 		parts.push(
-			<a key={m.index} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
-				{url}
+			<a key={m.index} href={linkUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
+				{linkUrl}
 			</a>
 		)
-		lastIndex = m.index! + url.length
+		lastIndex = m.index! + linkUrl.length
 	}
 	if (lastIndex < text.length) parts.push(text.slice(lastIndex))
 	return parts.length > 1 ? parts : text
@@ -83,7 +99,7 @@ function LogItem({ entry, expanded, onToggle }: { entry: LogEntry; expanded: boo
 					<span className="text-[9px] font-medium px-1 py-px rounded bg-muted/80 text-muted-foreground shrink-0">
 						{PHASE_LABELS[entry.phase]}
 					</span>
-					<span className="truncate [&_a]:inline [&_a]:align-baseline">{linkify(entry.message)}</span>
+					<span className="truncate [&_a]:inline [&_a]:align-baseline">{linkify(entry.message, entry.url)}</span>
 					{hasData && (
 						<button
 							type="button"

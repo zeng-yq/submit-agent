@@ -142,16 +142,16 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 	const { onStatusChange, onError, onLog, onLLMFields } = callbacks
 
 	let logId = 0
-	const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown) => {
+	const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown, url?: string) => {
 		if (onLog) {
-			onLog({ id: ++logId, timestamp: Date.now(), level, phase, message, data })
+			onLog({ id: ++logId, timestamp: Date.now(), level, phase, message, data, url })
 		}
 	}
 
 	try {
 		// Step 1: Analyze form
 		onStatusChange('analyzing')
-		log('info', 'system', `开始填写: ${site.name} (tab ${tabId})`)
+		log('info', 'system', `开始填写: ${site.name} (tab ${tabId})`, undefined, site.submit_url ?? undefined)
 		log('info', 'analyze', '正在发送表单分析请求...')
 		const analyzePayload = { siteType }
 		const analyzeMsg = { type: 'FLOAT_FILL', action: 'analyze', payload: analyzePayload }
