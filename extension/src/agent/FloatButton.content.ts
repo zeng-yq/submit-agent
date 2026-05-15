@@ -313,6 +313,41 @@ function createButton() {
 			transform: scale(0.95);
 		}
 
+		/* Add button — matches action-btn style with blue gradient */
+		.add-btn {
+			width: 30px;
+			height: 30px;
+			border: none;
+			border-radius: 9px;
+			background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+			box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35), 0 1px 2px rgba(59, 130, 246, 0.2);
+			color: #fff;
+			font-size: 16px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+			position: relative;
+			transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+			            box-shadow 0.2s ease;
+			outline: none;
+		}
+		.add-btn::after {
+			content: '';
+			position: absolute;
+			inset: 0;
+			border-radius: inherit;
+			background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, transparent 60%);
+			pointer-events: none;
+		}
+		.add-btn:hover {
+			transform: scale(1.1);
+		}
+		.add-btn:active {
+			transform: scale(0.95);
+		}
+
 		/* Delete confirm popover */
 		.delete-popover {
 			position: absolute;
@@ -452,6 +487,16 @@ function createButton() {
 		container.appendChild(popover)
 	}
 
+	// Add-to-library button (only for unknown sites)
+	if (!isKnownSite) {
+		const addBtn = document.createElement('button')
+		addBtn.className = 'add-btn'
+		addBtn.title = '添加到外链库'
+		addBtn.textContent = '+'
+		addBtn.addEventListener('click', handleAddClick)
+		container.appendChild(addBtn)
+	}
+
 	// Action button
 	const btnWrap = document.createElement('div')
 	btnWrap.style.position = 'relative'
@@ -539,6 +584,29 @@ function handleMainClick() {
 		.catch(() => {
 			setState('error')
 		})
+}
+
+async function refreshSiteMatch() {
+	try {
+		const response = await chrome.runtime.sendMessage({
+			type: 'CHECK_SITE_MATCH',
+			payload: { url: window.location.href },
+		})
+		isKnownSite = response?.isKnownSite === true
+		matchedSiteName = response?.siteName ?? null
+		if (isKnownSite && response?.submissionStatus) {
+			currentSubmissionState = response.submissionStatus
+		}
+	} catch {
+		isKnownSite = false
+	}
+}
+
+function handleAddClick() {
+	chrome.runtime.sendMessage({
+		type: 'FLOAT_ADD_SITE',
+		url: window.location.href,
+	}).catch(() => {})
 }
 
 function handleOutsideClick(e: Event) {
@@ -656,6 +724,12 @@ export async function initFloatButton(enabled: boolean) {
 			if (siteName && siteName === matchedSiteName) {
 				updateToggleVisual(toggleState)
 			}
+		}
+		if (message.type === 'SITE_ADDED') {
+			refreshSiteMatch().then(() => {
+				removeButton()
+				checkAndToggleButton()
+			})
 		}
 	})
 
