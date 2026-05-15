@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import type { SiteData } from '@/lib/types'
+import type { SiteData, SiteCategory } from '@/lib/types'
+import { SITE_CATEGORIES } from '@/lib/types'
 import { Dashboard } from '@/components/Dashboard'
 import { QuickCreate } from '@/components/QuickCreate'
 import { SettingsPanel } from '@/components/SettingsPanel'
@@ -11,6 +12,11 @@ import { useBacklinkAnalysis } from '@/hooks/useBacklinkAnalysis'
 import { useFloatFill } from '@/hooks/useFloatFill'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
+import { Dialog, DialogHeader, DialogTitle, DialogCloseButton, DialogContent, DialogFooter } from '@/components/ui/Dialog'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { Textarea } from '@/components/ui/Textarea'
 
 type Tab = 'submit' | 'analysis' | 'settings'
 
@@ -18,6 +24,9 @@ export default function App() {
 	const [tab, setTab] = useState<Tab>('submit')
 	const [dropdownOpen, setDropdownOpen] = useState(false)
 	const [showQuickCreate, setShowQuickCreate] = useState(false)
+	const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false)
+	const [addSiteUrl, setAddSiteUrl] = useState('')
+	const [addSiteError, setAddSiteError] = useState('')
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const { products, activeProduct, loading: productLoading, createProduct, setActive, refresh: refreshProducts } = useProduct()
 	const { sites, submissions, loading: sitesLoading, refresh: refreshSites, markSubmitted, markSkipped, markFailed, resetSubmission, deleteSite, updateSite } = useSites(activeProduct?.id ?? null)
@@ -114,6 +123,37 @@ export default function App() {
 		dashboardRunningRef.current = false
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
 
+	const handleAddSite = useCallback(async (category: string, dr: number, notes: string) => {
+		setAddSiteError('')
+		try {
+			let domain: string | undefined
+			try {
+				domain = new URL(addSiteUrl).hostname.replace(/^www\./, '')
+			} catch { /* ignore */ }
+
+			const response = await chrome.runtime.sendMessage({
+				type: 'ADD_SITE',
+				payload: {
+					name: addSiteUrl,
+					submit_url: addSiteUrl,
+					domain,
+					category,
+					dr,
+					notes,
+				},
+			})
+
+			if (response?.success) {
+				setAddSiteDialogOpen(false)
+				await refreshSites()
+			} else {
+				setAddSiteError(response?.error || '添加失败，请重试')
+			}
+		} catch {
+			setAddSiteError('添加失败，请重试')
+		}
+	}, [addSiteUrl, refreshSites])
+
 	// 当提交引擎激活时，自动切到外链提交标签页
 	useEffect(() => {
 		const isActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling'
@@ -135,6 +175,19 @@ export default function App() {
 			refreshSites()
 		}
 	}, [tab, refreshSites])
+
+	// 监听浮动按钮的"添加到外链库"请求
+	useEffect(() => {
+		const handler = (message: any) => {
+			if (message.type === 'FLOAT_ADD_SITE' && message.url) {
+				setAddSiteUrl(message.url)
+				setAddSiteError('')
+				setAddSiteDialogOpen(true)
+			}
+		}
+		chrome.runtime.onMessage.addListener(handler)
+		return () => chrome.runtime.onMessage.removeListener(handler)
+	}, [])
 
 	const handleDataImported = useCallback(() => {
 		refreshProducts()
@@ -305,6 +358,71 @@ export default function App() {
 					</div>
 				</div>
 			)}
+
+			{/* Add site dialog (triggered by float button) */}
+			<Dialog open={addSiteDialogOpen} onClose={() => setAddSiteDialogOpen(false)}>
+				<AddSiteForm
+					url={addSiteUrl}
+					error={addSiteError}
+					onSave={handleAddSite}
+					onCancel={() => setAddSiteDialogOpen(false)}
+				/>
+			</Dialog>
 		</div>
+	)
+}
+
+function AddSiteForm({ url, error, onSave, onCancel }: {
+	url: string
+	error: string
+	onSave: (category: string, dr: number, notes: string) => void
+	onCancel: () => void
+}) {
+	const [category, setCategory] = useState<SiteCategory>('others')
+	const [dr, setDr] = useState('0')
+	const [notes, setNotes] = useState('')
+
+	return (
+		<>
+			<DialogHeader>
+				<DialogTitle>添加到外链库</DialogTitle>
+				<DialogCloseButton onClose={onCancel} />
+			</DialogHeader>
+			<DialogContent>
+				<Input
+					label="URL"
+					value={url}
+					onChange={() => {}}
+					placeholder=""
+					disabled
+				/>
+				<Select
+					label="分类"
+					options={SITE_CATEGORIES}
+					value={category}
+					onChange={(e) => setCategory(e.target.value as SiteCategory)}
+				/>
+				<Input
+					label="DR 分数"
+					type="number"
+					value={dr}
+					onChange={(e) => setDr(e.target.value)}
+					placeholder="0"
+				/>
+				<Textarea
+					label="备注"
+					value={notes}
+					onChange={(e) => setNotes(e.target.value)}
+					placeholder="可选备注"
+				/>
+				{error && (
+					<p className="text-xs text-red-500">{error}</p>
+				)}
+			</DialogContent>
+			<DialogFooter>
+				<Button variant="ghost" size="sm" onClick={onCancel}>取消</Button>
+				<Button size="sm" onClick={() => onSave(category, Number(dr) || 0, notes.trim())}>保存</Button>
+			</DialogFooter>
+		</>
 	)
 }
