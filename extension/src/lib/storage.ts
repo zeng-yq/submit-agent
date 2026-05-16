@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
 	autoRewrite: 'submitAgent_autoRewrite',
 	activeProductId: 'submitAgent_activeProductId',
 	floatButtonEnabled: 'submitAgent_floatButtonEnabled',
+	analysisConcurrency: 'submitAgent_analysisConcurrency',
 } as const
 
 const EMPTY_LLM: LLMSettings = { apiKey: '', baseUrl: '', model: '' }
@@ -63,6 +64,15 @@ export async function getFloatButtonEnabled(): Promise<boolean> {
 
 export async function setFloatButtonEnabled(value: boolean): Promise<void> {
 	await chrome.storage.local.set({ [STORAGE_KEYS.floatButtonEnabled]: value })
+}
+
+export async function getAnalysisConcurrency(): Promise<number> {
+	const result = await chrome.storage.local.get(STORAGE_KEYS.analysisConcurrency)
+	return (result[STORAGE_KEYS.analysisConcurrency] as number) ?? 3
+}
+
+export async function setAnalysisConcurrency(value: number): Promise<void> {
+	await chrome.storage.local.set({ [STORAGE_KEYS.analysisConcurrency]: value })
 }
 
 export async function getActiveProductId(): Promise<string | null> {

@@ -1,10 +1,18 @@
 import type { LLMSettings, ProviderKey } from '@/lib/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getProviderConfigs, setProviderConfigs, getFloatButtonEnabled } from '@/lib/storage'
+import { getProviderConfigs, setProviderConfigs, getFloatButtonEnabled, getAnalysisConcurrency, setAnalysisConcurrency } from '@/lib/storage'
 import { testLLMConnection, type TestResult } from '@/lib/llm-test'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { Select } from './ui/Select'
 import { SyncPanel } from './SyncPanel'
+
+const CONCURRENCY_OPTIONS = [
+	{ value: '1', label: '1（逐个分析）' },
+	{ value: '3', label: '3（默认）' },
+	{ value: '5', label: '5' },
+	{ value: '8', label: '8（最快）' },
+]
 
 const PROVIDER_LABELS: Record<ProviderKey, string> = {
 	openrouter: 'OpenRouter',
@@ -73,6 +81,7 @@ export function SettingsPanel({ onDataImported }: { onDataImported?: () => void 
 		custom: { apiKey: '', baseUrl: '', model: '' },
 	})
 	const [floatEnabled, setFloatEnabled] = useState(true)
+	const [concurrency, setConcurrency] = useState('3')
 	const [saving, setSaving] = useState(false)
 	const [saveSuccess, setSaveSuccess] = useState(false)
 	const [loaded, setLoaded] = useState(false)
@@ -81,10 +90,11 @@ export function SettingsPanel({ onDataImported }: { onDataImported?: () => void 
 	const successTimerRef = useRef<number | null>(null)
 
 	useEffect(() => {
-		Promise.all([getProviderConfigs(), getFloatButtonEnabled()]).then(([pc, floatBtn]) => {
+		Promise.all([getProviderConfigs(), getFloatButtonEnabled(), getAnalysisConcurrency()]).then(([pc, floatBtn, conc]) => {
 			setActiveProvider(pc.active)
 			setConfigs(pc.configs)
 			setFloatEnabled(floatBtn)
+			setConcurrency(String(conc))
 			setLoaded(true)
 		})
 	}, [])
@@ -131,14 +141,17 @@ export function SettingsPanel({ onDataImported }: { onDataImported?: () => void 
 	const handleSave = useCallback(async () => {
 		setSaving(true)
 		try {
-			await setProviderConfigs({ active: activeProvider, configs })
+			await Promise.all([
+				setProviderConfigs({ active: activeProvider, configs }),
+				setAnalysisConcurrency(Number(concurrency)),
+			])
 			chrome.runtime.sendMessage({ type: 'FLOAT_BUTTON_TOGGLE', enabled: floatEnabled }).catch(() => {})
 			setSaveSuccess(true)
 			setTimeout(() => setSaveSuccess(false), 2000)
 		} finally {
 			setSaving(false)
 		}
-	}, [activeProvider, configs, floatEnabled])
+	}, [activeProvider, configs, floatEnabled, concurrency])
 
 	const currentConfig = configs[activeProvider]
 	const hasValidConfig = !!(currentConfig.baseUrl && currentConfig.model)
@@ -256,6 +269,18 @@ export function SettingsPanel({ onDataImported }: { onDataImported?: () => void 
 							{'设置了 Base URL 后需要填写模型名称'}
 						</div>
 					)}
+				</div>
+
+				{/* Analysis Settings */}
+				<div className="rounded-lg border border-border bg-card p-3 space-y-3">
+					<div className="text-xs font-semibold text-foreground">{'分析设置'}</div>
+
+					<Select
+						label="分析并发数"
+						options={CONCURRENCY_OPTIONS}
+						value={concurrency}
+						onChange={(e) => setConcurrency(e.target.value)}
+					/>
 				</div>
 
 				{/* Preferences */}

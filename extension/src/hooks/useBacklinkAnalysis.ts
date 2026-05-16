@@ -3,6 +3,7 @@ import type { BacklinkRecord, BacklinkStatus, SiteRecord } from '@/lib/types'
 import { updateBacklink, listBacklinksByStatus, listBacklinks, addSite, getSiteByDomain, getExistingDomains } from '@/lib/db'
 import { extractDomain } from '@/lib/backlinks'
 import { analyzeBacklink, type AnalysisStep } from '@/lib/backlink-analyzer'
+import { getAnalysisConcurrency } from '@/lib/storage'
 import type { LogEntry, LogLevel } from '@/agent/types'
 import type { useBacklinkState } from './useBacklinkState'
 
@@ -167,7 +168,7 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 					}
 				}
 
-				const CONCURRENCY = 3
+				const CONCURRENCY = await getAnalysisConcurrency()
 				const workers = Array.from({ length: Math.min(CONCURRENCY, batch.length) }, () => runSlot())
 				await Promise.allSettled(workers)
 
