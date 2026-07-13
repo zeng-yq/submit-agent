@@ -5,7 +5,7 @@ import { filterSubmittable, matchCurrentPage } from '@/lib/sites'
 interface UseFloatFillOptions {
 	activeProduct: { id: string } | null | undefined
 	sites: SiteData[]
-	startSubmission: (site: SiteData) => Promise<{ filled: number; failed: number; notes: string }>
+	startSubmission: (site: SiteData) => Promise<{ filled: number; failed: number; notes: string; verifyResult?: string; submitError?: string }>
 	markSubmitted: (siteName: string, productId: string) => Promise<void>
 	markFailed: (siteName: string, productId: string, error: string) => Promise<void>
 	resetSubmission: (siteName: string) => Promise<void>
@@ -54,11 +54,24 @@ export function useFloatFill({
 					setCurrentEngineSite(matched)
 					try {
 						const r = await startSubmission(matched)
-						if (r.failed === 0 && r.filled > 0) {
-							markSubmitted(matched.name, activeProduct.id)
-						} else if (r.filled === 0) {
-							chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
-							markFailed(matched.name, activeProduct.id, '页面未发现可填写的表单字段')
+						const isBlogComment = matched.category === 'blog_comment'
+						if (isBlogComment) {
+							// blog_comment：以提交验证结果为准
+							const verified = ['ajax', 'navigating', 'pagehide', 'cleared'].includes(r.verifyResult ?? '')
+							if (verified) {
+								markSubmitted(matched.name, activeProduct.id)
+							} else {
+								chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+								markFailed(matched.name, activeProduct.id, r.submitError || `提交未确认(${r.verifyResult ?? 'not_attempted'})`)
+							}
+						} else {
+							// directory：维持原逻辑（填写成功即标记，不自动提交）
+							if (r.failed === 0 && r.filled > 0) {
+								markSubmitted(matched.name, activeProduct.id)
+							} else if (r.filled === 0) {
+								chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+								markFailed(matched.name, activeProduct.id, '页面未发现可填写的表单字段')
+							}
 						}
 						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					} catch (err) {
