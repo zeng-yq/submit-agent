@@ -7,7 +7,7 @@
 /** 判断 URL 是否可能是评论表单提交地址（排除静态资源/analytics/wp-admin） */
 export function isFormSubmitUrl(url: string | URL): boolean {
 	if (!url) return false
-	const s = String(typeof url === 'string' ? url : url.url).toLowerCase()
+	const s = String(url).toLowerCase()
 	const excludePatterns = [
 		/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|webp|mp4|webm|ogg|mp3|wav|zip|tar|gz)$/,
 		/google-analytics|googletagmanager|doubleclick|facebook\.com\/tr|analytics|tracking|pixel/i,

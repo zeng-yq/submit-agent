@@ -3,18 +3,15 @@ import { JSDOM } from 'jsdom'
 
 let dom: JSDOM
 let doc: Document
-let win: Window
 
 async function loadModule() {
 	dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
 		runScripts: 'dangerously',
 		url: 'https://example.com',
 	})
-	// @ts-expect-error 注入到全局，让模块拿到正确的 document/window
+	// 注入到全局，让模块拿到正确的 document/window
 	globalThis.document = dom.window.document
-	// @ts-expect-error
 	globalThis.window = dom.window
-	win = dom.window
 	doc = dom.window.document
 	return await import('@/agent/comment-submit')
 }
@@ -41,6 +38,16 @@ describe('isFormSubmitUrl', () => {
 		const mod = await loadModule()
 		expect(mod.isFormSubmitUrl('https://a.com/wp-comments-post.php')).toBe(true)
 		expect(mod.isFormSubmitUrl('https://a.com/api/comment')).toBe(true)
+	})
+
+	it('URL 对象：静态资源返回 false', async () => {
+		const mod = await loadModule()
+		expect(mod.isFormSubmitUrl(new URL('https://a.com/app.js'))).toBe(false)
+	})
+
+	it('URL 对象：评论提交地址返回 true', async () => {
+		const mod = await loadModule()
+		expect(mod.isFormSubmitUrl(new URL('https://a.com/wp-comments-post.php'))).toBe(true)
 	})
 })
 
