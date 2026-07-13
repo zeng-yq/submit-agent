@@ -13,12 +13,27 @@ export type FillEngineStatus =
 	| 'error'
 	| 'no-product'
 
+/** 自动提交后的验证结果（仅 blog_comment 自动提交场景） */
+export type VerifyResult =
+	| 'ajax'        // 拦截到评论提交的 fetch/XHR 或 submit 事件
+	| 'navigating'  // 触发 beforeunload（整页跳转，WP 原生评论典型）
+	| 'pagehide'    // 触发 pagehide
+	| 'timeout'     // 10s 内无任何提交信号，且评论框未清空
+	| 'cleared'     // timeout 后再查评论框已被清空（AJAX 提交成功标志）
+	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 验证码）
+
 /** Result of a form fill operation */
 export interface FillResult {
 	filled: number
 	skipped: number
 	failed: number
 	notes: string
+	/** 是否完成了提交点击动作（仅 blog_comment） */
+	submitted?: boolean
+	/** 提交验证结果（仅 blog_comment） */
+	verifyResult?: VerifyResult
+	/** 提交/验证失败原因 */
+	submitError?: string
 }
 
 /** A single field mapping from LLM response: canonical_id → value */
