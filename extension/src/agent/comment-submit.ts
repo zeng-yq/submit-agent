@@ -186,3 +186,80 @@ export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal
 		timer = setTimeout(() => finish('timeout'), timeoutMs)
 	})
 }
+
+export interface PerformClickResult {
+	success: boolean
+	submitResult: SubmitSignal
+	error?: string
+}
+
+/** 合成完整鼠标事件链（拟人化，绕过部分反爬） */
+function syntheticEventClick(button: HTMLElement): void {
+	button.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' })
+	const rect = button.getBoundingClientRect()
+	const clientX = Math.round(rect.left + rect.width / 2)
+	const clientY = Math.round(rect.top + rect.height / 2)
+	const mouseOpts = { view: window, bubbles: true, cancelable: true, clientX, clientY }
+	if (typeof PointerEvent !== 'undefined') {
+		button.dispatchEvent(new PointerEvent('pointerdown', { ...mouseOpts, pointerId: 1, pointerType: 'mouse', isPrimary: true }))
+	}
+	button.dispatchEvent(new MouseEvent('mousedown', mouseOpts))
+	button.dispatchEvent(new MouseEvent('mouseup', mouseOpts))
+	if (typeof PointerEvent !== 'undefined') {
+		button.dispatchEvent(new PointerEvent('pointerup', { ...mouseOpts, pointerId: 1, pointerType: 'mouse', isPrimary: true }))
+	}
+	button.dispatchEvent(new MouseEvent('click', mouseOpts))
+}
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/**
+ * 4 级降级点击。任一策略成功执行（不抛异常）即等待提交信号并返回。
+ * 降级仅在"该策略抛异常"时触发；submitResult 透传给上层判断提交是否真发生。
+ *
+ * waitFor 为可注入的提交信号等待函数（默认 waitForSubmitOrNavigate），
+ * 便于单测注入 mock 而无需依赖模块命名空间 spyOn。
+ */
+export async function performClick(
+	button: HTMLElement | null,
+	form: HTMLFormElement | null,
+	waitFor: (timeoutMs: number) => Promise<SubmitSignal> = waitForSubmitOrNavigate,
+): Promise<PerformClickResult> {
+	if (!button) return { success: false, submitResult: 'timeout', error: '提交按钮为空' }
+
+	// 4 级策略：合成事件 → button.click() → form.requestSubmit → form.submit
+	// 注意：requestSubmit / form.submit 在不可用时必须抛异常，才能触发降级到下一级
+	// （用 optional chaining 会静默返回 undefined，被误判为"成功执行"）
+	const strategies: Array<{ name: string; fn: () => void | Promise<void> }> = [
+		{ name: 'synthetic', fn: () => syntheticEventClick(button) },
+		{ name: 'click', fn: () => button.click() },
+		{
+			name: 'requestSubmit',
+			fn: () => {
+				if (!form || typeof form.requestSubmit !== 'function') throw new Error('requestSubmit 不可用')
+				form.requestSubmit(button)
+			},
+		},
+		{
+			name: 'submit',
+			fn: () => {
+				if (!form) throw new Error('form 不存在')
+				form.submit()
+			},
+		},
+	]
+
+	for (const s of strategies) {
+		try {
+			await s.fn()
+		} catch {
+			continue // 该策略抛异常 → 试下一级
+		}
+		// 策略执行成功，等待提交信号（合成事件后给 DOM 一点时间）
+		if (s.name === 'synthetic') await sleep(40)
+		const submitResult = await waitFor(10000)
+		return { success: true, submitResult }
+	}
+
+	return { success: false, submitResult: 'timeout', error: '所有点击策略均失败' }
+}

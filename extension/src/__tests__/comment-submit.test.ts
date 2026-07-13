@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { JSDOM } from 'jsdom'
 
 let dom: JSDOM
@@ -197,5 +197,40 @@ describe('waitForSubmitOrNavigate', () => {
 		expect(await p).toBe('ajax')
 		// cleanup 恢复
 		expect(win.fetch).toBe(originalFetch)
+	})
+})
+
+describe('performClick', () => {
+	it('第一策略成功执行 → 返回 success + submitResult', async () => {
+		const mod = await loadModule()
+		const fakeWaitFor = vi.fn().mockResolvedValue('ajax')
+		doc.body.innerHTML = `<form><button id="btn" type="submit">Go</button></form>`
+		const btn = doc.getElementById('btn') as HTMLElement
+		const form = doc.querySelector('form') as HTMLFormElement
+		const res = await mod.performClick(btn, form, fakeWaitFor)
+		expect(res.success).toBe(true)
+		expect(res.submitResult).toBe('ajax')
+		expect(fakeWaitFor).toHaveBeenCalled()
+	})
+
+	it('按钮不存在 → success:false', async () => {
+		const mod = await loadModule()
+		const res = await mod.performClick(null as unknown as HTMLElement, null)
+		expect(res.success).toBe(false)
+		expect(res.error).toBeTruthy()
+	})
+
+	it('合成事件 + click 都抛异常时，降级到 form.submit', async () => {
+		const mod = await loadModule()
+		const fakeWaitFor = vi.fn().mockResolvedValue('navigating')
+		doc.body.innerHTML = `<form id="f"><button id="btn">Go</button></form>`
+		const btn = doc.getElementById('btn') as HTMLElement
+		const form = doc.querySelector('form') as HTMLFormElement
+		btn.click = () => { throw new Error('nope') }
+		Object.defineProperty(btn, 'dispatchEvent', { value: () => { throw new Error('nope') } })
+		form.requestSubmit = undefined as unknown as HTMLFormElement['requestSubmit']
+		const res = await mod.performClick(btn, form, fakeWaitFor)
+		expect(res.success).toBe(true)
+		expect(res.submitResult).toBe('navigating')
 	})
 })
