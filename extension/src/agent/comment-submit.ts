@@ -113,3 +113,76 @@ export function resolveSubmitButton(commentSelector: string | null): {
 
 	return { form: null, button: null }
 }
+
+/** 验证码 widget 选择器（搬 autoComment MANUAL_REQUIRED_WIDGET_SELECTORS） */
+const CAPTCHA_SELECTORS = [
+	'.g-recaptcha', '.h-captcha', '.cf-turnstile', '[data-sitekey]',
+	'[name="g-recaptcha-response"]', '[name="h-captcha-response"]',
+	'iframe[src*="recaptcha"]', 'iframe[src*="hcaptcha"]',
+	'iframe[src*="challenges.cloudflare.com"]',
+]
+
+/** 检测目标容器内是否有验证码 widget（命中则不硬闯，提示手动） */
+export function detectCaptcha(root: Element | Document | null): boolean {
+	if (!root) return false
+	for (const sel of CAPTCHA_SELECTORS) {
+		try {
+			if ((root as Element).querySelector?.(sel)) return true
+		} catch { /* 无效选择器 */ }
+	}
+	return false
+}
+
+export type SubmitSignal = 'ajax' | 'navigating' | 'pagehide' | 'timeout'
+
+/**
+ * 点击提交后等待提交信号：拦截 fetch/XHR + 监听 submit/beforeunload/pagehide。
+ * 任一信号触发即 resolve；超时 resolve 'timeout'。结束后恢复原始 fetch/XHR。
+ */
+export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal> {
+	return new Promise((resolve) => {
+		let resolved = false
+		const originalFetch = window.fetch
+		const originalXHROpen = window.XMLHttpRequest.prototype.open
+		let timer: ReturnType<typeof setTimeout>
+
+		function finish(result: SubmitSignal) {
+			if (resolved) return
+			resolved = true
+			cleanup()
+			resolve(result)
+		}
+		function cleanup() {
+			clearTimeout(timer)
+			document.removeEventListener('submit', onSubmit, true)
+			window.removeEventListener('beforeunload', onBeforeUnload)
+			window.removeEventListener('pagehide', onPageHide)
+			if (window.XMLHttpRequest) window.XMLHttpRequest.prototype.open = originalXHROpen
+			if (window.fetch) window.fetch = originalFetch
+		}
+		const onSubmit = () => finish('ajax')
+		const onBeforeUnload = () => finish('navigating')
+		const onPageHide = () => finish('pagehide')
+
+		// 拦截 fetch
+		window.fetch = function (this: typeof window, input: RequestInfo | URL, init?: RequestInit) {
+			const url = typeof input === 'string'
+				? input
+				: input instanceof URL ? input.href : input.url
+			if (!resolved && isFormSubmitUrl(url)) finish('ajax')
+			return originalFetch.call(this, input, init)
+		} as typeof fetch
+
+		// 拦截 XHR
+		window.XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string, ...rest: unknown[]) {
+			if (!resolved && isFormSubmitUrl(url)) finish('ajax')
+			return originalXHROpen.apply(this, [method, url, ...rest] as unknown as Parameters<XMLHttpRequest['open']>)
+		} as XMLHttpRequest['open']
+
+		document.addEventListener('submit', onSubmit, true)
+		window.addEventListener('beforeunload', onBeforeUnload)
+		window.addEventListener('pagehide', onPageHide)
+
+		timer = setTimeout(() => finish('timeout'), timeoutMs)
+	})
+}
