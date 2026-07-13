@@ -145,6 +145,7 @@ export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal
 		const originalFetch = window.fetch
 		const originalXHROpen = window.XMLHttpRequest.prototype.open
 		let timer: ReturnType<typeof setTimeout>
+		let submitDelayTimer: ReturnType<typeof setTimeout> | undefined
 
 		function finish(result: SubmitSignal) {
 			if (resolved) return
@@ -154,13 +155,20 @@ export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal
 		}
 		function cleanup() {
 			clearTimeout(timer)
+			if (submitDelayTimer) clearTimeout(submitDelayTimer)
 			document.removeEventListener('submit', onSubmit, true)
 			window.removeEventListener('beforeunload', onBeforeUnload)
 			window.removeEventListener('pagehide', onPageHide)
 			if (window.XMLHttpRequest) window.XMLHttpRequest.prototype.open = originalXHROpen
 			if (window.fetch) window.fetch = originalFetch
 		}
-		const onSubmit = () => finish('ajax')
+		// 原生表单提交会同步先触发 submit，随后才触发 beforeunload/pagehide。
+		// 若立即判定 ajax 会把 WP 原生评论误标为 ajax（spec §7 要求区分 navigating）。
+		// 故 submit 后延迟 150ms：期间出现 beforeunload/pagehide 则由导航信号胜出，
+		// 超时未导航才判定为真正的 AJAX 提交。fetch/XHR 拦截仍立即判定 ajax。
+		const onSubmit = () => {
+			submitDelayTimer = setTimeout(() => finish('ajax'), 150)
+		}
 		const onBeforeUnload = () => finish('navigating')
 		const onPageHide = () => finish('pagehide')
 

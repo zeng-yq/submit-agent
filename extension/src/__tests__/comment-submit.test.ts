@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { JSDOM } from 'jsdom'
 
 let dom: JSDOM
@@ -20,6 +20,11 @@ async function loadModule() {
 
 beforeEach(async () => {
 	await loadModule()
+})
+
+// 防止 fake timers 跨用例泄漏
+afterEach(() => {
+	vi.useRealTimers()
 })
 
 describe('isFormSubmitUrl', () => {
@@ -158,11 +163,36 @@ describe('detectCaptcha', () => {
 })
 
 describe('waitForSubmitOrNavigate', () => {
-	it('submit 事件 → ajax', async () => {
+	it('submit 事件后无导航 → 延迟 150ms 后判定 ajax', async () => {
+		vi.useFakeTimers()
 		const mod = await loadModule()
 		const p = mod.waitForSubmitOrNavigate(1000)
 		win.document.dispatchEvent(new win.Event('submit', { bubbles: true }))
+		// 立即不应 resolve（需等待 150ms 确认未发生导航）
+		// 推进 150ms：无 beforeunload/pagehide → 判定真正的 AJAX 提交
+		vi.advanceTimersByTime(150)
 		expect(await p).toBe('ajax')
+	})
+
+	it('submit 后 beforeunload 在 150ms 内 → navigating 胜出', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		const p = mod.waitForSubmitOrNavigate(1000)
+		win.document.dispatchEvent(new win.Event('submit', { bubbles: true }))
+		// 150ms 窗口期内触发 beforeunload → navigating 优先于延迟的 ajax
+		vi.advanceTimersByTime(100)
+		win.dispatchEvent(new win.Event('beforeunload'))
+		expect(await p).toBe('navigating')
+	})
+
+	it('submit 后 pagehide 在 150ms 内 → pagehide 胜出', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		const p = mod.waitForSubmitOrNavigate(1000)
+		win.document.dispatchEvent(new win.Event('submit', { bubbles: true }))
+		vi.advanceTimersByTime(50)
+		win.dispatchEvent(new win.Event('pagehide'))
+		expect(await p).toBe('pagehide')
 	})
 
 	it('beforeunload → navigating', async () => {
