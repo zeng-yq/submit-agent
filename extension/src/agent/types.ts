@@ -20,6 +20,7 @@ export type VerifyResult =
 	| 'pagehide'    // 触发 pagehide
 	| 'timeout'     // 10s 内无任何提交信号，且评论框未清空
 	| 'cleared'     // timeout 后再查评论框已被清空（AJAX 提交成功标志）
+	| 'login_required' // 提交被重定向到登录页（未登录，提交失败）
 	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 验证码）
 
 /** Result of a form fill operation */

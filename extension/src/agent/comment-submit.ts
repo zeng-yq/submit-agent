@@ -19,6 +19,22 @@ export function isFormSubmitUrl(url: string | URL): boolean {
 	return true
 }
 
+/** 登录页 URL 路径模式（提交后跳转到这些路径意味着未登录、提交失败） */
+const LOGIN_URL_PATTERNS = [
+	/\/login\b/i, /\/sign[-_]?in\b/i, /\/auth\b/i, /\/register\b/i,
+	/\/account\/login\b/i, /\/user\/login\b/i,
+]
+
+/** 判断 URL 是否指向登录/注册页（用于检测"提交被重定向到登录页"的失败场景） */
+export function isLoginRedirectUrl(url: string): boolean {
+	try {
+		const u = new URL(url, location.href)
+		return LOGIN_URL_PATTERNS.some(p => p.test(u.pathname))
+	} catch {
+		return false
+	}
+}
+
 /** 多语种提交关键词 */
 const SUBMIT_KEYWORDS = [
 	'submit', 'post', 'comment', 'publish', 'reply', 'respond', 'send',
@@ -133,7 +149,14 @@ export function detectCaptcha(root: Element | Document | null): boolean {
 	return false
 }
 
-export type SubmitSignal = 'ajax' | 'navigating' | 'pagehide' | 'timeout'
+export type SubmitSignal = 'ajax' | 'navigating' | 'pagehide' | 'timeout' | 'login_required'
+
+/** Navigation API 最小类型（lib.dom 可能缺失，避免引入 any） */
+interface NavNavigateEvent { destination?: { url?: string } }
+interface NavApi {
+	addEventListener(type: string, cb: (e: NavNavigateEvent) => void): void
+	removeEventListener(type: string, cb: (e: NavNavigateEvent) => void): void
+}
 
 /**
  * 点击提交后等待提交信号：拦截 fetch/XHR + 监听 submit/beforeunload/pagehide。
@@ -159,6 +182,7 @@ export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal
 			document.removeEventListener('submit', onSubmit, true)
 			window.removeEventListener('beforeunload', onBeforeUnload)
 			window.removeEventListener('pagehide', onPageHide)
+			if (onNavigate && nav) nav.removeEventListener('navigate', onNavigate)
 			if (window.XMLHttpRequest) window.XMLHttpRequest.prototype.open = originalXHROpen
 			if (window.fetch) window.fetch = originalFetch
 		}
@@ -171,6 +195,18 @@ export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal
 		}
 		const onBeforeUnload = () => finish('navigating')
 		const onPageHide = () => finish('pagehide')
+
+		// Navigation API（Chrome 102+，MV3 可用）：navigate 事件在卸载前同步触发，
+		// 可在内容上下文丢失前读取目标 URL。若跳转至登录页，判定 login_required（失败）。
+		const nav = (globalThis as unknown as { navigation?: NavApi }).navigation
+		let onNavigate: ((e: NavNavigateEvent) => void) | undefined
+		if (nav) {
+			onNavigate = (e) => {
+				const dest = e.destination?.url
+				if (dest && isLoginRedirectUrl(dest)) finish('login_required')
+			}
+			nav.addEventListener('navigate', onNavigate)
+		}
 
 		// 拦截 fetch
 		window.fetch = function (this: typeof window, input: RequestInfo | URL, init?: RequestInit) {

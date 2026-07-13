@@ -421,6 +421,12 @@ export default defineContentScript({
 								return
 							}
 
+							// 提交被重定向到登录页 → 直接判定失败，不再走 timeout+cleared 检查
+							if (clickRes.submitResult === 'login_required') {
+								sendResponse({ ok: true, clicked: true, verifyResult: 'login_required' as VerifyResult, error: '检测到跳转登录页，未提交成功' })
+								return
+							}
+
 							// timeout 时再查评论框是否被清空（AJAX 提交成功标志）
 							let verifyResult: VerifyResult = clickRes.submitResult
 							if (verifyResult === 'timeout' && commentSelector) {

@@ -25,6 +25,7 @@ beforeEach(async () => {
 // 防止 fake timers 跨用例泄漏
 afterEach(() => {
 	vi.useRealTimers()
+	delete (globalThis as any).navigation
 })
 
 describe('isFormSubmitUrl', () => {
@@ -228,6 +229,22 @@ describe('waitForSubmitOrNavigate', () => {
 		// cleanup 恢复
 		expect(win.fetch).toBe(originalFetch)
 	})
+
+	it('Navigation API 检测到跳转登录页 → login_required', async () => {
+		let capturedNavigate: ((e: { destination?: { url?: string } }) => void) | undefined
+		const removeEventListener = vi.fn()
+		;(globalThis as any).navigation = {
+			addEventListener: vi.fn((_: string, cb: (e: { destination?: { url?: string } }) => void) => {
+				capturedNavigate = cb
+			}),
+			removeEventListener,
+		}
+		const mod = await loadModule()
+		const p = mod.waitForSubmitOrNavigate(1000)
+		capturedNavigate!({ destination: { url: 'https://x.com/login' } })
+		expect(await p).toBe('login_required')
+		expect(removeEventListener).toHaveBeenCalledWith('navigate', expect.any(Function))
+	})
 })
 
 describe('performClick', () => {
@@ -262,5 +279,24 @@ describe('performClick', () => {
 		const res = await mod.performClick(btn, form, fakeWaitFor)
 		expect(res.success).toBe(true)
 		expect(res.submitResult).toBe('navigating')
+	})
+})
+
+describe('isLoginRedirectUrl', () => {
+	it('识别登录页路径', async () => {
+		const mod = await loadModule()
+		expect(mod.isLoginRedirectUrl('https://x.com/login')).toBe(true)
+		expect(mod.isLoginRedirectUrl('https://x.com/signin')).toBe(true)
+		expect(mod.isLoginRedirectUrl('https://x.com/sign-in')).toBe(true)
+		expect(mod.isLoginRedirectUrl('https://x.com/auth')).toBe(true)
+		expect(mod.isLoginRedirectUrl('https://x.com/register')).toBe(true)
+		expect(mod.isLoginRedirectUrl('https://x.com/account/login')).toBe(true)
+	})
+
+	it('非登录页路径返回 false', async () => {
+		const mod = await loadModule()
+		expect(mod.isLoginRedirectUrl('https://x.com/events')).toBe(false)
+		expect(mod.isLoginRedirectUrl('https://x.com/setting/message')).toBe(false)
+		expect(mod.isLoginRedirectUrl('https://x.com/dashboard')).toBe(false)
 	})
 })
