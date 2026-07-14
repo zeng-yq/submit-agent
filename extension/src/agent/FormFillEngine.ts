@@ -8,7 +8,8 @@ import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
-import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel, LLMFieldData, LLMFieldValue, VerifyResult } from './types'
+import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type FieldValueMap, type LogEntry, type LogLevel, type LLMFieldData, type LLMFieldValue, type VerifyResult } from './types'
+import { verifyAfterNavigation, applyNavigationVerdict } from './verify-after-navigation'
 import { callLLM, parseLLMJson } from './llm-utils'
 import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
@@ -399,11 +400,36 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 					submitted = submitResponse.clicked
 					verifyResult = submitResponse.verifyResult
 					submitError = submitResponse.error
-					const verified = ['ajax', 'navigating', 'pagehide', 'cleared'].includes(submitResponse.verifyResult)
+
+					// 整页跳转：提交瞬间无法判定发布状态，等待页面落定后复核是否待审核
+					if (verifyResult === 'navigating' || verifyResult === 'pagehide') {
+						log('info', 'fill', '提交触发整页跳转，等待页面落定后复核审核状态...')
+						const verdict = await verifyAfterNavigation(tabId, {
+							getTabUrl: async (id) => {
+								try {
+									const tab = await chrome.tabs.get(id)
+									return tab.url ?? ''
+								} catch {
+									return ''
+								}
+							},
+							sendVerify: (id) => sendToTab<{ ok: boolean; moderation: boolean }>(
+								id,
+								{ type: 'FLOAT_FILL', action: 'verify-moderation' },
+								2000,
+							),
+							sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+						})
+						verifyResult = applyNavigationVerdict(verifyResult, verdict)
+						if (verdict === 'moderation') submitError = '评论待审核，未发布'
+						else if (verdict === 'unverified') submitError = '提交后未能确认发布状态'
+					}
+
+					const verified = VERIFIED_SUCCESS.includes(verifyResult)
 					log(
 						verified ? 'success' : 'warning',
 						'fill',
-						`提交结果: ${submitResponse.verifyResult}${submitResponse.error ? ' - ' + submitResponse.error : ''}`,
+						`提交结果: ${verifyResult}${submitError ? ' - ' + submitError : ''}`,
 					)
 				} else {
 					verifyResult = 'not_attempted'
