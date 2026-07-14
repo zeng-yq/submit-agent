@@ -5,9 +5,9 @@ import { filterSubmittable, matchCurrentPage } from '@/lib/sites'
 interface UseFloatFillOptions {
 	activeProduct: { id: string } | null | undefined
 	sites: SiteData[]
-	startSubmission: (site: SiteData) => Promise<{ filled: number; failed: number; notes: string }>
-	markSubmitted: (siteName: string, productId: string) => Promise<void>
-	markFailed: (siteName: string, productId: string, error: string) => Promise<void>
+	startSubmission: (site: SiteData) => Promise<{ filled: number; failed: number; notes: string; verifyResult?: string; submitError?: string }>
+	markSubmitted: (siteName: string, productId: string, verifyResult?: string) => Promise<void>
+	markFailed: (siteName: string, productId: string, error?: string, verifyResult?: string) => Promise<void>
 	resetSubmission: (siteName: string) => Promise<void>
 	reset: () => void
 	resetUI: () => void
@@ -54,11 +54,25 @@ export function useFloatFill({
 					setCurrentEngineSite(matched)
 					try {
 						const r = await startSubmission(matched)
-						if (r.failed === 0 && r.filled > 0) {
-							markSubmitted(matched.name, activeProduct.id)
-						} else if (r.filled === 0) {
-							chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
-							markFailed(matched.name, activeProduct.id, '页面未发现可填写的表单字段')
+						const isBlogComment = matched.category === 'blog_comment'
+						if (isBlogComment) {
+							// blog_comment：以提交验证结果为准
+							// TODO: 入库映射逻辑待补单测（见 spec §7）—— 需 mock chrome + 注入 markSubmitted/markFailed 驱动 FLOAT_FILL start，当前依赖手动验证矩阵覆盖
+							const verified = ['ajax', 'navigating', 'pagehide', 'cleared'].includes(r.verifyResult ?? '')
+							if (verified) {
+								markSubmitted(matched.name, activeProduct.id, r.verifyResult)
+							} else {
+								chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+								markFailed(matched.name, activeProduct.id, r.submitError || `提交未确认(${r.verifyResult ?? 'not_attempted'})`, r.verifyResult)
+							}
+						} else {
+							// directory：维持原逻辑（填写成功即标记，不自动提交）
+							if (r.failed === 0 && r.filled > 0) {
+								markSubmitted(matched.name, activeProduct.id)
+							} else if (r.filled === 0) {
+								chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+								markFailed(matched.name, activeProduct.id, '页面未发现可填写的表单字段')
+							}
 						}
 						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					} catch (err) {

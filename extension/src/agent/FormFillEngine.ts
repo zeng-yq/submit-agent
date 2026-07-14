@@ -8,7 +8,7 @@ import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
-import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel, LLMFieldData, LLMFieldValue } from './types'
+import type { FillEngineStatus, FillResult, SiteType, FieldValueMap, LogEntry, LogLevel, LLMFieldData, LLMFieldValue, VerifyResult } from './types'
 import { callLLM, parseLLMJson } from './llm-utils'
 import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
@@ -365,11 +365,66 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			log('success', 'fill', `填写完成: ${filledCount} 个字段已成功填写`)
 		}
 
+		// Step 5: 自动提交 + 弱验证（仅 blog_comment 且填写无失败时）
+		let submitted: boolean | undefined
+		let verifyResult: VerifyResult | undefined
+		let submitError: string | undefined
+		if (siteType === 'blog_comment' && failedCount === 0 && filledCount > 0) {
+			log('info', 'fill', '正在自动提交评论并验证...')
+			try {
+				const submitResponse = await sendToTab<{
+					ok: boolean
+					clicked: boolean
+					verifyResult: VerifyResult
+					error?: string
+				}>(
+					tabId,
+					{
+						type: 'FLOAT_FILL',
+						action: 'submit',
+						payload: {
+							fields: analysis.fields.map((f) => ({
+								selector: f.selector,
+								type: f.type,
+								effective_type: f.effective_type,
+								name: f.name,
+								id: f.id,
+								canonical_id: f.canonical_id,
+							})),
+						},
+					},
+					20_000,
+				)
+				if (submitResponse?.ok) {
+					submitted = submitResponse.clicked
+					verifyResult = submitResponse.verifyResult
+					submitError = submitResponse.error
+					const verified = ['ajax', 'navigating', 'pagehide', 'cleared'].includes(submitResponse.verifyResult)
+					log(
+						verified ? 'success' : 'warning',
+						'fill',
+						`提交结果: ${submitResponse.verifyResult}${submitResponse.error ? ' - ' + submitResponse.error : ''}`,
+					)
+				} else {
+					verifyResult = 'not_attempted'
+					submitError = submitResponse?.error || '提交消息无响应'
+					log('error', 'fill', `自动提交失败: ${submitError}`)
+				}
+			} catch (err) {
+				verifyResult = 'not_attempted'
+				submitError = err instanceof Error ? err.message : String(err)
+				log('error', 'fill', `自动提交异常: ${submitError}`)
+			}
+		}
+
 		const result: FillResult = {
 			filled: filledCount,
 			skipped: analysis.fields.length - fieldsToFill.length,
 			failed: failedCount,
 			notes: `Filled ${filledCount} of ${analysis.fields.length} fields.`,
+			submitted,
+			verifyResult,
+			submitError,
 		}
 
 		// Notify done

@@ -31,6 +31,7 @@ export interface SubmissionRecord {
 	notes?: string
 	error?: string        // 失败时的错误信息
 	failedAt?: number     // 失败时间戳 (Date.now())
+	verifyResult?: string // 提交验证结果（ajax/navigating/pagehide/cleared/timeout 等，spec §4）
 	submittedFromFloatButton?: boolean
 	createdAt: number
 	updatedAt: number

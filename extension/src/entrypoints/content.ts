@@ -4,7 +4,9 @@ import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
+import { resolveSubmitButton, detectCaptcha, performClick, isModerationContent } from '@/agent/comment-submit'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
+import type { VerifyResult } from '@/agent/types'
 
 /**
  * Find and unhide form inputs within a comment form container.
@@ -382,6 +384,76 @@ export default defineContentScript({
 					clearAnnotations()
 					sendResponse({ ok: true })
 					return
+				}
+				case 'submit': {
+					const fields = message.payload?.fields as Array<{
+						selector: string
+						type?: string
+						effective_type?: string
+						name?: string
+						id?: string
+						canonical_id?: string
+					}> | undefined
+
+					;(async () => {
+						try {
+							// 从已填字段里识别评论框 selector（textarea / comment 语义）
+							const commentField = fields?.find((f) =>
+								f.type === 'textarea'
+								|| f.effective_type === 'comment'
+								|| /comment|reply|message/i.test(`${f.canonical_id ?? ''} ${f.name ?? ''} ${f.id ?? ''}`)
+							)
+							const commentSelector = commentField?.selector ?? null
+
+							const { form, button } = resolveSubmitButton(commentSelector)
+							if (!button) {
+								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '未找到提交按钮' })
+								return
+							}
+							if (detectCaptcha(form)) {
+								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到验证码，请手动提交' })
+								return
+							}
+
+							const clickRes = await performClick(button, form)
+							if (!clickRes.success) {
+								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: clickRes.error })
+								return
+							}
+
+							// 提交被重定向到登录页 → 直接判定失败，不再走 timeout+cleared 检查
+							if (clickRes.submitResult === 'login_required') {
+								sendResponse({ ok: true, clicked: true, verifyResult: 'login_required' as VerifyResult, error: '检测到跳转登录页，未提交成功' })
+								return
+							}
+
+							// 评论待审核（WP 原生跳转 moderation-hash）→ 判定失败，未实际发布
+							if (clickRes.submitResult === 'pending_moderation') {
+								sendResponse({ ok: true, clicked: true, verifyResult: 'pending_moderation' as VerifyResult, error: '评论待审核，未发布' })
+								return
+							}
+
+							// timeout 时再查评论框是否被清空（AJAX 提交成功标志）
+							let verifyResult: VerifyResult = clickRes.submitResult
+							// AJAX moderation：提交报告 ajax，但 DOM 可能出现待审核提示
+							if (verifyResult === 'ajax') {
+								await new Promise((r) => setTimeout(r, 1500))
+								if (isModerationContent(document)) verifyResult = 'pending_moderation'
+							}
+							if (verifyResult === 'timeout' && commentSelector) {
+								await new Promise((r) => setTimeout(r, 3000))
+								const ta = document.querySelector<HTMLTextAreaElement>(commentSelector)
+								const cleared = !ta || !(ta.value?.trim())
+								if (cleared) verifyResult = 'cleared'
+							}
+
+							sendResponse({ ok: true, clicked: true, verifyResult, error: verifyResult === 'pending_moderation' ? '评论待审核，未发布' : clickRes.error })
+						} catch (err) {
+							sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
+						}
+					})()
+
+					return true // keep message channel open for async response
 				}
 			}
 		})

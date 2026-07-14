@@ -10,9 +10,9 @@ export interface UseSitesResult {
 	submissions: Map<string, SubmissionRecord>
 	loading: boolean
 	refresh: () => Promise<void>
-	markSubmitted: (siteName: string, productId: string) => Promise<void>
+	markSubmitted: (siteName: string, productId: string, verifyResult?: string) => Promise<void>
 	markSkipped: (siteName: string, productId: string) => Promise<void>
-	markFailed: (siteName: string, productId: string, error?: string) => Promise<void>
+	markFailed: (siteName: string, productId: string, error?: string, verifyResult?: string) => Promise<void>
 	resetSubmission: (siteName: string) => Promise<void>
 	updateStatus: (record: SubmissionRecord) => Promise<void>
 	deleteSite: (siteName: string) => Promise<void>
@@ -58,16 +58,19 @@ export function useSites(productId: string | null): UseSitesResult {
 	}, [submissionList])
 
 	const markSubmitted = useCallback(
-		async (siteName: string, productId: string) => {
+		async (siteName: string, productId: string, verifyResult?: string) => {
 			const existing = submissions.get(siteName)
+			// 仅在显式传入时写入 verifyResult，避免无该参数的调用方（如 STATUS_UPDATE）清掉既有值
+			const extra = verifyResult !== undefined ? { verifyResult } : {}
 			if (existing) {
-				await updateSubmission({ ...existing, status: 'submitted', submittedAt: Date.now(), error: undefined, failedAt: undefined })
+				await updateSubmission({ ...existing, ...extra, status: 'submitted', submittedAt: Date.now(), error: undefined, failedAt: undefined })
 			} else {
 				await saveSubmission({
 					siteName,
 					productId,
 					status: 'submitted',
 					submittedAt: Date.now(),
+					...extra,
 				})
 			}
 			await refresh()
@@ -94,12 +97,14 @@ export function useSites(productId: string | null): UseSitesResult {
 	)
 
 	const markFailed = useCallback(
-		async (siteName: string, productId: string, error?: string) => {
+		async (siteName: string, productId: string, error?: string, verifyResult?: string) => {
 			const existing = submissions.get(siteName)
 			const now = Date.now()
+			const extra = verifyResult !== undefined ? { verifyResult } : {}
 			if (existing) {
 				await updateSubmission({
 					...existing,
+					...extra,
 					status: 'failed',
 					error: error ?? '',
 					failedAt: now,
@@ -111,6 +116,7 @@ export function useSites(productId: string | null): UseSitesResult {
 					status: 'failed',
 					error: error ?? '',
 					failedAt: now,
+					...extra,
 				})
 			}
 			await refresh()
