@@ -108,6 +108,46 @@ describe('findSubmitButtonInForm', () => {
 		const form = doc.querySelector('form') as HTMLFormElement
 		expect(mod.findSubmitButtonInForm(form)).toBeNull()
 	})
+
+	it('<a> 锚点提交按钮（OpenCart/Journal2 等 AJAX 站点）', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form>
+				<input type="text" name="name"/>
+				<input type="text" name="email"/>
+				<textarea name="comment"></textarea>
+				<a class="button comment-submit">Submit</a>
+			</form>`
+		const form = doc.querySelector('form') as HTMLFormElement
+		const btn = mod.findSubmitButtonInForm(form)
+		expect(btn?.tagName).toBe('A')
+		expect(btn?.textContent?.trim()).toBe('Submit')
+	})
+
+	it('<a role="button"> 含提交关键词', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form>
+				<textarea name="comment"></textarea>
+				<a role="button">发表评论</a>
+			</form>`
+		const form = doc.querySelector('form') as HTMLFormElement
+		const btn = mod.findSubmitButtonInForm(form)
+		expect(btn?.tagName).toBe('A')
+		expect(btn?.textContent?.trim()).toBe('发表评论')
+	})
+
+	it('普通导航 <a> 不被误判为提交按钮', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form>
+				<textarea name="comment"></textarea>
+				<a href="/about">About</a>
+				<a href="/contact">Contact</a>
+			</form>`
+		const form = doc.querySelector('form') as HTMLFormElement
+		expect(mod.findSubmitButtonInForm(form)).toBeNull()
+	})
 })
 
 describe('resolveSubmitButton', () => {
@@ -139,6 +179,23 @@ describe('resolveSubmitButton', () => {
 		const res = mod.resolveSubmitButton(null)
 		expect(res.form).toBeNull()
 		expect(res.button).toBeNull()
+	})
+
+	it('评论框 + <a> 锚点提交按钮（非 WP 站点端到端）', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<div class="post-comment">
+				<div class="comment-form">
+					<form>
+						<input type="text" name="name"/>
+						<textarea name="comment" id="comment"></textarea>
+						<a class="button comment-submit">Submit</a>
+					</form>
+				</div>
+			</div>`
+		const res = mod.resolveSubmitButton('#comment')
+		expect(res.button?.tagName).toBe('A')
+		expect(res.form).not.toBeNull()
 	})
 })
 

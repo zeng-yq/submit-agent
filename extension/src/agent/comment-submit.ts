@@ -106,14 +106,18 @@ export function findSubmitButtonInForm(form: HTMLFormElement | null): HTMLElemen
 	}
 	if (candidates.length > 0) return candidates[0]
 
-	// 方法 3：button/input[type=button] 文本关键词
-	const allButtons = Array.from(form.querySelectorAll<HTMLElement>('button, input[type="button"]'))
-	for (const btn of allButtons) {
+	// 方法 3：button / input[type=button] / 按钮语义 <a> 文本关键词
+	//   非 WP 站点（OpenCart/Journal2、部分 Bootstrap 主题）常用 <a class="button"> + jQuery AJAX 提交，
+	//   故纳入 a[role="button"] / a[class*=button] / a[class*=submit]，并用关键词过滤以避免误判导航链接。
+	const clickables = Array.from(form.querySelectorAll<HTMLElement>(
+		'button, input[type="button"], a[role="button"], a[class*="button"], a[class*="submit"]'
+	))
+	for (const btn of clickables) {
 		const text = `${btn.textContent ?? (btn as HTMLInputElement).value ?? ''} ${btn.className ?? ''} ${btn.id ?? ''}`.toLowerCase()
 		if (SUBMIT_KEYWORDS.some(k => text.includes(k))) return btn
 	}
-	// 方法 4：表单只有一个按钮
-	if (allButtons.length === 1) return allButtons[0]
+	// 方法 4：表单只有一个可点击元素
+	if (clickables.length === 1) return clickables[0]
 
 	return null
 }
