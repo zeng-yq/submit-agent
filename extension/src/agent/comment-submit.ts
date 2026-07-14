@@ -62,6 +62,14 @@ export function isModerationContent(root: Element | Document | null): boolean {
 	return MODERATION_TEXT_PATTERNS.some(p => p.test(text))
 }
 
+/**
+ * 当前页面是否处于评论待审核状态：URL 含 WP moderation 参数，或 DOM 出现待审核标记。
+ * 供 content script 在提交后（含整页跳转后的新页面）对引擎做权威判定。
+ */
+export function detectModeration(): boolean {
+	return isModerationUrl(location.href) || isModerationContent(document)
+}
+
 /** 多语种提交关键词 */
 const SUBMIT_KEYWORDS = [
 	'submit', 'post', 'comment', 'publish', 'reply', 'respond', 'send',

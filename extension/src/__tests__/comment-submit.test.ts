@@ -369,3 +369,29 @@ describe('isModerationContent', () => {
 		expect(mod.isModerationContent(null)).toBe(false)
 	})
 })
+
+describe('detectModeration', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals()
+	})
+
+	it('DOM 含 comment-awaiting-moderation 元素 → true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<em class="comment-awaiting-moderation">Your comment is awaiting moderation.</em>`
+		expect(mod.detectModeration()).toBe(true)
+	})
+
+	it('URL 含 moderation 参数 → true（即便 DOM 无标记）', async () => {
+		const mod = await loadModule()
+		vi.stubGlobal('location', { href: 'https://example.com/post?unapproved=1&moderation-hash=abc#comment-1' })
+		doc.body.innerHTML = ''
+		expect(mod.detectModeration()).toBe(true)
+	})
+
+	it('正常已发布页 → false', async () => {
+		const mod = await loadModule()
+		vi.stubGlobal('location', { href: 'https://example.com/post#comment-1' })
+		doc.body.innerHTML = `<div>Comment posted</div>`
+		expect(mod.detectModeration()).toBe(false)
+	})
+})
