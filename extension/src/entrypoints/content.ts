@@ -4,9 +4,12 @@ import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { resolveSubmitButton, detectCaptcha, performClick, isModerationContent, detectModeration } from '@/agent/comment-submit'
+import { resolveSubmitButton, detectCaptcha, detectCloudflare, performClick, isModerationContent, detectModeration } from '@/agent/comment-submit'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
+
+/** 检测到 Cloudflare Turnstile 后等待自动完成的超时（managed 模式通常 2-5s，留余量） */
+const CLOUDFLARE_WAIT_MS = 10000
 
 /**
  * Find and unhide form inputs within a comment form container.
@@ -415,9 +418,15 @@ export default defineContentScript({
 								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '未找到提交按钮' })
 								return
 							}
+							// reCAPTCHA / hCaptcha：需人工、无法自动通过 → 直接失败，不硬闯
 							if (detectCaptcha(form)) {
-								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到验证码，请手动提交' })
+								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到 reCAPTCHA/hCaptcha，请手动提交' })
 								return
+							}
+							// Cloudflare Turnstile：managed 模式通常自动完成 → 等待超时后再提交，
+							// 超时后若提交仍失败，由下方 verify 逻辑判定为失败
+							if (detectCloudflare(form)) {
+								await new Promise((r) => setTimeout(r, CLOUDFLARE_WAIT_MS))
 							}
 
 							const clickRes = await performClick(button, form)

@@ -169,18 +169,36 @@ export function resolveSubmitButton(commentSelector: string | null): {
 	return { form: null, button: null }
 }
 
-/** 验证码 widget 选择器（搬 autoComment MANUAL_REQUIRED_WIDGET_SELECTORS） */
+/** reCAPTCHA / hCaptcha widget 选择器：需人工、无法自动通过，命中即放弃提交 */
 const CAPTCHA_SELECTORS = [
-	'.g-recaptcha', '.h-captcha', '.cf-turnstile', '[data-sitekey]',
+	'.g-recaptcha', '.h-captcha',
+	// [data-sitekey] 同时被 Turnstile 使用，用 :not(.cf-turnstile) 排除，交给 detectCloudflare
+	'[data-sitekey]:not(.cf-turnstile)',
 	'[name="g-recaptcha-response"]', '[name="h-captcha-response"]',
 	'iframe[src*="recaptcha"]', 'iframe[src*="hcaptcha"]',
-	'iframe[src*="challenges.cloudflare.com"]',
 ]
 
-/** 检测目标容器内是否有验证码 widget（命中则不硬闯，提示手动） */
+/** 检测目标容器内是否有 reCAPTCHA / hCaptcha widget（需人工，命中即放弃） */
 export function detectCaptcha(root: Element | Document | null): boolean {
 	if (!root) return false
 	for (const sel of CAPTCHA_SELECTORS) {
+		try {
+			if ((root as Element).querySelector?.(sel)) return true
+		} catch { /* 无效选择器 */ }
+	}
+	return false
+}
+
+/** Cloudflare Turnstile widget 选择器：managed 模式通常自动完成，可等待后再提交 */
+const CLOUDFLARE_SELECTORS = [
+	'.cf-turnstile',
+	'iframe[src*="challenges.cloudflare.com"]',
+]
+
+/** 检测目标容器内是否有 Cloudflare Turnstile widget（通常自动完成） */
+export function detectCloudflare(root: Element | Document | null): boolean {
+	if (!root) return false
+	for (const sel of CLOUDFLARE_SELECTORS) {
 		try {
 			if ((root as Element).querySelector?.(sel)) return true
 		} catch { /* 无效选择器 */ }

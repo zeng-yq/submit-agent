@@ -207,16 +207,42 @@ describe('detectCaptcha', () => {
 		expect(mod.detectCaptcha(form)).toBe(true)
 	})
 
-	it('检测到 Turnstile', async () => {
+	it('Turnstile 不被 detectCaptcha 误判（交给 detectCloudflare）', async () => {
 		const mod = await loadModule()
-		doc.body.innerHTML = `<form><div class="cf-turnstile"></div></form>`
-		expect(mod.detectCaptcha(doc.querySelector('form')!)).toBe(true)
+		doc.body.innerHTML = `<form><div class="cf-turnstile" data-sitekey="x"></div></form>`
+		expect(mod.detectCaptcha(doc.querySelector('form')!)).toBe(false)
 	})
 
 	it('无验证码返回 false', async () => {
 		const mod = await loadModule()
 		doc.body.innerHTML = `<form><input type="text"></form>`
 		expect(mod.detectCaptcha(doc.querySelector('form')!)).toBe(false)
+	})
+})
+
+describe('detectCloudflare', () => {
+	it('检测到 Turnstile widget', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><div class="cf-turnstile" data-sitekey="x"></div></form>`
+		expect(mod.detectCloudflare(doc.querySelector('form')!)).toBe(true)
+	})
+
+	it('检测到 Turnstile iframe', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><iframe src="https://challenges.cloudflare.com/cdn-cgi/challenge-platform/"></iframe></form>`
+		expect(mod.detectCloudflare(doc.querySelector('form')!)).toBe(true)
+	})
+
+	it('reCAPTCHA 不被 detectCloudflare 误判', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><div class="g-recaptcha" data-sitekey="x"></div></form>`
+		expect(mod.detectCloudflare(doc.querySelector('form')!)).toBe(false)
+	})
+
+	it('无验证码返回 false', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><input type="text"></form>`
+		expect(mod.detectCloudflare(doc.querySelector('form')!)).toBe(false)
 	})
 })
 
