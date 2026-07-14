@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import type { SiteData } from '@/lib/types'
+import { VERIFIED_SUCCESS } from '@/agent/types'
+import type { VerifyResult } from '@/agent/types'
 import { filterSubmittable, matchCurrentPage } from '@/lib/sites'
 
 interface UseFloatFillOptions {
@@ -58,7 +60,7 @@ export function useFloatFill({
 						if (isBlogComment) {
 							// blog_comment：以提交验证结果为准
 							// TODO: 入库映射逻辑待补单测（见 spec §7）—— 需 mock chrome + 注入 markSubmitted/markFailed 驱动 FLOAT_FILL start，当前依赖手动验证矩阵覆盖
-							const verified = ['ajax', 'navigating', 'pagehide', 'cleared'].includes(r.verifyResult ?? '')
+							const verified = VERIFIED_SUCCESS.includes((r.verifyResult ?? 'not_attempted') as VerifyResult)
 							if (verified) {
 								markSubmitted(matched.name, activeProduct.id, r.verifyResult)
 							} else {
