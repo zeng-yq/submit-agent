@@ -4,7 +4,7 @@ import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { resolveSubmitButton, detectCaptcha, performClick } from '@/agent/comment-submit'
+import { resolveSubmitButton, detectCaptcha, performClick, isModerationContent } from '@/agent/comment-submit'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
 
@@ -427,8 +427,19 @@ export default defineContentScript({
 								return
 							}
 
+							// 评论待审核（WP 原生跳转 moderation-hash）→ 判定失败，未实际发布
+							if (clickRes.submitResult === 'pending_moderation') {
+								sendResponse({ ok: true, clicked: true, verifyResult: 'pending_moderation' as VerifyResult, error: '评论待审核，未发布' })
+								return
+							}
+
 							// timeout 时再查评论框是否被清空（AJAX 提交成功标志）
 							let verifyResult: VerifyResult = clickRes.submitResult
+							// AJAX moderation：提交报告 ajax，但 DOM 可能出现待审核提示
+							if (verifyResult === 'ajax') {
+								await new Promise((r) => setTimeout(r, 1500))
+								if (isModerationContent(document)) verifyResult = 'pending_moderation'
+							}
 							if (verifyResult === 'timeout' && commentSelector) {
 								await new Promise((r) => setTimeout(r, 3000))
 								const ta = document.querySelector<HTMLTextAreaElement>(commentSelector)
@@ -436,7 +447,7 @@ export default defineContentScript({
 								if (cleared) verifyResult = 'cleared'
 							}
 
-							sendResponse({ ok: true, clicked: true, verifyResult, error: clickRes.error })
+							sendResponse({ ok: true, clicked: true, verifyResult, error: verifyResult === 'pending_moderation' ? '评论待审核，未发布' : clickRes.error })
 						} catch (err) {
 							sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
 						}

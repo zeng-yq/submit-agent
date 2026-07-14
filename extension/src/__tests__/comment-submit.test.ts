@@ -245,6 +245,22 @@ describe('waitForSubmitOrNavigate', () => {
 		expect(await p).toBe('login_required')
 		expect(removeEventListener).toHaveBeenCalledWith('navigate', expect.any(Function))
 	})
+
+	it('Navigation API 检测到 moderation URL → pending_moderation', async () => {
+		let capturedNavigate: ((e: { destination?: { url?: string } }) => void) | undefined
+		const removeEventListener = vi.fn()
+		;(globalThis as any).navigation = {
+			addEventListener: vi.fn((_: string, cb: (e: { destination?: { url?: string } }) => void) => {
+				capturedNavigate = cb
+			}),
+			removeEventListener,
+		}
+		const mod = await loadModule()
+		const p = mod.waitForSubmitOrNavigate(1000)
+		capturedNavigate!({ destination: { url: 'https://x.com/post?unapproved=1&moderation-hash=a#comment-1' } })
+		expect(await p).toBe('pending_moderation')
+		expect(removeEventListener).toHaveBeenCalledWith('navigate', expect.any(Function))
+	})
 })
 
 describe('performClick', () => {
@@ -298,5 +314,58 @@ describe('isLoginRedirectUrl', () => {
 		expect(mod.isLoginRedirectUrl('https://x.com/events')).toBe(false)
 		expect(mod.isLoginRedirectUrl('https://x.com/setting/message')).toBe(false)
 		expect(mod.isLoginRedirectUrl('https://x.com/dashboard')).toBe(false)
+	})
+})
+
+describe('isModerationUrl', () => {
+	it('同时包含 unapproved= 和 moderation-hash= → true', async () => {
+		const mod = await loadModule()
+		expect(mod.isModerationUrl('https://x.com/post?unapproved=8329&moderation-hash=abc')).toBe(true)
+	})
+
+	it('仅 unapproved= 无 moderation-hash= → false', async () => {
+		const mod = await loadModule()
+		expect(mod.isModerationUrl('https://x.com/post?unapproved=8329')).toBe(false)
+	})
+
+	it('普通文章 URL → false', async () => {
+		const mod = await loadModule()
+		expect(mod.isModerationUrl('https://x.com/post')).toBe(false)
+	})
+
+	it('仅 #comment 锚点无查询串 → false', async () => {
+		const mod = await loadModule()
+		expect(mod.isModerationUrl('https://x.com/post#comment-8329')).toBe(false)
+	})
+})
+
+describe('isModerationContent', () => {
+	it('DOM 含 comment-awaiting-moderation 元素 → true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<em class="comment-awaiting-moderation">Your comment is awaiting moderation.</em>`
+		expect(mod.isModerationContent(doc.body)).toBe(true)
+	})
+
+	it('文本含 "Your comment is awaiting moderation" → true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>Your comment is awaiting moderation.</div>`
+		expect(mod.isModerationContent(doc.body)).toBe(true)
+	})
+
+	it('文本含 "评论待审核" → true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>评论待审核</div>`
+		expect(mod.isModerationContent(doc.body)).toBe(true)
+	})
+
+	it('正常已发布文本 → false', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>Comment posted</div>`
+		expect(mod.isModerationContent(doc.body)).toBe(false)
+	})
+
+	it('null root → false', async () => {
+		const mod = await loadModule()
+		expect(mod.isModerationContent(null)).toBe(false)
 	})
 })

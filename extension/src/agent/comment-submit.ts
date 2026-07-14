@@ -35,6 +35,33 @@ export function isLoginRedirectUrl(url: string): boolean {
 	}
 }
 
+/** WP 评论待审核 URL 模式：unapproved= 与 moderation-hash= 同时出现（WP 标准） */
+const MODERATION_URL_PATTERNS = [/[?&]unapproved=\d+/i, /[?&]moderation-hash=/i]
+
+/** 判断 URL 是否为评论待审核重定向（WP 原生提交后跳转，评论未实际发布） */
+export function isModerationUrl(url: string): boolean {
+	try {
+		const u = new URL(url, location.href)
+		return MODERATION_URL_PATTERNS.every(p => p.test(u.search))
+	} catch {
+		return false
+	}
+}
+
+/** 评论待审核文本模式（多语种，AJAX 提交后 DOM 出现的提示） */
+const MODERATION_TEXT_PATTERNS = [
+	/awaiting moderation/i, /pending (moderation|approval|review)/i,
+	/待审核/, /审核中/, /等候審核/,
+]
+
+/** 检测 DOM 中是否出现评论待审核提示（AJAX 提交场景，best-effort） */
+export function isModerationContent(root: Element | Document | null): boolean {
+	if (!root) return false
+	if (root.querySelector('.comment-awaiting-moderation, [class*=moderation-notice], [id*=moderation]')) return true
+	const text = (root.textContent || '').slice(0, 5000)
+	return MODERATION_TEXT_PATTERNS.some(p => p.test(text))
+}
+
 /** 多语种提交关键词 */
 const SUBMIT_KEYWORDS = [
 	'submit', 'post', 'comment', 'publish', 'reply', 'respond', 'send',
@@ -149,7 +176,7 @@ export function detectCaptcha(root: Element | Document | null): boolean {
 	return false
 }
 
-export type SubmitSignal = 'ajax' | 'navigating' | 'pagehide' | 'timeout' | 'login_required'
+export type SubmitSignal = 'ajax' | 'navigating' | 'pagehide' | 'timeout' | 'login_required' | 'pending_moderation'
 
 /** Navigation API 最小类型（lib.dom 可能缺失，避免引入 any） */
 interface NavNavigateEvent { destination?: { url?: string } }
@@ -204,6 +231,7 @@ export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal
 			onNavigate = (e) => {
 				const dest = e.destination?.url
 				if (dest && isLoginRedirectUrl(dest)) finish('login_required')
+				else if (dest && isModerationUrl(dest)) finish('pending_moderation')
 			}
 			nav.addEventListener('navigate', onNavigate)
 		}
