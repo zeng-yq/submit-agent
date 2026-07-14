@@ -4,7 +4,7 @@ import { analyzeForms } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { resolveSubmitButton, detectCaptcha, performClick, isModerationContent } from '@/agent/comment-submit'
+import { resolveSubmitButton, detectCaptcha, performClick, isModerationContent, detectModeration } from '@/agent/comment-submit'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
 
@@ -383,6 +383,11 @@ export default defineContentScript({
 				case 'annotate-clear': {
 					clearAnnotations()
 					sendResponse({ ok: true })
+					return
+				}
+				case 'verify-moderation': {
+					// 整页跳转后引擎复核：返回当前页是否处于待审核（URL 参数 或 DOM 标记）
+					sendResponse({ ok: true, moderation: detectModeration() })
 					return
 				}
 				case 'submit': {
