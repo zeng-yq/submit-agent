@@ -22,7 +22,11 @@ export type VerifyResult =
 	| 'cleared'     // timeout 后再查评论框已被清空（AJAX 提交成功标志）
 	| 'login_required' // 提交被重定向到登录页（未登录，提交失败）
 	| 'pending_moderation' // 评论待审核（WP moderation-hash，未实际发布）
+	| 'unverified' // 提交触发整页跳转，但跳转后无法确认发布状态（保守判失败）
 	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 验证码）
+
+/** 自动提交后判定为「已确认成功」的验证结果集合（navigating/pagehide 仅在跳转后验证通过后才成立） */
+export const VERIFIED_SUCCESS: readonly VerifyResult[] = ['ajax', 'cleared', 'navigating', 'pagehide']
 
 /** Result of a form fill operation */
 export interface FillResult {
