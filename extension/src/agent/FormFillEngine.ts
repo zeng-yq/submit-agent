@@ -64,7 +64,7 @@ function matchesField(
 	// Token similarity match (threshold > 0.5)
 	for (const id of identifiers) {
 		if (!id) continue
-		if (tokenSimilarity(key, id) >= 0.5) return true
+		if (tokenSimilarity(key, id) > 0.5) return true
 	}
 
 	return false
