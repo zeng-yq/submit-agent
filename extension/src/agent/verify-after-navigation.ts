@@ -18,6 +18,11 @@ export interface VerifyAfterNavigationDeps {
 	settleTimeoutMs?: number
 	/** 轮询/重试间隔（ms），默认 500 */
 	pollMs?: number
+	/** 阶段 2 向新页面 content script 复核的总预算（ms），默认 8000。
+	 *  整页跳转后 URL 落定通常早于 content script 注入（runAt: document_end），
+	 *  此时 chrome.tabs.sendMessage 会因 "Receiving end does not exist" 立即 reject，
+	 *  故按时间预算持续重试等其就绪，而非固定次数。 */
+	verifyTimeoutMs?: number
 }
 
 /** 跳转后最终页面的 URL 标记：评论锚点或 WP moderation 参数（仅重定向落定后出现） */
@@ -36,6 +41,7 @@ export async function verifyAfterNavigation(
 	const { getTabUrl, sendVerify, sleep } = deps
 	const settleTimeoutMs = deps.settleTimeoutMs ?? 6000
 	const pollMs = deps.pollMs ?? 500
+	const verifyTimeoutMs = deps.verifyTimeoutMs ?? 8000
 	const maxSettlePolls = Math.max(1, Math.round(settleTimeoutMs / pollMs))
 
 	// 阶段 1：等重定向落定
@@ -52,13 +58,16 @@ export async function verifyAfterNavigation(
 		await sleep(pollMs)
 	}
 
-	// 阶段 2：问新页面 content script（至多 3 次）
-	for (let i = 0; i < 3; i++) {
+	// 阶段 2：问新页面 content script（在预算内持续重试，等 document_end 注入完成）
+	//   整页跳转后 URL 落定往往早于 content script 就绪：chrome.tabs.sendMessage 会因
+	//   "Receiving end does not exist" 立即 reject，故按 verifyTimeoutMs 预算重试而非固定次数。
+	const maxVerifyPolls = Math.max(1, Math.round(verifyTimeoutMs / pollMs))
+	for (let i = 0; i < maxVerifyPolls; i++) {
 		try {
 			const r = await sendVerify(tabId)
 			if (r?.ok === true) return r.moderation ? 'moderation' : 'confirmed'
 		} catch {
-			// content script 未就绪/出错 → 重试
+			// content script 未就绪/出错 → 在预算内继续重试
 		}
 		await sleep(pollMs)
 	}
