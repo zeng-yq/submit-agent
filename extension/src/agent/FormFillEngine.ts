@@ -429,7 +429,10 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 					log(
 						verified ? 'success' : 'warning',
 						'fill',
-						`提交结果: ${verifyResult}${submitError ? ' - ' + submitError : ''}`,
+						// pending_moderation：submitError 已是「评论待审核，未发布」，省略冗余 verifyResult 码以缩短日志
+						verifyResult === 'pending_moderation'
+							? `提交结果: ${submitError}`
+							: `提交结果: ${verifyResult}${submitError ? ' - ' + submitError : ''}`,
 					)
 				} else {
 					verifyResult = 'not_attempted'
