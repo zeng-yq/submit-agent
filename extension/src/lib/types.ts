@@ -58,6 +58,20 @@ export function getCategoryLabel(category: string): string {
   return SITE_CATEGORIES.find((c) => c.value === category)?.label ?? category
 }
 
+/** Site pricing — structured enum for the price tier (CSV 免费/付费/混合) */
+export type SitePricing = 'free' | 'paid' | 'mixed'
+
+export const SITE_PRICINGS: { value: SitePricing; label: string }[] = [
+  { value: 'free', label: '免费' },
+  { value: 'paid', label: '付费' },
+  { value: 'mixed', label: '混合' },
+]
+
+/** Get display label for a pricing value; unknown/empty → '' (不渲染标签). */
+export function getPricingLabel(pricing: string): string {
+  return SITE_PRICINGS.find((p) => p.value === pricing)?.label ?? ''
+}
+
 /** One entry from sites.json */
 export interface SiteData {
 	name: string
@@ -68,6 +82,8 @@ export interface SiteData {
 	monthly_traffic?: number
 	pricing?: string
 	notes?: string
+	pricing_type?: SitePricing
+	requires_login?: boolean
 }
 
 /** sites.json top-level structure */
