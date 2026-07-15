@@ -11,6 +11,7 @@ export {
   classifyFields,
   detectCommentLinks,
   buildFieldList,
+  waitForAnalysisFields,
 } from './form-analyzer'
 
 export type {

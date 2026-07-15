@@ -246,6 +246,32 @@ describe('detectCloudflare', () => {
 	})
 })
 
+describe('detectImageCaptcha', () => {
+	it('检测到 Captcha.ashx 图片验证码', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><img src="https://www.studyguideindia.com/blogs/Contents/Captcha.ashx"><input name="txtSecurityCode" type="text"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(true)
+	})
+
+	it('src 大小写不敏感', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><img src="/CAPTCHA.PNG"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(true)
+	})
+
+	it('普通图片不误判', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><img src="/logo.png"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(false)
+	})
+
+	it('无图片返回 false', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><input type="text"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(false)
+	})
+})
+
 describe('waitForSubmitOrNavigate', () => {
 	it('submit 事件后无导航 → 延迟 150ms 后判定 ajax', async () => {
 		vi.useFakeTimers()

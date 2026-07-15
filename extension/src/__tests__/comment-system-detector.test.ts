@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { detectCommentSystem } from '@/agent/form-analyzer/comment-system-detector'
+import {
+  detectCommentSystem,
+  isRemoteCommentIframeHost,
+  isRemoteCommentSystem,
+} from '@/agent/form-analyzer/comment-system-detector'
 
 function createDoc(html: string): Document {
   const doc = document.implementation.createHTMLDocument()
@@ -75,5 +79,55 @@ describe('detectCommentSystem', () => {
     const doc = createDoc('<div id="disqus_thread"></div>')
     const result = detectCommentSystem(doc)
     expect(result!.boost).toBeGreaterThan(0)
+  })
+
+  it('检测到 Jetpack 远程评论 iframe（name 属性）', () => {
+    const doc = createDoc('<iframe name="jetpack_remote_comment" src="https://jetpack.wordpress.com/jetpack-comment/?blogid=1"></iframe>')
+    const result = detectCommentSystem(doc)
+    expect(result).not.toBeNull()
+    expect(result!.name).toBe('jetpack')
+  })
+
+  it('检测到 Jetpack 远程评论 iframe（src 含 jetpack-comment）', () => {
+    const doc = createDoc('<iframe src="https://jetpack.wordpress.com/jetpack-comment/?blogid=183679"></iframe>')
+    const result = detectCommentSystem(doc)
+    expect(result).not.toBeNull()
+    expect(result!.name).toBe('jetpack')
+  })
+})
+
+describe('isRemoteCommentIframeHost', () => {
+  it('blogger.com 子域命中', () => {
+    expect(isRemoteCommentIframeHost('www.blogger.com')).toBe(true)
+  })
+
+  it('jetpack.wordpress.com 命中', () => {
+    expect(isRemoteCommentIframeHost('jetpack.wordpress.com')).toBe(true)
+  })
+
+  it('普通文章页 hostname 不命中', () => {
+    expect(isRemoteCommentIframeHost('mynintendonews.com')).toBe(false)
+  })
+
+  it('空字符串不命中', () => {
+    expect(isRemoteCommentIframeHost('')).toBe(false)
+  })
+})
+
+describe('isRemoteCommentSystem', () => {
+  it('blogger 命中', () => {
+    expect(isRemoteCommentSystem('blogger')).toBe(true)
+  })
+
+  it('jetpack 命中', () => {
+    expect(isRemoteCommentSystem('jetpack')).toBe(true)
+  })
+
+  it('disqus 不命中（非远程 iframe 系统）', () => {
+    expect(isRemoteCommentSystem('disqus')).toBe(false)
+  })
+
+  it('undefined 不命中', () => {
+    expect(isRemoteCommentSystem(undefined)).toBe(false)
   })
 })

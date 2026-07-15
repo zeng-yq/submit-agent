@@ -1,10 +1,11 @@
 import { initFloatButton } from '@/agent/FloatButton.content'
 import { getFloatButtonEnabled } from '@/lib/storage'
-import { analyzeForms } from '@/agent/FormAnalyzer'
+import { analyzeForms, waitForAnalysisFields } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { resolveSubmitButton, detectCaptcha, detectCloudflare, performClick, isModerationContent, detectModeration } from '@/agent/comment-submit'
+import { resolveSubmitButton, detectCaptcha, detectCloudflare, detectImageCaptcha, performClick, isModerationContent, detectModeration } from '@/agent/comment-submit'
+import { isRemoteCommentIframeHost, isRemoteCommentSystem, REMOTE_COMMENT_IFRAME_SELECTORS } from '@/agent/form-analyzer/comment-system-detector'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
 
@@ -201,13 +202,14 @@ function fillIframeFields(
 	})
 }
 
-/** Initialize Blogger iframe content script handlers */
-function initBloggerIframeHandlers(): void {
+/** Initialize remote comment iframe content script handlers (Blogger / Jetpack Verbum) */
+function initRemoteCommentIframeHandlers(): void {
 	window.addEventListener('message', async (event: MessageEvent) => {
 		if (event.data?.source !== SA_MSG_SOURCE) return
 
 		if (event.data.type === 'REQUEST_IFRAME_ANALYSIS') {
-			const analysis = analyzeForms(document)
+			// 远程评论表单（Jetpack Verbum）可能懒加载，轮询等待字段渲染再回传
+			const analysis = await waitForAnalysisFields(document)
 			event.source?.postMessage(
 				{ source: SA_MSG_SOURCE, type: 'IFRAME_ANALYSIS_RESULT', analysis },
 				{ targetOrigin: '*' },
@@ -243,9 +245,6 @@ function initBloggerIframeHandlers(): void {
 	})
 }
 
-/** CSS selectors for Blogger comment iframe */
-const BLOGGER_IFRAME_SELECTORS = 'iframe#comment-editor, iframe.blogger-comment-from-post, iframe[src*="blogger.com/comment"]'
-
 export default defineContentScript({
 	matches: ['<all_urls>'],
 	runAt: 'document_end',
@@ -254,10 +253,10 @@ export default defineContentScript({
 	async main() {
 		console.debug('[Submit Agent] Content script loaded on', window.location.href)
 
-		// Iframe context: only handle Blogger comment iframe
+		// Iframe context: only handle remote comment iframes (Blogger / Jetpack Verbum)
 		if (window !== window.top) {
-			if (location.hostname.includes('blogger.com')) {
-				initBloggerIframeHandlers()
+			if (isRemoteCommentIframeHost(location.hostname)) {
+				initRemoteCommentIframeHandlers()
 			}
 			return
 		}
@@ -284,11 +283,14 @@ export default defineContentScript({
 
 							const analysis = analyzeForms(document)
 
-							// When Blogger comment system detected but no fields found,
-							// try to get fields from the Blogger iframe via postMessage
-							if (analysis.commentSystem?.name === 'blogger' && analysis.fields.length === 0) {
-								const iframe = document.querySelector<HTMLIFrameElement>(BLOGGER_IFRAME_SELECTORS)
+							// When a remote comment system (Blogger / Jetpack Verbum) is detected but no
+							// fields found in the main document, fetch them from the cross-origin iframe
+							// via postMessage.
+							if (isRemoteCommentSystem(analysis.commentSystem?.name) && analysis.fields.length === 0) {
+								const iframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
 								if (iframe) {
+									// 滚动 iframe 进入视口，触发懒加载的远程评论表单（Jetpack Verbum）渲染
+									iframe.scrollIntoView({ block: 'center' })
 									const iframeAnalysis = await requestIframeAnalysis(iframe)
 									if (iframeAnalysis) {
 										analysis.fields = iframeAnalysis.fields
@@ -324,11 +326,11 @@ export default defineContentScript({
 						let filled = 0
 						let failed = 0
 
-						// Check if fields are in a Blogger iframe
-						const bloggerIframe = document.querySelector<HTMLIFrameElement>(BLOGGER_IFRAME_SELECTORS)
+						// Check if fields are in a remote comment iframe (Blogger / Jetpack Verbum)
+						const remoteIframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
 
-						if (bloggerIframe) {
-							const result = await fillIframeFields(bloggerIframe, fields)
+						if (remoteIframe) {
+							const result = await fillIframeFields(remoteIframe, fields)
 							filled += result.filled
 							failed += result.failed
 						} else {
@@ -421,6 +423,11 @@ export default defineContentScript({
 							// reCAPTCHA / hCaptcha：需人工、无法自动通过 → 直接失败，不硬闯
 							if (detectCaptcha(form)) {
 								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到 reCAPTCHA/hCaptcha，请手动提交' })
+								return
+							}
+							// 图片验证码（如 Captcha.ashx）：需人工输入 → 填好其他字段后放弃提交，由用户手动补验证码
+							if (detectImageCaptcha(form)) {
+								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到图片验证码，请手动填写后提交' })
 								return
 							}
 							// Cloudflare Turnstile：managed 模式通常自动完成 → 等待超时后再提交，

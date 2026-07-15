@@ -167,3 +167,19 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
     commentSystem: detectCommentSystem(doc) ?? undefined,
   };
 }
+
+/**
+ * 轮询 analyzeForms 直到出现可见字段或超时。
+ * 用于远程评论 iframe（Jetpack Verbum 等）懒加载场景：主文档字段为空时，
+ * 等 iframe 内动态渲染的字段出现再回传，避免在表单未渲染时拿到空结果。
+ * 用 analyzeForms.fields 判定（而非 hasFormFields），绕过蜜罐 textarea 干扰。
+ */
+export async function waitForAnalysisFields(doc: Document, timeoutMs = 3000): Promise<FormAnalysisResult> {
+  const deadline = Date.now() + timeoutMs
+  let analysis = analyzeForms(doc)
+  while (analysis.fields.length === 0 && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 200))
+    analysis = analyzeForms(doc)
+  }
+  return analysis
+}

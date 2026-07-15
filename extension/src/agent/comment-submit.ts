@@ -206,6 +206,22 @@ export function detectCloudflare(root: Element | Document | null): boolean {
 	return false
 }
 
+/** 图片验证码（服务端生成扭曲字符图，如 Captcha.ashx）选择器：需人工输入，命中即放弃 */
+const IMAGE_CAPTCHA_SELECTORS = [
+	'img[src*="captcha" i]',
+]
+
+/** 检测目标容器内是否有图片验证码（需人工输入，无法自动通过） */
+export function detectImageCaptcha(root: Element | Document | null): boolean {
+	if (!root) return false
+	for (const sel of IMAGE_CAPTCHA_SELECTORS) {
+		try {
+			if ((root as Element).querySelector?.(sel)) return true
+		} catch { /* 无效选择器 */ }
+	}
+	return false
+}
+
 export type SubmitSignal = 'ajax' | 'navigating' | 'pagehide' | 'timeout' | 'login_required' | 'pending_moderation'
 
 /** Navigation API 最小类型（lib.dom 可能缺失，避免引入 any） */
