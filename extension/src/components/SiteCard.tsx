@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Play, Trash2, Loader2, Pencil } from 'lucide-react'
-import type { SiteData, SubmissionStatus, SiteCategory } from '@/lib/types'
-import { SITE_CATEGORIES, getCategoryLabel } from '@/lib/types'
+import type { SiteData, SubmissionStatus, SiteCategory, SitePricing } from '@/lib/types'
+import { SITE_CATEGORIES, getCategoryLabel, SITE_PRICINGS, getPricingLabel } from '@/lib/types'
 import { Dialog, DialogHeader, DialogTitle, DialogCloseButton, DialogContent, DialogFooter } from './ui/Dialog'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -49,12 +49,16 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 	const [formCategory, setFormCategory] = useState<SiteCategory>('others')
 	const [formDr, setFormDr] = useState('')
 	const [formNotes, setFormNotes] = useState('')
+	const [formPricing, setFormPricing] = useState<SitePricing | ''>('')
+	const [formLogin, setFormLogin] = useState<'true' | 'false' | ''>('')
 
 	const openEdit = () => {
 		setFormUrl(site.submit_url ?? '')
 		setFormCategory(site.category)
 		setFormDr(site.dr != null ? String(site.dr) : '')
 		setFormNotes(site.notes ?? '')
+		setFormPricing(site.pricing_type ?? '')
+		setFormLogin(site.requires_login === undefined ? '' : site.requires_login ? 'true' : 'false')
 		setEditOpen(true)
 	}
 
@@ -65,6 +69,8 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 			category: formCategory,
 			dr: formDr.trim() && !isNaN(Number(formDr)) ? Number(formDr) : null,
 			notes: formNotes.trim() || undefined,
+			pricing_type: formPricing || undefined,
+			requires_login: formLogin === '' ? undefined : formLogin === 'true',
 		}
 		try {
 			await onSave(site.name, data)
@@ -116,8 +122,14 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 							<span className="text-[9px] text-muted-foreground shrink-0">手动</span>
 						)}
 					</div>
-					<div className="mt-0.5">
+					<div className="mt-0.5 flex items-center gap-1.5">
 						<span className="text-[10px] text-muted-foreground">{getCategoryLabel(site.category)}</span>
+						{site.pricing_type && (
+							<span className="text-[10px] text-muted-foreground">{getPricingLabel(site.pricing_type)}</span>
+						)}
+						{site.requires_login && (
+							<span className="text-[10px] text-amber-600 dark:text-amber-400">需登录</span>
+						)}
 					</div>
 				</div>
 
@@ -215,6 +227,22 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 						value={formDr}
 						onChange={(e) => setFormDr(e.target.value)}
 						placeholder="留空表示未知"
+					/>
+					<Select
+						label="价格"
+						options={[{ value: '', label: '未知' }, ...SITE_PRICINGS]}
+						value={formPricing}
+						onChange={(e) => setFormPricing(e.target.value as SitePricing | '')}
+					/>
+					<Select
+						label="需要登录"
+						options={[
+							{ value: '', label: '未知' },
+							{ value: 'true', label: '是' },
+							{ value: 'false', label: '否' },
+						]}
+						value={formLogin}
+						onChange={(e) => setFormLogin(e.target.value as 'true' | 'false' | '')}
 					/>
 					<Textarea
 						label="备注"
