@@ -2,7 +2,7 @@ import type { BacklinkRecord } from './types'
 import { getBacklinkByUrl, saveBacklink, getSiteByDomain } from './db'
 
 /** Parse a CSV string into rows (handles quoted fields per RFC 4180) */
-function parseCsv(csvText: string): Record<string, string>[] {
+export function parseCsv(csvText: string): Record<string, string>[] {
 	// Strip UTF-8 BOM if present (common in Windows-exported CSVs)
 	if (csvText.charCodeAt(0) === 0xFEFF) {
 		csvText = csvText.slice(1)
