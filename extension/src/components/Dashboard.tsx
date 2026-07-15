@@ -168,6 +168,13 @@ export function Dashboard({
 		}
 	}, [isEngineActive])
 
+	// 价格筛选是 AI 目录专属，切到其他分类时清空，避免残留过滤在"全部"视图里误隐藏博客站点
+	useEffect(() => {
+		if (categoryFilter !== 'ai_directory') {
+			setPricingFilter('all')
+		}
+	}, [categoryFilter])
+
 	return (
 		<div className="flex flex-col gap-2 h-full">
 			{/* Tabs + current submission toggle */}
@@ -218,16 +225,18 @@ export function Dashboard({
 								<option key={c.value} value={c.value}>{c.label}</option>
 							))}
 						</select>
-						<select
-							value={pricingFilter}
-							onChange={(e) => setPricingFilter(e.target.value as SitePricing | 'all')}
-							className="shrink-0 px-2 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-						>
-							<option value="all">全部价格</option>
-							{SITE_PRICINGS.map((p) => (
-								<option key={p.value} value={p.value}>{p.label}</option>
-							))}
-						</select>
+						{categoryFilter === 'ai_directory' && (
+							<select
+								value={pricingFilter}
+								onChange={(e) => setPricingFilter(e.target.value as SitePricing | 'all')}
+								className="shrink-0 px-2 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+							>
+								<option value="all">全部价格</option>
+								{SITE_PRICINGS.map((p) => (
+									<option key={p.value} value={p.value}>{p.label}</option>
+								))}
+							</select>
+						)}
 					</div>
 					{/* 搜索 & 操作 */}
 					<div className="flex items-center gap-2">
@@ -238,7 +247,7 @@ export function Dashboard({
 							onChange={(e) => setSearch(e.target.value)}
 							className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 						/>
-						{onImportCsv && (
+						{categoryFilter === 'ai_directory' && onImportCsv && (
 							<>
 								<input
 									ref={fileInputRef}
