@@ -39,6 +39,13 @@ const statusLabelKey: Record<SubmissionStatus, string> = {
 	skipped: '已跳过',
 }
 
+/** Pricing 标签配色：用颜色编码成本语义，与同行的分类/需登录保持同字重，靠颜色一眼区分 */
+const pricingTextClass: Record<SitePricing, string> = {
+	free: 'text-emerald-600 dark:text-emerald-400',
+	paid: 'text-red-600 dark:text-red-400',
+	mixed: 'text-violet-600 dark:text-violet-400',
+}
+
 export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onResetStatus, onSave, disabled, isActive }: SiteCardProps) {
 	const [editOpen, setEditOpen] = useState(false)
 	const hasSubmitUrl = !!site.submit_url
@@ -125,7 +132,7 @@ export function SiteCard({ site, status = 'not_started', onSelect, onDelete, onR
 					<div className="mt-0.5 flex items-center gap-1.5">
 						<span className="text-[10px] text-muted-foreground">{getCategoryLabel(site.category)}</span>
 						{site.pricing_type && (
-							<span className="text-[10px] text-muted-foreground">{getPricingLabel(site.pricing_type)}</span>
+							<span className={`text-[10px] ${pricingTextClass[site.pricing_type]}`}>{getPricingLabel(site.pricing_type)}</span>
 						)}
 						{site.requires_login && (
 							<span className="text-[10px] text-amber-600 dark:text-amber-400">需登录</span>

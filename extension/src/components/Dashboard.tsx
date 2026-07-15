@@ -1,5 +1,5 @@
-import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory } from '@/lib/types'
-import { SITE_CATEGORIES } from '@/lib/types'
+import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory, SitePricing } from '@/lib/types'
+import { SITE_CATEGORIES, SITE_PRICINGS } from '@/lib/types'
 import type { SiteImportResult } from '@/lib/sites'
 import type { FillEngineStatus, LogEntry, LLMFieldData } from '@/agent/types'
 import { useMemo, useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
@@ -57,6 +57,7 @@ export function Dashboard({
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
 	const [categoryFilter, setCategoryFilter] = useState<SiteCategory | 'all'>('all')
+	const [pricingFilter, setPricingFilter] = useState<SitePricing | 'all'>('all')
 	const [opening, setOpening] = useState(false)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
@@ -97,9 +98,9 @@ export function Dashboard({
 	const allSites = useMemo(() => {
 		return sites
 			.filter(matchesSearch)
-			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
+			.filter((s) => (categoryFilter === 'all' || s.category === categoryFilter) && (pricingFilter === 'all' || s.pricing_type === pricingFilter))
 			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
-	}, [sites, matchesSearch, categoryFilter])
+	}, [sites, matchesSearch, categoryFilter, pricingFilter])
 
 	const doneSites = useMemo(() => {
 		return sites
@@ -108,8 +109,8 @@ export function Dashboard({
 				return status && DONE_STATUSES.includes(status)
 			})
 			.filter(matchesSearch)
-			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
-	}, [sites, submissions, matchesSearch, categoryFilter])
+			.filter((s) => (categoryFilter === 'all' || s.category === categoryFilter) && (pricingFilter === 'all' || s.pricing_type === pricingFilter))
+	}, [sites, submissions, matchesSearch, categoryFilter, pricingFilter])
 
 	const failedSites = useMemo(() => {
 		return sites
@@ -118,8 +119,8 @@ export function Dashboard({
 				return status === 'failed'
 			})
 			.filter(matchesSearch)
-			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
-	}, [sites, submissions, matchesSearch, categoryFilter])
+			.filter((s) => (categoryFilter === 'all' || s.category === categoryFilter) && (pricingFilter === 'all' || s.pricing_type === pricingFilter))
+	}, [sites, submissions, matchesSearch, categoryFilter, pricingFilter])
 
 	const undoneSites = useMemo(() => {
 		return sites
@@ -128,9 +129,9 @@ export function Dashboard({
 				return !status || (!DONE_STATUSES.includes(status) && status !== 'failed')
 			})
 			.filter(matchesSearch)
-			.filter((s) => categoryFilter === 'all' || s.category === categoryFilter)
+			.filter((s) => (categoryFilter === 'all' || s.category === categoryFilter) && (pricingFilter === 'all' || s.pricing_type === pricingFilter))
 			.sort((a, b) => (b.dr ?? 0) - (a.dr ?? 0))
-	}, [sites, submissions, matchesSearch, categoryFilter])
+	}, [sites, submissions, matchesSearch, categoryFilter, pricingFilter])
 
 	const openRandomSites = useCallback(async () => {
 		const candidates = undoneSites.filter((s) => !!s.submit_url)
@@ -205,7 +206,7 @@ export function Dashboard({
 				/>
 			) : (
 				<>
-					{/* Category filter & search */}
+					{/* 分类 & 价格筛选 */}
 					<div className="flex items-center gap-2">
 						<select
 							value={categoryFilter}
@@ -217,6 +218,19 @@ export function Dashboard({
 								<option key={c.value} value={c.value}>{c.label}</option>
 							))}
 						</select>
+						<select
+							value={pricingFilter}
+							onChange={(e) => setPricingFilter(e.target.value as SitePricing | 'all')}
+							className="shrink-0 px-2 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+						>
+							<option value="all">全部价格</option>
+							{SITE_PRICINGS.map((p) => (
+								<option key={p.value} value={p.value}>{p.label}</option>
+							))}
+						</select>
+					</div>
+					{/* 搜索 & 操作 */}
+					<div className="flex items-center gap-2">
 						<input
 							type="text"
 							placeholder={'搜索站点...'}
