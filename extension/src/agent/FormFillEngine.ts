@@ -10,7 +10,7 @@ import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
 import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type FieldValueMap, type LogEntry, type LogLevel, type LLMFieldData, type LLMFieldValue, type VerifyResult } from './types'
 import { verifyAfterNavigation, applyNavigationVerdict } from './verify-after-navigation'
-import { callLLM, parseLLMJson } from './llm-utils'
+import { callLLM, parseLLMJson, injectHrefNewline } from './llm-utils'
 import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
 import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
@@ -248,6 +248,10 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 
 		// Step 3: Parse LLM response
 		const fieldValues = parseLLMJson(rawResponse) as FieldValueMap
+		// 在评论正文的 href 闭合引号前插入真实换行符，规避评论系统对评论内链接的简单正则剥离
+		for (const key of Object.keys(fieldValues)) {
+			fieldValues[key] = injectHrefNewline(fieldValues[key])
+		}
 		const valueCount = Object.keys(fieldValues).length
 		log('success', 'llm', `LLM 响应已解析: ${valueCount} 个字段值`, {
 			fieldValues,

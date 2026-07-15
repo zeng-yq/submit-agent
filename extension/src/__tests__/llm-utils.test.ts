@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseLLMJson } from '@/agent/llm-utils'
+import { parseLLMJson, injectHrefNewline } from '@/agent/llm-utils'
 
 describe('parseLLMJson', () => {
 	it('parses valid JSON', () => {
@@ -82,5 +82,45 @@ describe('parseLLMJson', () => {
 		const raw = '\n\n  {  "key"  :  "value"  }  \n\n'
 		const result = parseLLMJson(raw) as Record<string, unknown>
 		expect(result.key).toBe('value')
+	})
+})
+
+describe('injectHrefNewline', () => {
+	it('inserts a real newline before the closing quote of an href', () => {
+		const input = '<a href="https://example.com/">点击这里</a>'
+		const out = injectHrefNewline(input)
+		expect(out).toBe('<a href="https://example.com/\n">点击这里</a>')
+		// 必须是真实换行符，而非字面 \+n
+		expect(out).toMatch(/\/\n">/)
+		expect(out).not.toContain('\\n')
+	})
+
+	it('only inserts before the href closing quote, not other quotes', () => {
+		const input = 'see <a href="https://productai.com">the tool</a> for more'
+		const out = injectHrefNewline(input)
+		expect(out).toBe('see <a href="https://productai.com\n">the tool</a> for more')
+	})
+
+	it('handles multiple links in one comment', () => {
+		const input = '<a href="https://a.com">A</a> and <a href="https://b.com">B</a>'
+		const out = injectHrefNewline(input)
+		expect(out).toBe('<a href="https://a.com\n">A</a> and <a href="https://b.com\n">B</a>')
+	})
+
+	it('is idempotent — does not double-insert when a newline is already present', () => {
+		const once = injectHrefNewline('<a href="https://example.com/">x</a>')
+		const twice = injectHrefNewline(once)
+		expect(twice).toBe(once)
+		expect(twice.match(/\n/g)?.length).toBe(1)
+	})
+
+	it('returns non-string input unchanged', () => {
+		expect(injectHrefNewline(undefined as unknown as string)).toBeUndefined()
+		expect(injectHrefNewline(123 as unknown as string)).toBe(123)
+	})
+
+	it('returns strings without href= unchanged (e.g. directory submit values)', () => {
+		const input = 'https://productai.com'
+		expect(injectHrefNewline(input)).toBe(input)
 	})
 })
