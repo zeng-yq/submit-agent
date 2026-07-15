@@ -12,6 +12,7 @@ import { useBacklinkAnalysis } from '@/hooks/useBacklinkAnalysis'
 import { useFloatFill } from '@/hooks/useFloatFill'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
+import { importAiDirectoryFromCsv } from '@/lib/sites'
 import { Dialog, DialogHeader, DialogTitle, DialogCloseButton, DialogContent, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -154,6 +155,12 @@ export default function App() {
 		}
 	}, [addSiteUrl, refreshSites])
 
+	const handleImportAiDirectory = useCallback(async (csvText: string) => {
+		const result = await importAiDirectoryFromCsv(csvText)
+		await refreshSites()
+		return result
+	}, [refreshSites])
+
 	// 当提交引擎激活时，自动切到外链提交标签页
 	useEffect(() => {
 		const isActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling'
@@ -290,6 +297,7 @@ export default function App() {
 							onClearEngineLogs={clearLogs}
 							llmFieldData={llmFieldData}
 							activeSiteName={currentEngineSite?.name ?? null}
+							onImportCsv={handleImportAiDirectory}
 						/>
 					)}
 				</div>

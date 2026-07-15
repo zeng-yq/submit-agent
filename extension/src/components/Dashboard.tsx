@@ -1,8 +1,9 @@
 import type { SiteData, SubmissionRecord, SubmissionStatus, SiteCategory } from '@/lib/types'
 import { SITE_CATEGORIES } from '@/lib/types'
+import type { SiteImportResult } from '@/lib/sites'
 import type { FillEngineStatus, LogEntry, LLMFieldData } from '@/agent/types'
-import { useMemo, useState, useEffect, useCallback } from 'react'
-import { Play, Trash2, Loader2, ExternalLink } from 'lucide-react'
+import { useMemo, useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
+import { Play, Trash2, Loader2, ExternalLink, Upload } from 'lucide-react'
 import { SiteCard } from './SiteCard'
 import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
@@ -20,6 +21,7 @@ interface DashboardProps {
 	onClearEngineLogs: () => void
 	llmFieldData: LLMFieldData | null
 	activeSiteName: string | null
+	onImportCsv?: (csvText: string) => Promise<SiteImportResult>
 }
 
 type Tab = 'all' | 'undone' | 'done' | 'failed' | 'log'
@@ -50,11 +52,29 @@ export function Dashboard({
 	onClearEngineLogs,
 	llmFieldData,
 	activeSiteName,
+	onImportCsv,
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
 	const [categoryFilter, setCategoryFilter] = useState<SiteCategory | 'all'>('all')
 	const [opening, setOpening] = useState(false)
+	const [importMsg, setImportMsg] = useState<string | null>(null)
+	const fileInputRef = useRef<HTMLInputElement>(null)
+
+	const handleImportFile = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		if (!file || !onImportCsv) return
+		try {
+			const text = await file.text()
+			const r = await onImportCsv(text)
+			setImportMsg(`导入完成：新增 ${r.imported} · 更新 ${r.updated} · 跳过 ${r.skipped} · 失败 ${r.errors}`)
+			setTimeout(() => setImportMsg(null), 4000)
+		} catch {
+			setImportMsg('导入失败，请重试')
+		} finally {
+			if (fileInputRef.current) fileInputRef.current.value = ''
+		}
+	}, [onImportCsv])
 
 	const submittableSites = useMemo(
 		() => sites.filter((s) => !!s.submit_url),
@@ -204,6 +224,26 @@ export function Dashboard({
 							onChange={(e) => setSearch(e.target.value)}
 							className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 						/>
+						{onImportCsv && (
+							<>
+								<input
+									ref={fileInputRef}
+									type="file"
+									accept=".csv"
+									className="hidden"
+									onChange={handleImportFile}
+								/>
+								<Button
+									variant="outline"
+									size="xs"
+									onClick={() => fileInputRef.current?.click()}
+									title="导入 AI 目录 CSV"
+								>
+									<Upload className="w-3 h-3" />
+									{'导入'}
+								</Button>
+							</>
+						)}
 						{tab === 'undone' && (() => {
 							const openableCount = undoneSites.filter((s) => !!s.submit_url).length
 							const count = Math.min(RANDOM_OPEN_COUNT, openableCount)
@@ -222,6 +262,9 @@ export function Dashboard({
 						})()}
 					</div>
 
+					{importMsg && (
+						<div className="text-[10px] text-muted-foreground px-1">{importMsg}</div>
+					)}
 					{/* Site list */}
 					<div className="flex-1 overflow-y-auto space-y-1.5">
 						{tab === 'failed' ? (
