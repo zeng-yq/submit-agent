@@ -50,6 +50,7 @@ export default function App() {
 	const [currentEngineSite, setCurrentEngineSite] = useState<SiteData | null>(null)
 	const dashboardRunningRef = useRef(false)
 	const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	const analysisLoadedRef = useRef(false)
 
 	const { pendingUnmatchedUrl, confirmUnmatched, cancelUnmatched } = useFloatFill({
 		activeProduct,
@@ -169,19 +170,13 @@ export default function App() {
 		}
 	}, [engineStatus])
 
-	// Reload backlinks from DB when entering the analysis tab
+	// 首次进入外链分析 tab 时从 DB 加载一次 backlinks，之后内存复用（切换不再全表重读）
 	useEffect(() => {
-		if (tab === 'analysis') {
+		if (tab === 'analysis' && !analysisLoadedRef.current) {
+			analysisLoadedRef.current = true
 			backlinkState.reload()
 		}
 	}, [tab, backlinkState.reload])
-
-	// Reload sites from DB when entering the submit tab
-	useEffect(() => {
-		if (tab === 'submit') {
-			refreshSites()
-		}
-	}, [tab, refreshSites])
 
 	// 监听浮动按钮的"添加到外链库"请求
 	useEffect(() => {

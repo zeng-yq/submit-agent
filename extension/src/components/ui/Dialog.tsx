@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
 import { X } from 'lucide-react'
 
@@ -31,7 +32,7 @@ export function Dialog({ open, onClose, children }: DialogProps) {
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
         ref={dialogRef}
@@ -39,7 +40,8 @@ export function Dialog({ open, onClose, children }: DialogProps) {
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

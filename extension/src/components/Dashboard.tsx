@@ -4,6 +4,7 @@ import type { SiteImportResult } from '@/lib/sites'
 import type { FillEngineStatus, LogEntry, LLMFieldData } from '@/agent/types'
 import { useMemo, useState, useEffect, useCallback, useRef, type ChangeEvent } from 'react'
 import { Play, Trash2, Loader2, ExternalLink, Upload } from 'lucide-react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { SiteCard } from './SiteCard'
 import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
@@ -159,6 +160,14 @@ export function Dashboard({
 	const displaySites =
 		tab === 'all' ? allSites : tab === 'undone' ? undoneSites : tab === 'done' ? doneSites : failedSites
 
+	const scrollRef = useRef<HTMLDivElement>(null)
+	const virtualizer = useVirtualizer({
+		count: displaySites.length,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => 60,
+		overscan: 6,
+	})
+
 	const isEngineActive = engineStatus === 'running' || engineStatus === 'analyzing' || engineStatus === 'filling'
 	const hasActive = !!activeSiteName
 
@@ -288,122 +297,162 @@ export function Dashboard({
 					{importMsg && (
 						<div className="text-[10px] text-muted-foreground px-1">{importMsg}</div>
 					)}
-					{/* Site list */}
-					<div className="flex-1 overflow-y-auto space-y-1.5">
-						{tab === 'failed' ? (
-							failedSites.map((site) => {
-								const sub = submissions.get(site.name)
-								return (
-									<div
-										key={site.name}
-										className="relative flex items-start gap-3 rounded-lg border border-red-200 dark:border-red-800 px-3 py-2.5 hover:bg-accent/30 transition-colors"
-									>
-										<div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-red-400" />
-										<div className="shrink-0 text-center w-8">
-											<div className="text-sm font-bold tabular-nums">{site.dr}</div>
-											<div className="text-[9px] text-muted-foreground uppercase tracking-wide">DR</div>
-										</div>
-										<div className="flex-1 min-w-0 overflow-hidden">
-											{site.submit_url ? (
-												<button
-													type="button"
-													className="w-full text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors"
-													onClick={() => window.open(site.submit_url!, '_blank')}
-													title={site.submit_url!}
-												>
-													{site.name}
-												</button>
-											) : (
-												<div className="text-xs font-medium truncate">{site.name}</div>
-											)}
-											{sub?.failedAt && (
-												<div className="text-[10px] text-muted-foreground mt-0.5">
-													{new Date(sub.failedAt).toLocaleString()}
-												</div>
-											)}
-											{sub?.error && (
-												<div className="text-[10px] text-red-600 dark:text-red-400 mt-0.5 truncate">
-													{sub.error}
-												</div>
-											)}
-										</div>
-										<div className="shrink-0 flex items-center gap-1.5 mt-0.5">
-											{onRetrySite && site.submit_url && (() => {
-												const siteIsActive = hasActive && site.name === activeSiteName
-												return (
-													<button
-														type="button"
-														className={`p-1 rounded transition-colors ${
-															siteIsActive
-																? 'text-primary'
-																: 'text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
-														}`}
-														onClick={() => {
-															if (!siteIsActive) onRetrySite(site)
-														}}
-														disabled={siteIsActive}
-														title={siteIsActive ? '提交中...' : '重试自动提交'}
-													>
-														{siteIsActive
-															? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-															: <Play className="w-3.5 h-3.5" />
-														}
-													</button>
-												)
-											})()}
-											{onResetStatus && (
-												<button
-													type="button"
-													className="p-1 rounded text-muted-foreground/50 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
-													onClick={(e) => { e.stopPropagation(); onResetStatus(site.name) }}
-													title="重置状态"
-												>
-													<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-												</button>
-											)}
-											<button
-												type="button"
-												className="p-1 rounded text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-												onClick={(e) => {
-													e.stopPropagation()
-													if (confirm('确定要删除「' + site.name + '」吗？该站点的提交记录也将被删除。')) {
-														onDeleteSite?.(site.name)
-													}
-												}}
-												title="删除站点"
-											>
-												<Trash2 className="w-3.5 h-3.5" />
-											</button>
-										</div>
-									</div>
-								)
-							})
-						) : (
-							displaySites.map((site) => (
-								<SiteCard
-									key={site.name}
-									site={site}
-									status={submissions.get(site.name)?.status ?? 'not_started'}
-									onSelect={onSelectSite}
-									onDelete={onDeleteSite}
-									onResetStatus={onResetStatus}
-									onSave={onSaveSite}
-									disabled={hasActive && site.name !== activeSiteName}
-									isActive={hasActive && site.name === activeSiteName}
-								/>
-							))
-						)}
-						{displaySites.length === 0 && (
+					{/* Site list (虚拟滚动) */}
+					<div ref={scrollRef} className="flex-1 overflow-y-auto">
+						{displaySites.length === 0 ? (
 							<div className="text-center text-xs text-muted-foreground py-8">
 								{tab === 'all' && '没有匹配的站点'}
 								{tab === 'undone' && '所有站点均已完成或失败'}
 								{tab === 'done' && '暂无已提交或跳过的站点'}
 								{tab === 'failed' && '暂无失败记录'}
 							</div>
+						) : (
+							<div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+								{virtualizer.getVirtualItems().map((virtualRow) => {
+									const site = displaySites[virtualRow.index]
+									const sub = submissions.get(site.name)
+									return (
+										<div
+											key={site.name}
+											data-index={virtualRow.index}
+											ref={virtualizer.measureElement}
+											style={{
+												position: 'absolute',
+												top: 0,
+												left: 0,
+												width: '100%',
+												transform: `translateY(${virtualRow.start}px)`,
+												paddingBottom: '6px',
+											}}
+										>
+											{tab === 'failed' ? (
+												<FailedSiteRow
+													site={site}
+													sub={sub}
+													hasActive={hasActive}
+													activeSiteName={activeSiteName}
+													onRetrySite={onRetrySite}
+													onResetStatus={onResetStatus}
+													onDeleteSite={onDeleteSite}
+												/>
+											) : (
+												<SiteCard
+													site={site}
+													status={sub?.status ?? 'not_started'}
+													onSelect={onSelectSite}
+													onDelete={onDeleteSite}
+													onResetStatus={onResetStatus}
+													onSave={onSaveSite}
+													disabled={hasActive && site.name !== activeSiteName}
+													isActive={hasActive && site.name === activeSiteName}
+												/>
+											)}
+										</div>
+									)
+								})}
+							</div>
 						)}
 					</div>
 				</>
 			)}
+		</div>
+	)
+}
+
+function FailedSiteRow({
+	site,
+	sub,
+	hasActive,
+	activeSiteName,
+	onRetrySite,
+	onResetStatus,
+	onDeleteSite,
+}: {
+	site: SiteData
+	sub: SubmissionRecord | undefined
+	hasActive: boolean
+	activeSiteName: string | null
+	onRetrySite?: (site: SiteData) => void
+	onResetStatus?: (siteName: string) => void
+	onDeleteSite?: (siteName: string) => void
+}) {
+	const siteIsActive = hasActive && site.name === activeSiteName
+	return (
+		<div className="relative flex items-start gap-3 rounded-lg border border-red-200 dark:border-red-800 px-3 py-2.5 hover:bg-accent/30 transition-colors">
+			<div className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-red-400" />
+			<div className="shrink-0 text-center w-8">
+				<div className="text-sm font-bold tabular-nums">{site.dr}</div>
+				<div className="text-[9px] text-muted-foreground uppercase tracking-wide">DR</div>
+			</div>
+			<div className="flex-1 min-w-0 overflow-hidden">
+				{site.submit_url ? (
+					<button
+						type="button"
+						className="w-full text-xs font-medium truncate text-left hover:underline hover:text-primary transition-colors"
+						onClick={() => window.open(site.submit_url!, '_blank')}
+						title={site.submit_url!}
+					>
+						{site.name}
+					</button>
+				) : (
+					<div className="text-xs font-medium truncate">{site.name}</div>
+				)}
+				{sub?.failedAt && (
+					<div className="text-[10px] text-muted-foreground mt-0.5">
+						{new Date(sub.failedAt).toLocaleString()}
+					</div>
+				)}
+				{sub?.error && (
+					<div className="text-[10px] text-red-600 dark:text-red-400 mt-0.5 truncate">
+						{sub.error}
+					</div>
+				)}
+			</div>
+			<div className="shrink-0 flex items-center gap-1.5 mt-0.5">
+				{onRetrySite && site.submit_url && (
+					<button
+						type="button"
+						className={`p-1 rounded transition-colors ${
+							siteIsActive
+								? 'text-primary'
+								: 'text-muted-foreground/50 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
+						}`}
+						onClick={() => {
+							if (!siteIsActive) onRetrySite(site)
+						}}
+						disabled={siteIsActive}
+						title={siteIsActive ? '提交中...' : '重试自动提交'}
+					>
+						{siteIsActive
+							? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+							: <Play className="w-3.5 h-3.5" />
+						}
+					</button>
+				)}
+				{onResetStatus && (
+					<button
+						type="button"
+						className="p-1 rounded text-muted-foreground/50 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+						onClick={(e) => { e.stopPropagation(); onResetStatus(site.name) }}
+						title="重置状态"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+					</button>
+				)}
+				<button
+					type="button"
+					className="p-1 rounded text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+					onClick={(e) => {
+						e.stopPropagation()
+						if (confirm('确定要删除「' + site.name + '」吗？该站点的提交记录也将被删除。')) {
+							onDeleteSite?.(site.name)
+						}
+					}}
+					title="删除站点"
+				>
+					<Trash2 className="w-3.5 h-3.5" />
+				</button>
+			</div>
 		</div>
 	)
 }
