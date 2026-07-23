@@ -1,6 +1,5 @@
 // src/agent/pipeline/types.ts
 import type { ExtensionMessage, FillProgressAction, ProgressPayload } from '@/messaging/messages'
-import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { PageContent } from '@/agent/PageContentExtractor'

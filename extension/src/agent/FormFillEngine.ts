@@ -222,7 +222,8 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 
 	const d = deps ?? buildRealDeps(config)
 	// Step 2-5 区段仍用本地 log 别名（最小改动；runSubmitAndVerify 的 log 适配也依赖它）
-	const log = d.log.bind(d)
+	// buildRealDeps.log 是无 this 的箭头函数，直接取引用即可，无需 .bind(d)
+	const log = d.log
 
 	try {
 		// Step 1: Analyze form

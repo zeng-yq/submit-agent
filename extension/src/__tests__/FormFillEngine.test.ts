@@ -112,5 +112,21 @@ describe('executeFormFill (end-to-end, mock deps)', () => {
     const deps = mkDeps();
     const r = await executeFormFill(cfg, deps);
     expect(r.submitted).toBeUndefined();
+    expect(deps.sendToTabMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'submit' }),
+      expect.anything(),
+    );
+  });
+
+  it('Abort 中断 → idle return Cancelled', async () => {
+    const onStatusChange = vi.fn()
+    const cfg = { ...mkConfig(), callbacks: { onStatusChange, onError: vi.fn(), onLog: vi.fn(), onLLMFields: vi.fn() } }
+    // jsdom 的 DOMException 不是 instanceof Error，会被 catch 的 instanceof 分支重新包成普通 Error（丢 name）。
+    // 真实浏览器中 fetch 中断抛的 AbortError 是 instanceof Error 的，这里模拟真实形状以覆盖 err.name === 'AbortError' 分支。
+    const abortErr = Object.assign(new Error('aborted'), { name: 'AbortError' })
+    const deps = mkDeps({ callLLM: vi.fn().mockRejectedValue(abortErr) })
+    const r = await executeFormFill(cfg, deps)
+    expect(r.notes).toBe('Cancelled.')
+    expect(onStatusChange).toHaveBeenCalledWith('idle')
   });
 });
