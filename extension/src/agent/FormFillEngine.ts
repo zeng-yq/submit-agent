@@ -15,10 +15,11 @@ import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
 import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
 import { sendToTab, sendProgress } from '@/messaging/router'
-import type { AnalyzeResponse, FillResponse, VerifyModerationResponse } from '@/messaging/messages'
+import type { FillResponse, VerifyModerationResponse, ExtensionMessage } from '@/messaging/messages'
 import { matchFields } from './pipeline/match'
+import { analyzePhase } from './pipeline/analyze'
+import type { FormFillDeps } from './pipeline/types'
 
-const ANALYZE_TIMEOUT_MS = 10_000
 const FILL_TIMEOUT_MS = 10_000
 
 /** Normalize a string for comparison: lowercase, split on non-alphanumeric. */
@@ -192,79 +193,55 @@ function resolveLostSignal(verdict: ModerationVerdict, err: unknown): SubmitFlow
 	return { submitted: undefined, verifyResult: 'not_attempted', submitError: `提交响应丢失且跳转后无法确认: ${msg}` }
 }
 
-export async function executeFormFill(config: FormFillEngineConfig): Promise<FillResult> {
-	const { llmConfig, product, site, siteType, tabId, callbacks, signal } = config
-	const { onStatusChange, onError, onLog, onLLMFields } = callbacks
-
+/**
+ * 从 config 构造真实 FormFillDeps（生产路径；测试可注入 mock）。
+ * logId 为 per-call 计数（每次 executeFormFill 调用都从 0 开始，与原闭包一致）。
+ */
+function buildRealDeps(config: FormFillEngineConfig): FormFillDeps {
+	const { tabId, llmConfig, callbacks } = config
 	let logId = 0
-	const log = (level: LogLevel, phase: LogEntry['phase'], message: string, data?: unknown, url?: string) => {
-		if (onLog) {
-			onLog({ id: ++logId, timestamp: Date.now(), level, phase, message, data, url })
-		}
+	return {
+		// 泛型透传：箭头函数声明 <R> 并直接转调 sendToTab<R>，签名与 FormFillDeps['sendToTabMessage'] 自洽
+		sendToTabMessage: <R>(msg: ExtensionMessage, timeoutMs: number) => sendToTab<R>(tabId, msg, timeoutMs),
+		sendProgress,
+		callLLM: (opts) => callLLM({ config: llmConfig, ...opts }),
+		verifyNavigation: () => verifyAfterNavigation(tabId, {
+			getTabUrl: async (id) => {
+				try { const tab = await chrome.tabs.get(id); return tab.url ?? '' } catch { return '' }
+			},
+			sendVerify: (id) => sendToTab<VerifyModerationResponse>(id, { type: 'TAB_COMMAND', action: 'verify-moderation' }, 2000),
+			sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+		}),
+		log: (level, phase, message, data, url) => {
+			if (callbacks.onLog) callbacks.onLog({ id: ++logId, timestamp: Date.now(), level, phase, message, data, url })
+		},
+		onLLMFields: callbacks.onLLMFields,
 	}
+}
+
+export async function executeFormFill(config: FormFillEngineConfig, deps?: FormFillDeps): Promise<FillResult> {
+	const { llmConfig, product, site, siteType, tabId, callbacks, signal } = config
+	const { onStatusChange, onError, onLLMFields } = callbacks
+
+	const d = deps ?? buildRealDeps(config)
+	// Step 2-5 区段仍用本地 log 别名（最小改动；runSubmitAndVerify 的 log 适配也依赖它）
+	const log = d.log.bind(d)
 
 	try {
 		// Step 1: Analyze form
 		onStatusChange('analyzing')
-		log('info', 'system', `开始填写: ${site.name} (tab ${tabId})`, undefined, site.submit_url ?? undefined)
-		log('info', 'analyze', '正在发送表单分析请求...')
-		const analyzePayload = { siteType }
+		d.log('info', 'system', `开始填写: ${site.name} (tab ${tabId})`, undefined, site.submit_url ?? undefined)
+		d.log('info', 'analyze', '正在发送表单分析请求...')
 
-		const analyzeResponse = await sendToTab<AnalyzeResponse>(
-			tabId,
-			{ type: 'TAB_COMMAND', action: 'analyze', payload: analyzePayload },
-			ANALYZE_TIMEOUT_MS
-		)
+		const { analysis, pageContent } = await analyzePhase(d, { siteType })
 
-		if (!analyzeResponse?.ok || !analyzeResponse.analysis) {
-			throw new Error('Form analysis failed')
+		if (analysis.fields.length === 0) {
+			const msg = '页面未发现可填写的表单字段'
+			d.log('error', 'analyze', msg)
+			onStatusChange('error')
+			onError(new Error(msg))
+			return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
 		}
-
-		const analysis = analyzeResponse.analysis
-		const pageContent = analyzeResponse.pageContent
-
-		log('success', 'analyze', `表单分析完成: 发现 ${analysis.fields.length} 个字段`, {
-			fields: analysis.fields.map(f => ({
-				id: f.canonical_id,
-				type: f.effective_type || f.type,
-				label: f.label || f.inferred_purpose || '(unknown)',
-				placeholder: f.placeholder || undefined,
-				required: f.required,
-			})),
-			pageInfo: {
-				title: analysis.page_info.title,
-				description: analysis.page_info.description?.slice(0, 200),
-			},
-		})
-
-			if (analysis.fields.length === 0) {
-				const msg = '页面未发现可填写的表单字段'
-				log('error', 'analyze', msg)
-				onStatusChange('error')
-				onError(new Error(msg))
-				return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
-			}
-
-		// Notify progress
-		sendProgress('progress')
-
-		// Annotate detected fields on the page
-		await sendToTab(
-			tabId,
-			{
-				type: 'TAB_COMMAND',
-				action: 'annotate',
-				payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
-			},
-			5000,
-		).catch(() => {})
-
-		// Scroll to the first annotated field so the user can see the form
-		await sendToTab(tabId, {
-			type: 'TAB_COMMAND',
-			action: 'scroll-to-first',
-			payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
-		}, 5000).catch(() => {})
 
 		// Step 2: Build prompt and call LLM
 		const selectedAnchor = pickAnchorText(product)
