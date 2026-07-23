@@ -16,6 +16,7 @@ import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
 import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
 import { sendToTab, sendProgress } from '@/messaging/router'
 import type { AnalyzeResponse, FillResponse, VerifyModerationResponse } from '@/messaging/messages'
+import { matchFields } from './pipeline/match'
 
 const ANALYZE_TIMEOUT_MS = 10_000
 const FILL_TIMEOUT_MS = 10_000
@@ -326,43 +327,12 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			}
 		}
 
-		// Map canonical_ids to selectors for content script
-		let fieldsToFill = analysis.fields
-			.filter((f) => fieldValues[f.canonical_id] !== undefined && fieldValues[f.canonical_id] !== '')
-			.map((f) => ({
-				canonical_id: f.canonical_id,
-				value: fieldValues[f.canonical_id] as string,
-				selector: f.selector,
-			}))
-
-		// Fallback: fuzzy match LLM keys to field identifiers when exact match fails
-		if (fieldsToFill.length === 0 && valueCount > 0) {
-			const usedCanonicalIds = new Set<string>()
-			fieldsToFill = []
-
-			for (const [llmKey, llmValue] of Object.entries(fieldValues)) {
-				if (typeof llmValue !== 'string' || llmValue === '') continue
-				// When only one unfiltered form exists, pass its index for same-form priority.
-					// Otherwise skip formIndex since we can't determine which form the LLM key targets.
-					const targetFormIndex = analysis.forms.filter(f => !f.filtered).length === 1
-						? analysis.forms.find(f => !f.filtered)!.form_index
-						: undefined
-					const matched = fuzzyMatchField(llmKey, analysis.fields, usedCanonicalIds, targetFormIndex)
-				if (matched) {
-					usedCanonicalIds.add(matched.canonical_id)
-					fieldsToFill.push({
-						canonical_id: matched.canonical_id,
-						value: llmValue,
-						selector: matched.selector,
-					})
-				}
-			}
-
-			if (fieldsToFill.length > 0) {
-				log('info', 'llm', `模糊匹配成功: ${fieldsToFill.length} 个字段`, {
-					matchedFields: fieldsToFill.map(f => f.canonical_id),
-				})
-			}
+		// Map LLM field values → form fields (exact match → fuzzy fallback). Pure.
+		const { fieldsToFill, matchedViaFuzzy } = matchFields(analysis, fieldValues)
+		if (matchedViaFuzzy && fieldsToFill.length > 0) {
+			log('info', 'llm', `模糊匹配成功: ${fieldsToFill.length} 个字段`, {
+				matchedFields: fieldsToFill.map(f => f.canonical_id),
+			})
 		}
 
 		if (fieldsToFill.length === 0) {
