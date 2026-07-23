@@ -242,13 +242,27 @@ const IMAGE_CAPTCHA_SELECTORS = [
 	'img[src*="captcha" i]',
 ]
 
-/** 检测目标容器内是否有图片验证码（需人工输入，无法自动通过） */
+/**
+ * 检测目标容器内是否有需人工输入的验证码（无法自动通过）：
+ * - 图片验证码：src 含 captcha（如 Captcha.ashx）
+ * - 验证码输入字段：input/textarea/select 的 name/id/placeholder/aria-label 含 captcha（WordPress Really Simple CAPTCHA 等）
+ * - 验证码 label 文本：如 conspirazzi 的 __Captcha__（配 blob: 图片，src 不含 captcha）
+ */
 export function detectImageCaptcha(root: Element | Document | null): boolean {
 	if (!root) return false
 	for (const sel of IMAGE_CAPTCHA_SELECTORS) {
 		try {
 			if ((root as Element).querySelector?.(sel)) return true
 		} catch { /* 无效选择器 */ }
+	}
+	// 验证码输入字段：属性含 captcha
+	for (const el of ((root as Element).querySelectorAll?.('input, textarea, select')) ?? []) {
+		const hay = `${el.getAttribute('name') ?? ''} ${el.id ?? ''} ${el.getAttribute('placeholder') ?? ''} ${el.getAttribute('aria-label') ?? ''}`.toLowerCase()
+		if (hay.includes('captcha')) return true
+	}
+	// 验证码 label / legend 文本：如 __Captcha__
+	for (const el of ((root as Element).querySelectorAll?.('label, legend')) ?? []) {
+		if ((el.textContent ?? '').toLowerCase().includes('captcha')) return true
 	}
 	return false
 }
@@ -438,11 +452,11 @@ export async function executeSubmit(commentSelector: string | null): Promise<Sub
 	}
 	// reCAPTCHA / hCaptcha：需人工、无法自动通过 → 直接放弃，不硬闯
 	if (detectCaptcha(form)) {
-		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到 reCAPTCHA/hCaptcha，请手动提交' }
+		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到 reCAPTCHA/hCaptcha，无法自动提交' }
 	}
-	// 图片验证码（如 Captcha.ashx）：需人工输入 → 填好其他字段后放弃提交，由用户手动补验证码
+	// 图片验证码 / 验证码字段（Captcha.ashx、WordPress Really Simple CAPTCHA 等）：需人工输入，无法自动通过 → 直接放弃
 	if (detectImageCaptcha(form)) {
-		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到图片验证码，请手动填写后提交' }
+		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到验证码，需人工输入，无法自动提交' }
 	}
 	// Cloudflare Turnstile：managed 模式通常自动完成 → 等待后再提交，
 	// 超时后若提交仍失败，由下方 verify 逻辑判定为失败

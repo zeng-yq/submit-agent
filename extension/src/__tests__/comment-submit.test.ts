@@ -304,6 +304,24 @@ describe('detectImageCaptcha', () => {
 		doc.body.innerHTML = `<form><input type="text"></form>`
 		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(false)
 	})
+
+	it('验证码 label 文本（__Captcha__ + blob 图片，如 conspirazzi）→ true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><textarea id="comment"></textarea><label>__Captcha__ *</label><img src="blob:http://x/y"><input name="captcha_code" type="text"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(true)
+	})
+
+	it('验证码字段名（input name 含 captcha）→ true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><input name="my_captcha" type="text"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(true)
+	})
+
+	it('普通 WP 评论表单（Comment/Name/Email）不误判', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<form><label>Comment</label><textarea name="comment"></textarea><label>Name</label><input name="author"><label>Email</label><input name="email"></form>`
+		expect(mod.detectImageCaptcha(doc.querySelector('form')!)).toBe(false)
+	})
 })
 
 describe('waitForSubmitOrNavigate', () => {
@@ -574,6 +592,22 @@ describe('executeSubmit', () => {
 		const r = await mod.executeSubmit('#comment')
 		expect(r.clicked).toBe(false)
 		expect(r.verifyResult).toBe('not_attempted')
+	})
+
+	it('__Captcha__ label + blob 图片（conspirazzi / Really Simple CAPTCHA）→ 短路 not_attempted', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<label>__Captcha__ *</label>
+				<img src="blob:http://www.conspirazzi.com/abc">
+				<input name="captcha_code" type="text">
+				<button type="submit">Publish</button>
+			</form>`
+		const r = await mod.executeSubmit('#comment')
+		expect(r.clicked).toBe(false)
+		expect(r.verifyResult).toBe('not_attempted')
+		expect(r.error).toContain('验证码')
 	})
 
 	it('submit 事件 → ajax', async () => {

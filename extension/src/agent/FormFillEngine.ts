@@ -9,7 +9,8 @@ import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
 import type { PageContent } from './PageContentExtractor'
 import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type FieldValueMap, type LogEntry, type LogLevel, type LLMFieldData, type LLMFieldValue, type VerifyResult } from './types'
-import { verifyAfterNavigation, applyNavigationVerdict } from './verify-after-navigation'
+import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict } from './verify-after-navigation'
+import type { SubmitResponse } from './comment-submit'
 import { callLLM, parseLLMJson, injectHrefNewline } from './llm-utils'
 import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
@@ -136,6 +137,77 @@ function sendToTab<T>(tabId: number, message: unknown, timeoutMs: number): Promi
 			resolve(response as T)
 		})
 	})
+}
+
+/** runSubmitAndVerify 的依赖：sendSubmit 发 submit 消息；verifyNavigation 跨页面复核 */
+export interface SubmitFlowDeps {
+	/** 发 submit 消息并等待回复；reject 表示 content script 上下文随整页跳转销毁 */
+	sendSubmit: () => Promise<SubmitResponse>
+	/** 跨页面验证（整页跳转落定后复核审核状态），返回 confirmed/moderation/unverified */
+	verifyNavigation: () => Promise<ModerationVerdict>
+	/** 日志回调（可选） */
+	log?: (level: LogLevel, message: string) => void
+}
+
+export interface SubmitFlowOutcome {
+	submitted: boolean | undefined
+	verifyResult: VerifyResult
+	submitError?: string
+}
+
+/**
+ * 执行评论提交并判定结果（blog_comment 自动提交）。
+ *
+ * submit 响应正常时按 verifyResult 走原逻辑：ajax/cleared 直接成立；
+ * navigating/pagehide 经 verifyNavigation 跨页面复核。
+ *
+ * submit 响应丢失（sendSubmit reject）时，远程评论 iframe（Blogger/Jetpack）提交触发顶层导航会
+ * 销毁 content script 上下文使 sendToTab reject——此时主动跨页面验证，用跳转后页面状态反推是否成功，
+ * 而非直接判 not_attempted 失败，否则既有 verifyAfterNavigation 救场机制会被完全绕过。
+ */
+export async function runSubmitAndVerify(deps: SubmitFlowDeps): Promise<SubmitFlowOutcome> {
+	const { sendSubmit, verifyNavigation, log } = deps
+
+	let submitResponse: SubmitResponse | undefined
+	try {
+		submitResponse = await sendSubmit()
+	} catch (err) {
+		log?.('info', '提交响应丢失（疑似整页跳转销毁上下文），转入跨页面验证...')
+		return resolveLostSignal(await verifyNavigation(), err)
+	}
+
+	if (!submitResponse?.ok) {
+		const submitError = submitResponse?.error || '提交消息无响应'
+		log?.('error', `自动提交失败: ${submitError}`)
+		return { submitted: submitResponse?.clicked, verifyResult: 'not_attempted', submitError }
+	}
+
+	let verifyResult: VerifyResult = submitResponse.verifyResult
+	let submitError = submitResponse.error
+	const submitted = submitResponse.clicked
+
+	if (verifyResult === 'navigating' || verifyResult === 'pagehide') {
+		log?.('info', '提交触发整页跳转，等待页面落定后复核审核状态...')
+		const verdict = await verifyNavigation()
+		verifyResult = applyNavigationVerdict(verifyResult, verdict)
+		if (verdict === 'moderation') submitError = '评论待审核，未发布'
+		else if (verdict === 'unverified') submitError = '提交后未能确认发布状态'
+	}
+
+	return { submitted, verifyResult, submitError }
+}
+
+/** submit 响应丢失时，按跨页面验证结论映射最终结果 */
+function resolveLostSignal(verdict: ModerationVerdict, err: unknown): SubmitFlowOutcome {
+	if (verdict === 'confirmed') {
+		// 跳转后确认评论已发布（非待审核）→ 视同成功导航
+		return { submitted: true, verifyResult: 'navigating' }
+	}
+	if (verdict === 'moderation') {
+		return { submitted: true, verifyResult: 'pending_moderation', submitError: '评论待审核，未发布' }
+	}
+	const msg = err instanceof Error ? err.message : String(err)
+	return { submitted: undefined, verifyResult: 'not_attempted', submitError: `提交响应丢失且跳转后无法确认: ${msg}` }
 }
 
 export async function executeFormFill(config: FormFillEngineConfig): Promise<FillResult> {
@@ -376,13 +448,8 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		let submitError: string | undefined
 		if (siteType === 'blog_comment' && failedCount === 0 && filledCount > 0) {
 			log('info', 'fill', '正在自动提交评论并验证...')
-			try {
-				const submitResponse = await sendToTab<{
-					ok: boolean
-					clicked: boolean
-					verifyResult: VerifyResult
-					error?: string
-				}>(
+			const outcome = await runSubmitAndVerify({
+				sendSubmit: () => sendToTab<SubmitResponse>(
 					tabId,
 					{
 						type: 'FLOAT_FILL',
@@ -399,55 +466,38 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 						},
 					},
 					20_000,
-				)
-				if (submitResponse?.ok) {
-					submitted = submitResponse.clicked
-					verifyResult = submitResponse.verifyResult
-					submitError = submitResponse.error
+				),
+				verifyNavigation: () => verifyAfterNavigation(tabId, {
+					getTabUrl: async (id) => {
+						try {
+							const tab = await chrome.tabs.get(id)
+							return tab.url ?? ''
+						} catch {
+							return ''
+						}
+					},
+					sendVerify: (id) => sendToTab<{ ok: boolean; moderation: boolean }>(
+						id,
+						{ type: 'FLOAT_FILL', action: 'verify-moderation' },
+						2000,
+					),
+					sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+				}),
+				log: (level, message) => log(level, 'fill', message),
+			})
+			submitted = outcome.submitted
+			verifyResult = outcome.verifyResult
+			submitError = outcome.submitError
 
-					// 整页跳转：提交瞬间无法判定发布状态，等待页面落定后复核是否待审核
-					if (verifyResult === 'navigating' || verifyResult === 'pagehide') {
-						log('info', 'fill', '提交触发整页跳转，等待页面落定后复核审核状态...')
-						const verdict = await verifyAfterNavigation(tabId, {
-							getTabUrl: async (id) => {
-								try {
-									const tab = await chrome.tabs.get(id)
-									return tab.url ?? ''
-								} catch {
-									return ''
-								}
-							},
-							sendVerify: (id) => sendToTab<{ ok: boolean; moderation: boolean }>(
-								id,
-								{ type: 'FLOAT_FILL', action: 'verify-moderation' },
-								2000,
-							),
-							sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-						})
-						verifyResult = applyNavigationVerdict(verifyResult, verdict)
-						if (verdict === 'moderation') submitError = '评论待审核，未发布'
-						else if (verdict === 'unverified') submitError = '提交后未能确认发布状态'
-					}
-
-					const verified = VERIFIED_SUCCESS.includes(verifyResult)
-					log(
-						verified ? 'success' : 'warning',
-						'fill',
-						// pending_moderation：submitError 已是「评论待审核，未发布」，省略冗余 verifyResult 码以缩短日志
-						verifyResult === 'pending_moderation'
-							? `提交结果: ${submitError}`
-							: `提交结果: ${verifyResult}${submitError ? ' - ' + submitError : ''}`,
-					)
-				} else {
-					verifyResult = 'not_attempted'
-					submitError = submitResponse?.error || '提交消息无响应'
-					log('error', 'fill', `自动提交失败: ${submitError}`)
-				}
-			} catch (err) {
-				verifyResult = 'not_attempted'
-				submitError = err instanceof Error ? err.message : String(err)
-				log('error', 'fill', `自动提交异常: ${submitError}`)
-			}
+			const verified = VERIFIED_SUCCESS.includes(verifyResult)
+			log(
+				verified ? 'success' : 'warning',
+				'fill',
+				// pending_moderation：submitError 已是「评论待审核，未发布」，省略冗余 verifyResult 码以缩短日志
+				verifyResult === 'pending_moderation'
+					? `提交结果: ${submitError}`
+					: `提交结果: ${verifyResult}${submitError ? ' - ' + submitError : ''}`,
+			)
 		}
 
 		const result: FillResult = {
