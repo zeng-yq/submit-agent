@@ -7,17 +7,15 @@
 import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
-import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type FieldValueMap, type LogEntry, type LogLevel, type LLMFieldData, type LLMFieldValue, type VerifyResult } from './types'
+import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type LogEntry, type LogLevel, type LLMFieldData, type VerifyResult } from './types'
 import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict } from './verify-after-navigation'
 import type { SubmitResponse } from './comment-submit'
-import { callLLM, parseLLMJson, injectHrefNewline } from './llm-utils'
-import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/product-context'
-import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
-import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
+import { callLLM } from './llm-utils'
 import { sendToTab, sendProgress } from '@/messaging/router'
 import type { FillResponse, VerifyModerationResponse, ExtensionMessage } from '@/messaging/messages'
 import { matchFields } from './pipeline/match'
 import { analyzePhase } from './pipeline/analyze'
+import { llmPhase } from './pipeline/llm'
 import type { FormFillDeps } from './pipeline/types'
 
 const FILL_TIMEOUT_MS = 10_000
@@ -220,8 +218,8 @@ function buildRealDeps(config: FormFillEngineConfig): FormFillDeps {
 }
 
 export async function executeFormFill(config: FormFillEngineConfig, deps?: FormFillDeps): Promise<FillResult> {
-	const { llmConfig, product, site, siteType, tabId, callbacks, signal } = config
-	const { onStatusChange, onError, onLLMFields } = callbacks
+	const { product, site, siteType, tabId, callbacks, signal } = config
+	const { onStatusChange, onError } = callbacks
 
 	const d = deps ?? buildRealDeps(config)
 	// Step 2-5 区段仍用本地 log 别名（最小改动；runSubmitAndVerify 的 log 适配也依赖它）
@@ -243,66 +241,9 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 			return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
 		}
 
-		// Step 2: Build prompt and call LLM
-		const selectedAnchor = pickAnchorText(product)
-		const selectedFounderName = pickFounderName(product)
-		const productContext = buildProductContext(product, selectedAnchor, selectedFounderName)
-		let systemPrompt: string
-
-		if (siteType === 'blog_comment' && pageContent) {
-			systemPrompt = buildBlogCommentPrompt({ productContext, pageContent, fields: analysis.fields, forms: analysis.forms })
-		} else {
-			systemPrompt = buildDirectorySubmitPrompt({ productContext, pageInfo: analysis.page_info, fields: analysis.fields, forms: analysis.forms })
-		}
-
-		const userPrompt = siteType === 'blog_comment'
-			? `Fill the comment form on ${site.name}. Page URL: ${site.submit_url || 'current page'}.`
-			: `Fill the submission form on ${site.name}. Submit URL: ${site.submit_url || 'current page'}.`
-
-		const promptType = siteType === 'blog_comment' ? '博客评论' : '目录提交'
-		log('info', 'llm', `正在调用 LLM (${promptType})...`, {
-			systemPromptLength: systemPrompt.length,
-			userPromptLength: userPrompt.length,
-			systemPrompt,
-			userPrompt,
-			model: llmConfig.model,
-			fieldCount: analysis.fields.length,
-		})
-
-		const rawResponse = await callLLM({
-			config: llmConfig,
-			systemPrompt,
-			userPrompt,
-			temperature: siteType === 'blog_comment' ? 0.7 : 0.3,
-			maxTokens: 2048,
-			signal,
-			jsonMode: true,
-		})
-
-		// Step 3: Parse LLM response
-		const fieldValues = parseLLMJson(rawResponse) as FieldValueMap
-		// 在评论正文的 href 闭合引号前插入真实换行符，规避评论系统对评论内链接的简单正则剥离
-		for (const key of Object.keys(fieldValues)) {
-			fieldValues[key] = injectHrefNewline(fieldValues[key])
-		}
+		// Step 2+3: build prompt + callLLM + parse（搬运至 pipeline/llm.ts）
+		const fieldValues = await llmPhase(d, { analysis, pageContent, product, site, siteType, signal })
 		const valueCount = Object.keys(fieldValues).length
-		log('success', 'llm', `LLM 响应已解析: ${valueCount} 个字段值`, {
-			fieldValues,
-			rawResponse,
-			responseLength: rawResponse.length,
-		})
-
-		// 构建 LLM 字段值展示数据
-		if (onLLMFields && valueCount > 0) {
-			const fieldLabelMap = new Map(analysis.fields.map(f => [f.canonical_id, f.label || f.inferred_purpose || f.name || f.canonical_id]))
-			const llmFields: LLMFieldValue[] = Object.entries(fieldValues).map(([key, value]) => ({
-				label: fieldLabelMap.get(key) || key,
-				value: typeof value === 'string' ? value : String(value),
-			}))
-			if (llmFields.length > 0) {
-				onLLMFields({ fields: llmFields })
-			}
-		}
 
 		// Map LLM field values → form fields (exact match → fuzzy fallback). Pure.
 		const { fieldsToFill, matchedViaFuzzy } = matchFields(analysis, fieldValues)
