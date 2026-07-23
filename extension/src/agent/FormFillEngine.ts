@@ -12,13 +12,12 @@ import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict }
 import type { SubmitResponse } from './comment-submit'
 import { callLLM } from './llm-utils'
 import { sendToTab, sendProgress } from '@/messaging/router'
-import type { FillResponse, VerifyModerationResponse, ExtensionMessage } from '@/messaging/messages'
+import type { VerifyModerationResponse, ExtensionMessage } from '@/messaging/messages'
 import { matchFields } from './pipeline/match'
 import { analyzePhase } from './pipeline/analyze'
 import { llmPhase } from './pipeline/llm'
+import { fillPhase } from './pipeline/fill'
 import type { FormFillDeps } from './pipeline/types'
-
-const FILL_TIMEOUT_MS = 10_000
 
 /** Normalize a string for comparison: lowercase, split on non-alphanumeric. */
 function tokenize(s: string): Set<string> {
@@ -271,48 +270,9 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 				return { filled: 0, skipped: analysis.fields.length, failed: 0, notes: 'LLM returned no field values.' }
 		}
 
-		// Step 4: Fill form — sequential with annotation
+		// Step 4b: Fill form — sequential with annotation
 		onStatusChange('filling')
-		log('info', 'fill', `正在填写 ${fieldsToFill.length} 个字段...`, {
-			fields: fieldsToFill.map(f => ({ id: f.canonical_id, value: f.value.slice(0, 50) })),
-		})
-
-		let filledCount = 0
-		let failedCount = 0
-
-		for (let i = 0; i < fieldsToFill.length; i++) {
-			const field = fieldsToFill[i]
-
-			// Highlight current field
-			await sendToTab(tabId, {
-				type: 'TAB_COMMAND',
-				action: 'annotate-active',
-				payload: { index: i },
-			}, 3000).catch(() => {})
-
-			// Small delay so user can see the highlight
-			await new Promise(r => setTimeout(r, 150))
-
-			// Fill this single field
-			const fillResponse = await sendToTab<FillResponse>(
-				tabId,
-				{ type: 'TAB_COMMAND', action: 'fill', payload: { fields: [field] } },
-				FILL_TIMEOUT_MS,
-			)
-
-			filledCount += fillResponse?.filled ?? 0
-			failedCount += fillResponse?.failed ?? 0
-
-			log('info', 'fill', `字段 ${field.canonical_id}: ${fillResponse?.filled ? '成功' : '失败'}`, {
-				canonicalId: field.canonical_id,
-				value: field.value.slice(0, 50),
-			})
-		}
-		if (failedCount > 0) {
-			log('warning', 'fill', `填写完成: ${filledCount} 成功, ${failedCount} 失败`)
-		} else {
-			log('success', 'fill', `填写完成: ${filledCount} 个字段已成功填写`)
-		}
+		const { filled: filledCount, failed: failedCount } = await fillPhase(d, { fieldsToFill })
 
 		// Step 5: 自动提交 + 弱验证（仅 blog_comment 且填写无失败时）
 		let submitted: boolean | undefined
