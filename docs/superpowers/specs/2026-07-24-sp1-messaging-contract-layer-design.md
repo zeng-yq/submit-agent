@@ -229,7 +229,7 @@ export class MessageRouter {
 
 | 风险 | 缓解 |
 |---|---|
-| 步骤 3 重命名漏改某处 → 运行时消息丢失 | tsc + 全量测试双守门；router 的穷尽性在步骤 2 后即生效 |
+| 步骤 3 重命名漏改某处 → 运行时消息丢失 | tsc + 全量测试双守门；registration.test 的编译期覆盖断言（content 侧）在步骤 2 后即生效（见 §2.4） |
 | 步骤 4 content router 化引入回归 | handler 体仅搬迁不重写；`:466` 修复单独 commit + 回归测试 |
 | 触及脆弱的 iframe 逻辑 | **iframe 桥梁完全不动**，仅 6 种消息形式化为类型 |
 | 死消息误删（实际仍有用） | 步骤 6 删除前 grep 确认零发送方 + 零接收方 |
