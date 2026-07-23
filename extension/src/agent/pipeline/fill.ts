@@ -26,6 +26,7 @@ export async function fillPhase(deps: FormFillDeps, input: FillPhaseInput): Prom
       3000,
     ).catch(() => {})
 
+    // Small delay so user can see the highlight
     await new Promise(r => setTimeout(r, 150))
 
     const fillResponse = await deps.sendToTabMessage<FillResponse>(

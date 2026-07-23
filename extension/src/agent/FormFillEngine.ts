@@ -281,8 +281,7 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		if (siteType === 'blog_comment' && failedCount === 0 && filledCount > 0) {
 			log('info', 'fill', '正在自动提交评论并验证...')
 			const outcome = await runSubmitAndVerify({
-				sendSubmit: () => sendToTab<SubmitResponse>(
-					tabId,
+				sendSubmit: () => d.sendToTabMessage<SubmitResponse>(
 					{
 						type: 'TAB_COMMAND',
 						action: 'submit',
@@ -299,23 +298,8 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 					},
 					20_000,
 				),
-				verifyNavigation: () => verifyAfterNavigation(tabId, {
-					getTabUrl: async (id) => {
-						try {
-							const tab = await chrome.tabs.get(id)
-							return tab.url ?? ''
-						} catch {
-							return ''
-						}
-					},
-					sendVerify: (id) => sendToTab<VerifyModerationResponse>(
-						id,
-						{ type: 'TAB_COMMAND', action: 'verify-moderation' },
-						2000,
-					),
-					sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-				}),
-				log: (level, message) => log(level, 'fill', message),
+				verifyNavigation: d.verifyNavigation,
+				log: (level, message) => d.log(level, 'fill', message),
 			})
 			submitted = outcome.submitted
 			verifyResult = outcome.verifyResult
@@ -343,7 +327,7 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		}
 
 		// Notify done
-		sendProgress('done')
+		d.sendProgress('done')
 		log('success', 'system', `提交完成: ${result.filled} 填写, ${result.skipped} 跳过, ${result.failed} 失败`)
 		onStatusChange('done')
 
@@ -362,7 +346,7 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 			return { filled: 0, skipped: 0, failed: 0, notes: 'Cancelled.' }
 		}
 
-		sendProgress('error')
+		d.sendProgress('error')
 		onStatusChange('error')
 		onError(err)
 

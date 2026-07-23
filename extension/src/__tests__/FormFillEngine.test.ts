@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { fuzzyMatchField } from '@/agent/FormFillEngine';
+import { describe, it, expect, vi } from 'vitest';
+import { fuzzyMatchField, executeFormFill } from '@/agent/FormFillEngine';
+import type { FormFillEngineConfig } from '@/agent/FormFillEngine';
+import type { FormFillDeps } from '@/agent/pipeline/types';
+import type { AnalyzeResponse, FillResponse } from '@/messaging/messages';
+import type { SubmitResponse } from '@/agent/comment-submit';
 import type { FormField } from '@/agent/FormAnalyzer';
 
 describe('fuzzyMatchField', () => {
@@ -60,5 +64,53 @@ describe('fuzzyMatchField', () => {
     // "product name" tokens {product, name} vs "product_name" tokens {product, name} = 1.0
     const result = fuzzyMatchField('product name', fields, used);
     expect(result?.canonical_id).toBe('field_0');
+  });
+});
+
+const mkConfig = (): FormFillEngineConfig => ({
+  llmConfig: { apiKey: 'k', baseUrl: 'u', model: 'm' },
+  product: { id: 'p1', name: 'P', url: 'u', description: 'd', anchorTexts: 'a', founderName: 'F', founderEmail: 'e', createdAt: 0, updatedAt: 0 },
+  site: { name: 'S', submit_url: 'https://x', category: 'blog_comment', dr: 0 },
+  siteType: 'blog_comment',
+  tabId: 1,
+  callbacks: { onStatusChange: () => {}, onError: () => {}, onLog: () => {}, onLLMFields: () => {} },
+});
+
+const mkDeps = (over: Partial<FormFillDeps> = {}): FormFillDeps => ({
+  sendToTabMessage: vi.fn(async (msg: any) => {
+    if (msg.action === 'analyze') return { ok: true, analysis: { fields: [{ canonical_id: 'f1', selector: '#f1', form_index: 0, type: 'input', effective_type: 'comment' } as any], forms: [{ form_index: 0, filtered: false }], page_info: { title: 't', description: 'd', headings: [], content_preview: '' } } } as unknown as AnalyzeResponse
+    if (msg.action === 'fill') return { ok: true, filled: 1, failed: 0 } as FillResponse
+    if (msg.action === 'submit') return { ok: true, clicked: true, verifyResult: 'ajax' } as SubmitResponse
+    return { ok: true }
+  }) as any,
+  sendProgress: vi.fn(),
+  callLLM: vi.fn().mockResolvedValue('{"f1":"hello"}'),
+  verifyNavigation: vi.fn().mockResolvedValue('confirmed'),
+  log: vi.fn(),
+  onLLMFields: vi.fn(),
+  ...over,
+}) as any;
+
+describe('executeFormFill (end-to-end, mock deps)', () => {
+  it('成功路径：analyze→llm→match→fill→submit，返回 filled=1 submitted', async () => {
+    const r = await executeFormFill(mkConfig(), mkDeps());
+    expect(r.filled).toBe(1);
+    expect(r.failed).toBe(0);
+    expect(r.submitted).toBe(true);
+    expect(r.verifyResult).toBe('ajax');
+  });
+
+  it('无字段 → filled=0 早退，不调 callLLM', async () => {
+    const deps = mkDeps({ sendToTabMessage: vi.fn(async () => ({ ok: true, analysis: { fields: [], forms: [], page_info: { title: '', description: '', headings: [], content_preview: '' } } } as unknown as AnalyzeResponse)) as any });
+    const r = await executeFormFill(mkConfig(), deps);
+    expect(r.filled).toBe(0);
+    expect(deps.callLLM).not.toHaveBeenCalled();
+  });
+
+  it('directory_submit → 不自动提交（无 submit 消息）', async () => {
+    const cfg = { ...mkConfig(), siteType: 'directory_submit' as const };
+    const deps = mkDeps();
+    const r = await executeFormFill(cfg, deps);
+    expect(r.submitted).toBeUndefined();
   });
 });
