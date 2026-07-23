@@ -4,6 +4,7 @@ import { VERIFIED_SUCCESS } from '@/agent/types'
 import type { VerifyResult } from '@/agent/types'
 import { filterSubmittable, matchCurrentPage } from '@/lib/sites'
 import { sendProgress } from '@/messaging/router'
+import type { ExtensionMessage } from '@/messaging/messages'
 
 interface UseFloatFillOptions {
 	activeProduct: { id: string } | null | undefined
@@ -115,14 +116,15 @@ export function useFloatFill({
 	}, [activeProduct, sites.length, runFloatFill])
 
 	useEffect(() => {
-		const handler = (message: any) => {
+		const handler = (message: ExtensionMessage) => {
 			if (message.type === 'FILL_PROGRESS' && message.action === 'start') {
 				runFloatFill()
 				return
 			}
-			if (message.type === 'STATUS_UPDATE') {
+			// TODO(T6): STATUS_UPDATE 死消息清理——联合中已无此类型，目前无活跃 sender
+			if ((message as { type?: string }).type === 'STATUS_UPDATE') {
 				if (!activeProduct) return
-				const { status, tabUrl } = message.payload ?? {}
+				const { status, tabUrl } = (message as { payload?: { status?: string; tabUrl?: string } }).payload ?? {}
 				if (!status || !tabUrl) return
 				const submittable = filterSubmittable(sites)
 				const matched = matchCurrentPage(submittable, tabUrl)

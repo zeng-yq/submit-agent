@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
+import type { ExtensionMessage } from '@/messaging/messages'
 
 type Tab = 'submit' | 'analysis' | 'settings'
 
@@ -180,7 +181,7 @@ export default function App() {
 
 	// 监听浮动按钮的"添加到外链库"请求
 	useEffect(() => {
-		const handler = (message: any) => {
+		const handler = (message: ExtensionMessage) => {
 			if (message.type === 'FLOAT_ADD_SITE' && message.url) {
 				setAddSiteUrl(message.url)
 				setAddSiteError('')

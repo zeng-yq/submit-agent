@@ -7,6 +7,7 @@ import {
 	deleteProduct as dbDeleteProduct,
 } from '@/lib/db'
 import { getActiveProductId, setActiveProductId } from '@/lib/storage'
+import type { ExtensionMessage } from '@/messaging/messages'
 
 const PRODUCTS_CHANGED = 'PRODUCTS_CHANGED'
 
@@ -46,7 +47,7 @@ export function useProduct(): UseProductResult {
 
 	// 监听其他页面的产品变更广播
 	useEffect(() => {
-		const handler = (message: any) => {
+		const handler = (message: ExtensionMessage) => {
 			if (message.type === PRODUCTS_CHANGED) {
 				refresh()
 			}

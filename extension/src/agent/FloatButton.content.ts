@@ -1,3 +1,4 @@
+import type { ExtensionMessage } from '@/messaging/messages'
 
 /**
  * FloatButton.content.ts
@@ -684,9 +685,11 @@ export async function initFloatButton(enabled: boolean) {
 		isKnownSite = false
 	}
 
-	chrome.runtime.onMessage.addListener((message) => {
+	chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
 		if (message.type === 'FLOAT_BUTTON_TOGGLE') {
-			userEnabled = message.enabled as boolean
+			// 既有 sender（FloatButton.content.ts:511 / SettingsPanel.tsx:148 / background.ts:246）
+			// 仍以顶层 `enabled` 广播；messages.ts 合约声明为 payload.enabled，迁移前局部 as 收窄。
+			userEnabled = (message as { enabled?: boolean }).enabled as boolean
 			checkAndToggleButton()
 			return
 		}
@@ -723,7 +726,7 @@ export async function initFloatButton(enabled: boolean) {
 		if (message.type === 'SUBMISSION_STATUS_CHANGED') {
 			const { siteName, toggleState } = message.payload ?? {}
 			if (siteName && siteName === matchedSiteName) {
-				updateToggleVisual(toggleState)
+				updateToggleVisual(toggleState as SubmissionState)
 			}
 		}
 		if (message.type === 'SITE_ADDED') {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SiteData, SubmissionRecord } from '@/lib/types'
 import { reloadSites } from '@/lib/sites'
 import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, getDB } from '@/lib/db'
+import type { ExtensionMessage } from '@/messaging/messages'
 
 const SITES_CHANGED = 'SITES_CHANGED'
 
@@ -40,7 +41,7 @@ export function useSites(productId: string | null): UseSitesResult {
 
 	// 监听其他页面的站点变更广播（如悬浮按钮删除外链）
 	useEffect(() => {
-		const handler = (message: any) => {
+		const handler = (message: ExtensionMessage) => {
 			if (message.type === SITES_CHANGED) {
 				refresh()
 			}
