@@ -6,6 +6,7 @@ import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
 import { executeSubmit, detectModeration, type SubmitResponse } from '@/agent/comment-submit'
 import { isRemoteCommentIframeHost, isRemoteCommentSystem, REMOTE_COMMENT_IFRAME_SELECTORS } from '@/agent/form-analyzer/comment-system-detector'
+import { MessageRouter } from '@/messaging/router'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
 
@@ -307,176 +308,123 @@ export default defineContentScript({
 		const enabled = await getFloatButtonEnabled()
 		await initFloatButton(enabled)
 
-		// Listen for form analysis and fill commands from sidepanel
-		chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-			if (message.type !== 'FLOAT_FILL') return
-
-			switch (message.action) {
-				case 'analyze': {
-					const siteType = message.payload?.siteType as string | undefined
-
-					;(async () => {
-						try {
-							// Wait for dynamic form fields to appear (SPA support)
-							await waitForFormFields()
-
-							// Expand lazy-loaded comment forms (wpDiscuz etc.)
-							// before scanning so hidden fields become visible
-							await expandLazyCommentForms(document)
-
-							const analysis = analyzeForms(document)
-
-							// When a remote comment system (Blogger / Jetpack Verbum) is detected but no
-							// fields found in the main document, fetch them from the cross-origin iframe
-							// via postMessage.
-							if (isRemoteCommentSystem(analysis.commentSystem?.name) && analysis.fields.length === 0) {
-								const iframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
-								if (iframe) {
-									// 滚动 iframe 进入视口，触发懒加载的远程评论表单（Jetpack Verbum）渲染
-									iframe.scrollIntoView({ block: 'center' })
-									const iframeAnalysis = await requestIframeAnalysis(iframe)
-									if (iframeAnalysis) {
-										analysis.fields = iframeAnalysis.fields
-									}
-								}
-							}
-
-							if (siteType === 'blog_comment') {
-								const pageContent = extractPageContent(document)
-								sendResponse({ ok: true, analysis, pageContent })
-							} else {
-								sendResponse({ ok: true, analysis })
-							}
-						} catch (err) {
-							sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
-						}
-					})()
-
-					return true // keep message channel open for async response
-				}
-				case 'fill': {
-					const fields = message.payload?.fields as Array<{
-						canonical_id: string
-						value: string
-						selector: string
-					}>
-					if (!fields) {
-						sendResponse({ ok: false, error: 'No fields provided' })
-						return
-					}
-
-					;(async () => {
-						let filled = 0
-						let failed = 0
-
-						// Check if fields are in a remote comment iframe (Blogger / Jetpack Verbum)
-						const remoteIframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
-
-						if (remoteIframe) {
-							const result = await fillIframeFields(remoteIframe, fields)
-							filled += result.filled
-							failed += result.failed
-						} else {
-							for (const field of fields) {
-								try {
-									const el = document.querySelector(field.selector)
-									if (el) {
-										const ok = await fillAndVerify(el as HTMLElement, field.value)
-										if (ok) {
-											filled++
-										} else {
-											failed++
-										}
-									} else {
-										failed++
-									}
-								} catch {
-									failed++
-								}
-							}
-						}
-
-						sendResponse({ ok: true, filled, failed })
-					})()
-
-					return true // keep message channel open for async response
-				}
-				case 'annotate': {
-					const fields = message.payload?.fields as Array<{ selector: string }> | undefined
-					if (fields) {
-						annotateFields(fields)
-					}
-					sendResponse({ ok: true })
-					return
-				}
-				case 'scroll-to-first': {
-					const fields = message.payload?.fields as Array<{ selector: string }> | undefined
-					if (fields && fields.length > 0) {
-						const firstEl = document.querySelector(fields[0].selector)
-						if (firstEl) {
-							;(firstEl as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
-						}
-					}
-					sendResponse({ ok: true })
-					return
-				}
-				case 'annotate-active': {
-					const index = message.payload?.index as number | undefined
-					if (typeof index === 'number') {
-						annotateActive(index)
-					}
-					sendResponse({ ok: true })
-					return
-				}
-				case 'annotate-clear': {
-					clearAnnotations()
-					sendResponse({ ok: true })
-					return
-				}
-				case 'verify-moderation': {
-					// 整页跳转后引擎复核：返回当前页是否处于待审核（URL 参数 或 DOM 标记）
-					sendResponse({ ok: true, moderation: detectModeration() })
-					return
-				}
-				case 'submit': {
-					const fields = message.payload?.fields as Array<{
-						selector: string
-						type?: string
-						effective_type?: string
-						name?: string
-						id?: string
-						canonical_id?: string
-					}> | undefined
-
-					;(async () => {
-						try {
-							// 从已填字段里识别评论框 selector（textarea / comment 语义）
-							const commentField = fields?.find((f) =>
-								f.type === 'textarea'
-								|| f.effective_type === 'comment'
-								|| /comment|reply|message/i.test(`${f.canonical_id ?? ''} ${f.name ?? ''} ${f.id ?? ''}`)
-							)
-							const commentSelector = commentField?.selector ?? null
-
-							// 远程评论 iframe（Blogger / Jetpack Verbum）：提交按钮在跨域 iframe 内，
-							// 主文档定位不到 → 通过 postMessage 让 iframe 在自身上下文执行 executeSubmit
-							const remoteIframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
-							if (remoteIframe) {
-								const r = await submitViaIframe(remoteIframe, commentSelector)
-								sendResponse(r ?? { ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '跨域 iframe 提交超时，请手动提交' })
-								return
-							}
-
-							// 主文档路径（普通 WP 等原生表单）：executeSubmit 在当前上下文执行
-							sendResponse(await executeSubmit(commentSelector))
-						} catch (err) {
-							sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
-						}
-					})()
-
-					return true // keep message channel open for async response
-				}
-			}
-		})
+		// 路由 FLOAT_FILL 消息到各 action handler（handler 改返回风格，由 router 统一管 sendResponse + 保活）
+		const router = new MessageRouter()
+		registerContentHandlers(router)
+		router.attachRuntimeListener()
 	},
 })
+
+/**
+ * 注册 content 侧 8 个 FLOAT_FILL action handler。
+ *
+ * FLOAT_FILL 暂未纳入 ExtensionMessage 联合（T4 统一改名 TAB_COMMAND 时补齐），
+ * `router.on` 第一参数用 `'FLOAT_FILL' as any` 过渡绕过类型守门，T4 后移除。
+ * handler 内访问 payload 用 `as` 窄化（与原 switch 行为等价）。
+ */
+export function registerContentHandlers(router: MessageRouter): void {
+	router.on('FLOAT_FILL' as any, 'analyze', async (msg: any) => {
+		const siteType = (msg as { payload?: { siteType?: string } }).payload?.siteType
+		await waitForFormFields()
+		await expandLazyCommentForms(document)
+		const analysis = analyzeForms(document)
+		if (isRemoteCommentSystem(analysis.commentSystem?.name) && analysis.fields.length === 0) {
+			const iframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
+			if (iframe) {
+				// 滚动 iframe 进入视口，触发懒加载的远程评论表单（Jetpack Verbum）渲染
+				iframe.scrollIntoView({ block: 'center' })
+				const iframeAnalysis = await requestIframeAnalysis(iframe)
+				if (iframeAnalysis) analysis.fields = iframeAnalysis.fields
+			}
+		}
+		if (siteType === 'blog_comment') {
+			return { ok: true, analysis, pageContent: extractPageContent(document) }
+		}
+		return { ok: true, analysis }
+	})
+
+	router.on('FLOAT_FILL' as any, 'fill', async (msg: any) => {
+		const fields = (msg as { payload?: { fields?: Array<{ canonical_id: string; value: string; selector: string }> } }).payload?.fields
+		if (!fields) return { ok: false, error: 'No fields provided' }
+		let filled = 0
+		let failed = 0
+		// 远程评论 iframe（Blogger / Jetpack Verbum）：字段在跨域 iframe 内
+		const remoteIframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
+		if (remoteIframe) {
+			const result = await fillIframeFields(remoteIframe, fields)
+			filled += result.filled
+			failed += result.failed
+		} else {
+			for (const field of fields) {
+				try {
+					const el = document.querySelector(field.selector)
+					if (el) (await fillAndVerify(el as HTMLElement, field.value)) ? filled++ : failed++
+					else failed++
+				} catch {
+					failed++
+				}
+			}
+		}
+		return { ok: true, filled, failed }
+	})
+
+	router.on('FLOAT_FILL' as any, 'annotate', (msg: any) => {
+		const fields = (msg as { payload?: { fields?: Array<{ selector: string }> } }).payload?.fields
+		if (fields) annotateFields(fields)
+		return { ok: true }
+	})
+
+	router.on('FLOAT_FILL' as any, 'annotate-active', (msg: any) => {
+		const index = (msg as { payload?: { index?: number } }).payload?.index
+		if (typeof index === 'number') annotateActive(index)
+		return { ok: true }
+	})
+
+	router.on('FLOAT_FILL' as any, 'annotate-clear', () => {
+		clearAnnotations()
+		return { ok: true }
+	})
+
+	router.on('FLOAT_FILL' as any, 'scroll-to-first', (msg: any) => {
+		const fields = (msg as { payload?: { fields?: Array<{ selector: string }> } }).payload?.fields
+		if (fields && fields.length > 0) {
+			const firstEl = document.querySelector(fields[0].selector)
+			if (firstEl) (firstEl as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
+		}
+		return { ok: true }
+	})
+
+	// 整页跳转后引擎复核：返回当前页是否处于待审核（URL 参数 或 DOM 标记）
+	router.on('FLOAT_FILL' as any, 'verify-moderation', () => ({ ok: true, moderation: detectModeration() }))
+
+	router.on('FLOAT_FILL' as any, 'submit', async (msg: any) => {
+		const fields = (msg as { payload?: { fields?: Array<{ selector: string; type?: string; effective_type?: string; name?: string; id?: string; canonical_id?: string }> } }).payload?.fields
+		try {
+			// 从已填字段里识别评论框 selector（textarea / comment 语义）
+			const commentField = fields?.find((f) =>
+				f.type === 'textarea'
+				|| f.effective_type === 'comment'
+				|| /comment|reply|message/i.test(`${f.canonical_id ?? ''} ${f.name ?? ''} ${f.id ?? ''}`)
+			)
+			const commentSelector = commentField?.selector ?? null
+
+			// 远程评论 iframe（Blogger / Jetpack Verbum）：提交按钮在跨域 iframe 内，
+			// 主文档定位不到 → 通过 postMessage 让 iframe 在自身上下文执行 executeSubmit
+			const remoteIframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
+			if (remoteIframe) {
+				const r = await submitViaIframe(remoteIframe, commentSelector)
+				// 【bug 修复】iframe 超时（submitViaIframe 返回 null）：原返回 ok:true+not_attempted
+				// 会让 runSubmitAndVerify（FormFillEngine.ts:179）因 ok:true 跳过跨页复核。改为
+				// verifyResult:'navigating' 命中 FormFillEngine.ts:189 的 navigating→verifyNavigation
+				// 分支（与 resolveLostSignal 用 navigating 表达"经导航验证"的既有语义一致），
+				// 给跨页复核一次机会。
+				return r ?? { ok: true, clicked: true, verifyResult: 'navigating' as VerifyResult, error: '跨域 iframe 提交超时，转入跨页面验证' }
+			}
+
+			// 主文档路径（普通 WP 等原生表单）：executeSubmit 在当前上下文执行
+			return await executeSubmit(commentSelector)
+		} catch (err) {
+			return { ok: false, error: err instanceof Error ? err.message : String(err) }
+		}
+	})
+}

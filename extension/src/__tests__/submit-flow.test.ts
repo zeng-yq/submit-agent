@@ -75,4 +75,16 @@ describe('runSubmitAndVerify', () => {
 		expect(r.verifyResult).toBe('not_attempted')
 		expect(verifyNavigation).not.toHaveBeenCalled()
 	})
+
+	it('submit 返回 navigating（如 iframe 超时经修复）→ 触发 verifyNavigation 复核', async () => {
+		// 回归 content.ts:466：iframe 超时原返回 ok:true+not_attempted 会跳过跨页复核，
+		// 现返回 ok:true+clicked:true+navigating，须命中此分支送入 verifyNavigation。
+		const verifyNavigation = vi.fn().mockResolvedValue('confirmed')
+		const r = await runSubmitAndVerify({
+			sendSubmit: vi.fn().mockResolvedValue(ok({ clicked: true, verifyResult: 'navigating' })),
+			verifyNavigation,
+		})
+		expect(verifyNavigation).toHaveBeenCalledOnce()
+		expect(VERIFIED_SUCCESS).toContain(r.verifyResult)
+	})
 })
