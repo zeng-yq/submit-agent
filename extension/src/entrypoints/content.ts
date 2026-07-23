@@ -308,7 +308,7 @@ export default defineContentScript({
 		const enabled = await getFloatButtonEnabled()
 		await initFloatButton(enabled)
 
-		// 路由 FLOAT_FILL 消息到各 action handler（handler 改返回风格，由 router 统一管 sendResponse + 保活）
+		// 路由 TAB_COMMAND 消息到各 action handler（handler 改返回风格，由 router 统一管 sendResponse + 保活）
 		const router = new MessageRouter()
 		registerContentHandlers(router)
 		router.attachRuntimeListener()
@@ -316,14 +316,12 @@ export default defineContentScript({
 })
 
 /**
- * 注册 content 侧 8 个 FLOAT_FILL action handler。
+ * 注册 content 侧 8 个 TAB_COMMAND action handler。
  *
- * FLOAT_FILL 暂未纳入 ExtensionMessage 联合（T4 统一改名 TAB_COMMAND 时补齐），
- * `router.on` 第一参数用 `'FLOAT_FILL' as any` 过渡绕过类型守门，T4 后移除。
  * handler 内访问 payload 用 `as` 窄化（与原 switch 行为等价）。
  */
 export function registerContentHandlers(router: MessageRouter): void {
-	router.on('FLOAT_FILL' as any, 'analyze', async (msg: any) => {
+	router.on('TAB_COMMAND', 'analyze', async (msg: any) => {
 		const siteType = (msg as { payload?: { siteType?: string } }).payload?.siteType
 		await waitForFormFields()
 		await expandLazyCommentForms(document)
@@ -343,7 +341,7 @@ export function registerContentHandlers(router: MessageRouter): void {
 		return { ok: true, analysis }
 	})
 
-	router.on('FLOAT_FILL' as any, 'fill', async (msg: any) => {
+	router.on('TAB_COMMAND', 'fill', async (msg: any) => {
 		const fields = (msg as { payload?: { fields?: Array<{ canonical_id: string; value: string; selector: string }> } }).payload?.fields
 		if (!fields) return { ok: false, error: 'No fields provided' }
 		let filled = 0
@@ -368,24 +366,24 @@ export function registerContentHandlers(router: MessageRouter): void {
 		return { ok: true, filled, failed }
 	})
 
-	router.on('FLOAT_FILL' as any, 'annotate', (msg: any) => {
+	router.on('TAB_COMMAND', 'annotate', (msg: any) => {
 		const fields = (msg as { payload?: { fields?: Array<{ selector: string }> } }).payload?.fields
 		if (fields) annotateFields(fields)
 		return { ok: true }
 	})
 
-	router.on('FLOAT_FILL' as any, 'annotate-active', (msg: any) => {
+	router.on('TAB_COMMAND', 'annotate-active', (msg: any) => {
 		const index = (msg as { payload?: { index?: number } }).payload?.index
 		if (typeof index === 'number') annotateActive(index)
 		return { ok: true }
 	})
 
-	router.on('FLOAT_FILL' as any, 'annotate-clear', () => {
+	router.on('TAB_COMMAND', 'annotate-clear', () => {
 		clearAnnotations()
 		return { ok: true }
 	})
 
-	router.on('FLOAT_FILL' as any, 'scroll-to-first', (msg: any) => {
+	router.on('TAB_COMMAND', 'scroll-to-first', (msg: any) => {
 		const fields = (msg as { payload?: { fields?: Array<{ selector: string }> } }).payload?.fields
 		if (fields && fields.length > 0) {
 			const firstEl = document.querySelector(fields[0].selector)
@@ -395,9 +393,9 @@ export function registerContentHandlers(router: MessageRouter): void {
 	})
 
 	// 整页跳转后引擎复核：返回当前页是否处于待审核（URL 参数 或 DOM 标记）
-	router.on('FLOAT_FILL' as any, 'verify-moderation', () => ({ ok: true, moderation: detectModeration() }))
+	router.on('TAB_COMMAND', 'verify-moderation', () => ({ ok: true, moderation: detectModeration() }))
 
-	router.on('FLOAT_FILL' as any, 'submit', async (msg: any) => {
+	router.on('TAB_COMMAND', 'submit', async (msg: any) => {
 		const fields = (msg as { payload?: { fields?: Array<{ selector: string; type?: string; effective_type?: string; name?: string; id?: string; canonical_id?: string }> } }).payload?.fields
 		try {
 			// 从已填字段里识别评论框 selector（textarea / comment 语义）

@@ -430,7 +430,7 @@ export async function performClick(
 /** 检测到 Cloudflare Turnstile 后等待自动完成的超时（managed 模式通常 2-5s，留余量） */
 const CLOUDFLARE_WAIT_MS = 10000
 
-/** executeSubmit 的返回结构（对齐 FLOAT_FILL submit case 的 sendResponse 体） */
+/** executeSubmit 的返回结构（对齐 TAB_COMMAND submit case 的 sendResponse 体） */
 export interface SubmitResponse {
 	ok: boolean
 	clicked: boolean

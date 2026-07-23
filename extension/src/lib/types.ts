@@ -125,11 +125,11 @@ export type MessageType =
 	| 'SUBMIT_CONTROL'
 	| 'FETCH_PAGE_CONTENT'
 	| 'FLOAT_BUTTON_TOGGLE'
-	| 'FLOAT_FILL'
+	| 'FILL_PROGRESS'
 	| 'STATUS_UPDATE'
 	| 'CLOSE_TAB'
 
-/** FLOAT_FILL message actions */
+/** FILL_PROGRESS message actions */
 export type FloatFillAction =
 	| 'start'
 	| 'analyze'

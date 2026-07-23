@@ -3,6 +3,7 @@ import type { SiteData } from '@/lib/types'
 import { VERIFIED_SUCCESS } from '@/agent/types'
 import type { VerifyResult } from '@/agent/types'
 import { filterSubmittable, matchCurrentPage } from '@/lib/sites'
+import { sendProgress } from '@/messaging/router'
 
 interface UseFloatFillOptions {
 	activeProduct: { id: string } | null | undefined
@@ -36,10 +37,10 @@ export function useFloatFill({
 		if (floatFillRunningRef.current) return
 		floatFillRunningRef.current = true
 		chrome.storage.session.remove('floatFillPending').catch(() => {})
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
+		sendProgress('reset')
 		try {
 			if (!activeProduct) {
-				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-product' }).catch(() => {})
+				sendProgress('no-product')
 				return
 			}
 			const res = await chrome.storage.session.get('floatFillTabId')
@@ -51,7 +52,7 @@ export function useFloatFill({
 				const submittable = filterSubmittable(sites)
 				const matched = matchCurrentPage(submittable, tabUrl)
 				if (matched) {
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
+					sendProgress('progress')
 					reset()
 					setCurrentEngineSite(matched)
 					try {
@@ -59,13 +60,13 @@ export function useFloatFill({
 						const isBlogComment = matched.category === 'blog_comment'
 						if (isBlogComment) {
 							// blog_comment：以提交验证结果为准
-							// TODO: 入库映射逻辑待补单测（见 spec §7）—— 需 mock chrome + 注入 markSubmitted/markFailed 驱动 FLOAT_FILL start，当前依赖手动验证矩阵覆盖
+							// TODO: 入库映射逻辑待补单测（见 spec §7）—— 需 mock chrome + 注入 markSubmitted/markFailed 驱动 FILL_PROGRESS start，当前依赖手动验证矩阵覆盖
 							const verified = VERIFIED_SUCCESS.includes((r.verifyResult ?? 'not_attempted') as VerifyResult)
 							console.log('[SA-DIAG] pathA', { verifyResult: r.verifyResult, filled: r.filled, failed: r.failed, isBlogComment, verified })
 							if (verified) {
 								markSubmitted(matched.name, activeProduct.id, r.verifyResult)
 							} else {
-								chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+								sendProgress('error')
 								markFailed(matched.name, activeProduct.id, r.submitError || `提交未确认(${r.verifyResult ?? 'not_attempted'})`, r.verifyResult)
 							}
 						} else {
@@ -73,22 +74,22 @@ export function useFloatFill({
 							if (r.failed === 0 && r.filled > 0) {
 								markSubmitted(matched.name, activeProduct.id)
 							} else if (r.filled === 0) {
-								chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+								sendProgress('error')
 								markFailed(matched.name, activeProduct.id, '页面未发现可填写的表单字段')
 							}
 						}
 						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					} catch (err) {
-						chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+						sendProgress('error')
 						markFailed(matched.name, activeProduct.id, err instanceof Error ? err.message : String(err))
 						setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 					}
 				} else {
-					chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'reset' }).catch(() => {})
+					sendProgress('reset')
 					setPendingUnmatchedUrl(tabUrl)
 				}
 			} catch (err) {
-				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+				sendProgress('error')
 			}
 		} finally {
 			floatFillRunningRef.current = false
@@ -115,7 +116,7 @@ export function useFloatFill({
 
 	useEffect(() => {
 		const handler = (message: any) => {
-			if (message.type === 'FLOAT_FILL' && message.action === 'start') {
+			if (message.type === 'FILL_PROGRESS' && message.action === 'start') {
 				runFloatFill()
 				return
 			}
@@ -146,7 +147,7 @@ export function useFloatFill({
 			dr: null,
 		}
 		setPendingUnmatchedUrl(null)
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
+		sendProgress('progress')
 		reset()
 		setCurrentEngineSite(virtualSite)
 		try {
@@ -154,12 +155,12 @@ export function useFloatFill({
 			if (r.failed === 0 && r.filled > 0) {
 				markSubmitted(virtualSite.name, activeProduct.id)
 			} else if (r.filled === 0) {
-				chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+				sendProgress('error')
 				markFailed(virtualSite.name, activeProduct.id, '页面未发现可填写的表单字段')
 			}
 			setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 		} catch (err) {
-			chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+			sendProgress('error')
 			markFailed(virtualSite.name, activeProduct.id, err instanceof Error ? err.message : String(err))
 			setTimeout(() => { setCurrentEngineSite(null); resetUI() }, 3000)
 		}
@@ -167,7 +168,7 @@ export function useFloatFill({
 
 	const cancelUnmatched = useCallback(() => {
 		setPendingUnmatchedUrl(null)
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'no-match' }).catch(() => {})
+		sendProgress('no-match')
 	}, [])
 
 	return {

@@ -23,8 +23,7 @@ export function registerBackgroundHandlers(router: MessageRouter): void {
 	router.on('SUBMIT_CONTROL', (msg, ctx) => handleSubmitControl(msg as any, ctx))
 	router.on('FETCH_PAGE_CONTENT', (msg) => handleFetchPageContent(msg as any))
 	router.on('FLOAT_BUTTON_TOGGLE', (msg) => handleFloatButtonToggle(msg as any))
-	// FLOAT_FILL 暂未纳入 ExtensionMessage 联合（T4 统一改名时补齐），此处 as any 绕过类型守门
-	router.on('FLOAT_FILL' as any, (msg, ctx) => handleFloatFill(msg as any, ctx))
+	router.on('FILL_PROGRESS', (msg, ctx) => handleFloatFill(msg, ctx))
 	router.on('SUBMISSION_STATUS_CHANGED', (msg, ctx) => handleSubmissionStatusChanged(msg as any, ctx))
 	router.on('CHECK_SITE_MATCH', (msg) => handleCheckSiteMatch(msg as any))
 	router.on('DELETE_SITE', (msg) => handleDeleteSite(msg as any))
@@ -129,7 +128,7 @@ async function handleFetchPageContent(message: { type: string; url: string }): P
 			}
 			try {
 				const result = await chrome.tabs.sendMessage(tab.id, {
-					type: 'FLOAT_FILL',
+					type: 'TAB_COMMAND',
 					action: 'analyze',
 					payload: { siteType: 'blog_comment' },
 				})

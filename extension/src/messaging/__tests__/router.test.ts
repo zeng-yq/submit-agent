@@ -65,17 +65,16 @@ describe('MessageRouter', () => {
 		expect(router.hasHandler({ type: 'CLOSE_TAB' } as ExtensionMessage)).toBe(true)
 	})
 
-	it('非白名单 type 用 3 参 action 注册仍能被分发（FLOAT_FILL 回归，锁定按形状分发）', () => {
+	it('非白名单 type 用 3 参 action 注册仍能被分发（合成 type 回归，锁定按形状分发）', () => {
 		// 旧实现用 type 白名单（FILL_PROGRESS/TAB_COMMAND）决定是否走 action 二级分发，
-		// 导致 FLOAT_FILL 等 type 上用 3 参注册的 handler 永不被调用。
+		// 导致任意非白名单 type 上用 3 参注册的 handler 永不被调用。
+		// 用合成 type 名验证「按形状分发」机制对任意 type 都生效（type 名是任意的）。
 		const router = new MessageRouter()
 		const handler = vi.fn(() => ({ ok: true, analysis: { fields: [] } }))
-		// FLOAT_FILL 暂未纳入 ExtensionMessage 联合（T4 改名 TAB_COMMAND 时补齐），
-		// 同 content.ts/registerContentHandlers 的过渡模式用 as any 绕过守门。
-		router.on('FLOAT_FILL' as any, 'analyze', handler)
-		expect(router.hasHandler({ type: 'FLOAT_FILL', action: 'analyze' } as any)).toBe(true)
+		router.on('__TEST_ACTION_TYPE__' as any, 'analyze', handler)
+		expect(router.hasHandler({ type: '__TEST_ACTION_TYPE__', action: 'analyze' } as any)).toBe(true)
 		const ret = router.dispatch(
-			{ type: 'FLOAT_FILL', action: 'analyze', payload: { siteType: 'blog_comment' } } as any,
+			{ type: '__TEST_ACTION_TYPE__', action: 'analyze', payload: { siteType: 'blog_comment' } } as any,
 			ctx,
 			sendResponse,
 		)

@@ -15,6 +15,8 @@ import { callLLM, parseLLMJson, injectHrefNewline } from './llm-utils'
 import { buildProductContext, pickAnchorText, pickFounderName } from './prompts/product-context'
 import { buildBlogCommentPrompt } from './prompts/blog-comment-prompt'
 import { buildDirectorySubmitPrompt } from './prompts/directory-submit-prompt'
+import { sendToTab, sendProgress } from '@/messaging/router'
+import type { AnalyzeResponse, FillResponse, VerifyModerationResponse } from '@/messaging/messages'
 
 const ANALYZE_TIMEOUT_MS = 10_000
 const FILL_TIMEOUT_MS = 10_000
@@ -119,26 +121,6 @@ export interface FormFillEngineConfig {
 	signal?: AbortSignal
 }
 
-/**
- * Send a message to the content script on a specific tab and wait for response.
- */
-function sendToTab<T>(tabId: number, message: unknown, timeoutMs: number): Promise<T> {
-	return new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			reject(new Error(`Content script did not respond within ${timeoutMs}ms`))
-		}, timeoutMs)
-
-		chrome.tabs.sendMessage(tabId, message, (response) => {
-			clearTimeout(timer)
-			if (chrome.runtime.lastError) {
-				reject(new Error(chrome.runtime.lastError.message))
-				return
-			}
-			resolve(response as T)
-		})
-	})
-}
-
 /** runSubmitAndVerify 的依赖：sendSubmit 发 submit 消息；verifyNavigation 跨页面复核 */
 export interface SubmitFlowDeps {
 	/** 发 submit 消息并等待回复；reject 表示 content script 上下文随整页跳转销毁 */
@@ -227,11 +209,10 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		log('info', 'system', `开始填写: ${site.name} (tab ${tabId})`, undefined, site.submit_url ?? undefined)
 		log('info', 'analyze', '正在发送表单分析请求...')
 		const analyzePayload = { siteType }
-		const analyzeMsg = { type: 'FLOAT_FILL', action: 'analyze', payload: analyzePayload }
 
-		const analyzeResponse = await sendToTab<{ ok: boolean; analysis: FormAnalysisResult; pageContent?: PageContent }>(
+		const analyzeResponse = await sendToTab<AnalyzeResponse>(
 			tabId,
-			analyzeMsg,
+			{ type: 'TAB_COMMAND', action: 'analyze', payload: analyzePayload },
 			ANALYZE_TIMEOUT_MS
 		)
 
@@ -240,7 +221,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		}
 
 		const analysis = analyzeResponse.analysis
-		const pageContent = analyzeResponse.pageContent
+		const pageContent = analyzeResponse.pageContent as PageContent | undefined
 
 		log('success', 'analyze', `表单分析完成: 发现 ${analysis.fields.length} 个字段`, {
 			fields: analysis.fields.map(f => ({
@@ -265,19 +246,22 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			}
 
 		// Notify progress
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'progress' }).catch(() => {})
+		sendProgress('progress')
 
 		// Annotate detected fields on the page
-		const annotateMsg = {
-			type: 'FLOAT_FILL',
-			action: 'annotate',
-			payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
-		}
-		await sendToTab(tabId, annotateMsg, 5000).catch(() => {})
+		await sendToTab(
+			tabId,
+			{
+				type: 'TAB_COMMAND',
+				action: 'annotate',
+				payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
+			},
+			5000,
+		).catch(() => {})
 
 		// Scroll to the first annotated field so the user can see the form
 		await sendToTab(tabId, {
-			type: 'FLOAT_FILL',
+			type: 'TAB_COMMAND',
 			action: 'scroll-to-first',
 			payload: { fields: analysis.fields.map(f => ({ selector: f.selector })) },
 		}, 5000).catch(() => {})
@@ -414,7 +398,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 
 			// Highlight current field
 			await sendToTab(tabId, {
-				type: 'FLOAT_FILL',
+				type: 'TAB_COMMAND',
 				action: 'annotate-active',
 				payload: { index: i },
 			}, 3000).catch(() => {})
@@ -423,9 +407,10 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			await new Promise(r => setTimeout(r, 150))
 
 			// Fill this single field
-			const fillMsg = { type: 'FLOAT_FILL', action: 'fill', payload: { fields: [field] } }
-			const fillResponse = await sendToTab<{ ok: boolean; filled: number; failed: number }>(
-				tabId, fillMsg, FILL_TIMEOUT_MS
+			const fillResponse = await sendToTab<FillResponse>(
+				tabId,
+				{ type: 'TAB_COMMAND', action: 'fill', payload: { fields: [field] } },
+				FILL_TIMEOUT_MS,
 			)
 
 			filledCount += fillResponse?.filled ?? 0
@@ -452,7 +437,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 				sendSubmit: () => sendToTab<SubmitResponse>(
 					tabId,
 					{
-						type: 'FLOAT_FILL',
+						type: 'TAB_COMMAND',
 						action: 'submit',
 						payload: {
 							fields: analysis.fields.map((f) => ({
@@ -476,9 +461,9 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 							return ''
 						}
 					},
-					sendVerify: (id) => sendToTab<{ ok: boolean; moderation: boolean }>(
+					sendVerify: (id) => sendToTab<VerifyModerationResponse>(
 						id,
-						{ type: 'FLOAT_FILL', action: 'verify-moderation' },
+						{ type: 'TAB_COMMAND', action: 'verify-moderation' },
 						2000,
 					),
 					sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
@@ -511,7 +496,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		}
 
 		// Notify done
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'done' }).catch(() => {})
+		sendProgress('done')
 		log('success', 'system', `提交完成: ${result.filled} 填写, ${result.skipped} 跳过, ${result.failed} 失败`)
 		onStatusChange('done')
 
@@ -530,7 +515,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 			return { filled: 0, skipped: 0, failed: 0, notes: 'Cancelled.' }
 		}
 
-		chrome.runtime.sendMessage({ type: 'FLOAT_FILL', action: 'error' }).catch(() => {})
+		sendProgress('error')
 		onStatusChange('error')
 		onError(err)
 

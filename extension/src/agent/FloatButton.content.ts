@@ -576,7 +576,7 @@ function sendMessageWithRetry(
 function handleMainClick() {
 	if (currentState === 'loading') return
 
-	sendMessageWithRetry({ type: 'FLOAT_FILL', action: 'start' })
+	sendMessageWithRetry({ type: 'FILL_PROGRESS', action: 'start' })
 		.then((response: any) => {
 			if (!response?.ok) {
 				setState('error')
@@ -690,7 +690,7 @@ export async function initFloatButton(enabled: boolean) {
 			checkAndToggleButton()
 			return
 		}
-		if (message.type === 'FLOAT_FILL') {
+		if (message.type === 'FILL_PROGRESS') {
 			switch (message.action) {
 				case 'progress':
 				case 'confirm':
