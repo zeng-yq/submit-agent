@@ -68,6 +68,7 @@ export type ExtensionMessage =
 	| { type: 'SUBMIT_CONTROL'; action: 'open_submit_page'; payload: string }
 	| { type: 'FETCH_PAGE_CONTENT'; payload: { url: string } }
 	| { type: 'SUBMISSION_STATUS_CHANGED'; payload: { siteName: string; toggleState: 'not_started' | 'submitted' | 'failed' } }
+	| { type: 'STATUS_UPDATE'; payload: { status: string; tabUrl?: string } }
 	| { type: 'SITES_CHANGED' }
 	| { type: 'PRODUCTS_CHANGED' }
 	| { type: 'SITE_ADDED'; url: string }

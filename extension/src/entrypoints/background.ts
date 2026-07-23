@@ -32,8 +32,8 @@ export function registerBackgroundHandlers(router: MessageRouter): void {
 	router.on('CLOSE_TAB', (_msg, ctx) => {
 		if (ctx.tabId != null) chrome.tabs.remove(ctx.tabId).catch(() => {})
 	})
-	// STATUS_UPDATE：有 sender（FloatButton.content.ts:448），handleStatusUpdate 未注册
-	// （T2 漏注册导致管道断裂），保留待后续 SP 决策；SITE_ADDED 仅 bg 发送（无需 bg handler）
+	router.on('STATUS_UPDATE', (msg, ctx) => handleStatusUpdate(msg, ctx))
+	// SITE_ADDED 仅 bg 发送（无需 bg handler）
 }
 
 async function handleSubmitControl(
@@ -227,13 +227,13 @@ async function handleFloatFill(
 }
 
 function handleStatusUpdate(
-	message: { type: string; payload: unknown },
-	sender: chrome.runtime.MessageSender
+	message: { type: 'STATUS_UPDATE'; payload: { status: string; tabUrl?: string } },
+	ctx: MsgCtx,
 ): undefined {
 	// Broadcast status updates from content script to sidepanel, with tab URL for site matching
 	chrome.runtime.sendMessage({
 		...message,
-		payload: { ...(message.payload as object), tabUrl: sender.tab?.url },
+		payload: { ...message.payload, tabUrl: ctx.sender?.tab?.url },
 	}).catch(() => {})
 	return
 }

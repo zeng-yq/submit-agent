@@ -121,13 +121,9 @@ export function useFloatFill({
 				runFloatFill()
 				return
 			}
-			// STATUS_UPDATE：有活跃 sender（FloatButton.content.ts:448 段点击→setSubmissionState
-			// → :94 sendMessage），不在 ExtensionMessage 联合中。background 的 handleStatusUpdate
-			// 未被注册（T2 漏注册），sidepanel 直收消息时 payload 缺 tabUrl → 下面 !tabUrl 早退。
-			// 此为既有 bug，SP-1 范围外，保留原行为待后续 SP 决策（修管道 vs 全删）。
-			if ((message as { type?: string }).type === 'STATUS_UPDATE') {
+			if (message.type === 'STATUS_UPDATE') {
 				if (!activeProduct) return
-				const { status, tabUrl } = (message as { payload?: { status?: string; tabUrl?: string } }).payload ?? {}
+				const { status, tabUrl } = message.payload
 				if (!status || !tabUrl) return
 				const submittable = filterSubmittable(sites)
 				const matched = matchCurrentPage(submittable, tabUrl)

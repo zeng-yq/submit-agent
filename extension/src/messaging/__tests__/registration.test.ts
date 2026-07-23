@@ -36,13 +36,15 @@ describe('handler 注册覆盖', () => {
 	it('background 侧单一职责 type 已注册', () => {
 		const router = new MessageRouter()
 		registerBackgroundHandlers(router)
-		// FILL_PROGRESS 是 action-type，用 start 探测；其余是无 action 单一职责 type。
+		// FILL_PROGRESS 在 background 为 simple 注册（2 参 router.on），探测时带 action='start'
+		// 仅因 FillProgressMessage 类型要求；其余是无 action 的单一职责 type。
 		const cases: Array<{ type: ExtensionMessage['type']; action?: string }> = [
 			{ type: 'SUBMIT_CONTROL' },
 			{ type: 'FETCH_PAGE_CONTENT' },
 			{ type: 'FLOAT_BUTTON_TOGGLE' },
 			{ type: 'FILL_PROGRESS', action: 'start' },
 			{ type: 'SUBMISSION_STATUS_CHANGED' },
+			{ type: 'STATUS_UPDATE' },
 			{ type: 'CHECK_SITE_MATCH' },
 			{ type: 'DELETE_SITE' },
 			{ type: 'FLOAT_ADD_SITE' },
