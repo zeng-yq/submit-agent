@@ -64,4 +64,23 @@ describe('MessageRouter', () => {
 		router.on('CLOSE_TAB', () => undefined)
 		expect(router.hasHandler({ type: 'CLOSE_TAB' } as ExtensionMessage)).toBe(true)
 	})
+
+	it('非白名单 type 用 3 参 action 注册仍能被分发（FLOAT_FILL 回归，锁定按形状分发）', () => {
+		// 旧实现用 type 白名单（FILL_PROGRESS/TAB_COMMAND）决定是否走 action 二级分发，
+		// 导致 FLOAT_FILL 等 type 上用 3 参注册的 handler 永不被调用。
+		const router = new MessageRouter()
+		const handler = vi.fn(() => ({ ok: true, analysis: { fields: [] } }))
+		// FLOAT_FILL 暂未纳入 ExtensionMessage 联合（T4 改名 TAB_COMMAND 时补齐），
+		// 同 content.ts/registerContentHandlers 的过渡模式用 as any 绕过守门。
+		router.on('FLOAT_FILL' as any, 'analyze', handler)
+		expect(router.hasHandler({ type: 'FLOAT_FILL', action: 'analyze' } as any)).toBe(true)
+		const ret = router.dispatch(
+			{ type: 'FLOAT_FILL', action: 'analyze', payload: { siteType: 'blog_comment' } } as any,
+			ctx,
+			sendResponse,
+		)
+		expect(handler).toHaveBeenCalledOnce()
+		expect(sendResponse).toHaveBeenCalledWith({ ok: true, analysis: { fields: [] } })
+		expect(ret).toBeUndefined() // 同步 → 不保活
+	})
 })

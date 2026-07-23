@@ -56,8 +56,9 @@ export class MessageRouter {
 	/** 是否有 handler 处理该消息（注册覆盖守门用） */
 	hasHandler(message: ExtensionMessage): boolean {
 		const type = message.type
-		if (type === 'FILL_PROGRESS' || type === 'TAB_COMMAND') {
-			return this.actionHandlers.get(type)?.has((message as { action: string }).action) === true
+		const action = (message as { action?: string }).action
+		if (action !== undefined && this.actionHandlers.has(type)) {
+			return this.actionHandlers.get(type)!.has(action)
 		}
 		return this.simpleHandlers.has(type)
 	}
@@ -85,8 +86,9 @@ export class MessageRouter {
 
 	private findHandler(message: ExtensionMessage): Handler | undefined {
 		const type = message.type
-		if (type === 'FILL_PROGRESS' || type === 'TAB_COMMAND') {
-			return this.actionHandlers.get(type)?.get((message as { action: string }).action)
+		const action = (message as { action?: string }).action
+		if (action !== undefined && this.actionHandlers.has(type)) {
+			return this.actionHandlers.get(type)!.get(action)
 		}
 		return this.simpleHandlers.get(type)
 	}
