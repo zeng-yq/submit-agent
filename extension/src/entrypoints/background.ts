@@ -23,7 +23,7 @@ export function registerBackgroundHandlers(router: MessageRouter): void {
 	router.on('SUBMIT_CONTROL', (msg, ctx) => handleSubmitControl(msg as any, ctx))
 	router.on('FETCH_PAGE_CONTENT', (msg) => handleFetchPageContent(msg as any))
 	router.on('FLOAT_BUTTON_TOGGLE', (msg) => handleFloatButtonToggle(msg as any))
-	router.on('FILL_PROGRESS', (msg, ctx) => handleFloatFill(msg, ctx))
+	router.on('FILL_PROGRESS', (msg, ctx) => handleFillProgress(msg, ctx))
 	router.on('SUBMISSION_STATUS_CHANGED', (msg, ctx) => handleSubmissionStatusChanged(msg as any, ctx))
 	router.on('CHECK_SITE_MATCH', (msg) => handleCheckSiteMatch(msg as any))
 	router.on('DELETE_SITE', (msg) => handleDeleteSite(msg as any))
@@ -190,7 +190,7 @@ function waitForTabLoad(tabId: number, timeoutMs: number): Promise<boolean> {
 	})
 }
 
-async function handleFloatFill(
+async function handleFillProgress(
 	message: { type: string; action: string; payload?: unknown },
 	ctx: MsgCtx,
 ): Promise<{ ok: true }> {

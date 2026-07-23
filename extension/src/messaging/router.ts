@@ -84,6 +84,18 @@ export class MessageRouter {
 		}
 	}
 
+	/**
+	 * 形状分发（非 switch，无 assertNever）。
+	 *
+	 * 优先级：消息带 `action` 字段且该 type 已在 actionHandlers 注册 → 按 action 查；
+	 * 否则回退 simpleHandlers。注意「按 action 查」若该具体 action 未注册会返回 undefined，
+	 * **不会**再回退 simple（action 分支独占该 type 后即旁路 simple）。
+	 *
+	 * 不变量：同一 type 只能在 actionHandlers 与 simpleHandlers 之一注册，不可混注。
+	 * 例如 background 的 `FILL_PROGRESS` 用 simple（2 参）注册以一个 handler 处理所有 action；
+	 * 若又给它补一个 action handler，则带 action 的 FILL_PROGRESS 消息会走 action 分支，
+	 * 未注册的 action 将查不到 → simple 被旁路 → 消息丢失。新增注册前先确认该 type 现有的注册形态。
+	 */
 	private findHandler(message: ExtensionMessage): Handler | undefined {
 		const type = message.type
 		const action = (message as { action?: string }).action

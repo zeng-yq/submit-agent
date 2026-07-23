@@ -39,11 +39,14 @@ describe('runSubmitAndVerify', () => {
 		expect(r.submitError).toMatch(/丢失|无法确认/)
 	})
 
-	it('submit 成功 + navigating + confirmed → 维持 navigating（成功）', async () => {
+	it('submit 成功 + navigating + confirmed → 维持 navigating 且触发跨页复核（成功）', async () => {
+		// navigating（含 content.ts:466 iframe 超时经修复后返回的 navigating）须送入 verifyNavigation 复核。
+		const verifyNavigation = vi.fn().mockResolvedValue('confirmed')
 		const r = await runSubmitAndVerify({
 			sendSubmit: vi.fn().mockResolvedValue(ok({ verifyResult: 'navigating' })),
-			verifyNavigation: vi.fn().mockResolvedValue('confirmed'),
+			verifyNavigation,
 		})
+		expect(verifyNavigation).toHaveBeenCalledOnce()
 		expect(r.verifyResult).toBe('navigating')
 		expect(VERIFIED_SUCCESS).toContain(r.verifyResult)
 	})
@@ -74,17 +77,5 @@ describe('runSubmitAndVerify', () => {
 		})
 		expect(r.verifyResult).toBe('not_attempted')
 		expect(verifyNavigation).not.toHaveBeenCalled()
-	})
-
-	it('submit 返回 navigating（如 iframe 超时经修复）→ 触发 verifyNavigation 复核', async () => {
-		// 回归 content.ts:466：iframe 超时原返回 ok:true+not_attempted 会跳过跨页复核，
-		// 现返回 ok:true+clicked:true+navigating，须命中此分支送入 verifyNavigation。
-		const verifyNavigation = vi.fn().mockResolvedValue('confirmed')
-		const r = await runSubmitAndVerify({
-			sendSubmit: vi.fn().mockResolvedValue(ok({ clicked: true, verifyResult: 'navigating' })),
-			verifyNavigation,
-		})
-		expect(verifyNavigation).toHaveBeenCalledOnce()
-		expect(VERIFIED_SUCCESS).toContain(r.verifyResult)
 	})
 })

@@ -47,7 +47,7 @@ L5 基础设施层 dom-writers / chrome IPC 适配 / LLM client / 存储
 
 - G1：建立类型化的判别联合消息契约，消灭 `any`/`as` 字面量散布。
 - G2：把过载的 `FLOAT_FILL` 拆为 `FILL_PROGRESS`（UI 信号）+ `TAB_COMMAND`（content 指令），消除 background 三向转发。
-- G3：引入 `MessageRouter` 注册表，兼顾编译期穷尽性与运行期可扩展（新增指令 = 联合加一成员 + `router.on(...)` 一行，编译器强制两处同步）。
+- G3：引入 `MessageRouter` 注册表，兼顾穷尽性守门与运行期可扩展（新增指令 = 联合加一成员 + `router.on(...)` 一行；content 侧由 `registration.test.ts` 编译期覆盖断言强制同步，background 侧靠类型约束 + 手动维护，见 §2.4）。
 - G4：修复 `content.ts:466` 的 `ok:true + error` 响应契约 bug。
 - G5：清理死类型（`lib/types.ts:124-148`）与死消息（`STATUS_UPDATE`/`SUBMIT_CONTROL`/`SITE_ADDED`）。
 
@@ -182,9 +182,13 @@ export class MessageRouter {
 
 ### 2.4 穷尽性与扩展性保证
 
-- **type 集合穷尽性（编译期保证）**：`dispatch` 的 default 分支调用 `assertNever(msg: never)`。新增 union 成员而不加 dispatch case → tsc 报错。这保证「dispatch 认识所有 type」。
-- **handler 注册覆盖（测试期保证）**：`router.on()` 是运行时注册，编译器无法强制开发者调用了它。因此由 `router.test.ts` 增加一条「每个 union 成员至少注册一个 handler」的覆盖测试守门（遍历 union，断言 router 内部表非空）。plan 阶段可进一步评估用「中心化 `registerAllHandlers(router)` 函数 + 类型映射」把注册也提到编译期，但属优化项，非本 SP 必需。
-- **扩展性**：新增一个 content 指令 = 在 `TabCommandAction` 加成员 + dispatch 加 case（assertNever 强制）+ `router.on('TAB_COMMAND', '<new>', handler)` 一行；TS 强制 payload 类型与 handler 签名同步。对比现状（grep 全库找散落字面量），收敛到 3 处且 2 处有编译器守门。
+> ⚠ 修订（合并前 fix）：原稿承诺「dispatch 的 `assertNever` 提供编译期穷尽性」，与实现不符。实际 `dispatch` 是 **Map 形状查表**（无 switch、无 `assertNever`）——按消息是否带 `action` 字段在 `actionHandlers` / `simpleHandlers` 两张表里查 key，不认识具体 type 名，因此 dispatch 本身**不提供** type 穷尽性。穷尽性改由下列两层守门，诚实记录。
+
+- **type 集合穷尽性**：
+	- **content 侧（强·编译期覆盖断言）**：content 是 `TAB_COMMAND` 唯一消费者，须注册全部 `TabCommandAction`。`registration.test.ts` 用分布式条件类型 `Exclude<TabCommandAction, (typeof CONTENT_EXPECTED_TAB_ACTIONS)[number]>` 断言 expected 列表覆盖整个联合——新增 `TabCommandAction` 成员但忘加列表（或列表里拼错 action 名）→ 断言类型非 `never` → 赋值编译报错。
+	- **background 侧（弱·子集类型约束）**：background 只注册其负责的 type 子集（`TAB_COMMAND` 等由 content 处理，不含），无法对整个 `ExtensionMessage['type']` 联合做覆盖断言。expected 列表以 `ExtensionMessage['type']` 标注元素类型——拼错 type 名即编译报错；但**新增 type 不强制加入列表**（须手动维护，否则 `registration.test` 不覆盖）。
+- **handler 注册覆盖（测试期保证）**：`router.on()` 是运行时注册，编译器无法强制调用。`registration.test.ts` 遍历各侧 expected 列表，运行期断言 `router.hasHandler(...)` 为真——catches「expected 列表里有、但 `router.on` 漏调」。
+- **扩展性**：新增一个 content 指令 = `TabCommandAction` 加成员（content 侧编译期断言立刻报错，提醒加 handler）+ `router.on('TAB_COMMAND', '<new>', handler)` 一行；TS 强制 payload 类型与 handler 签名同步。新增一个 background type = 联合加成员 + **手动**加入 background expected 列表 + `router.on(...)`。对比现状（grep 全库找散落字面量），收敛到少量注册点且 content 侧有编译器守门。
 - **action 二级路由**：`FILL_PROGRESS`/`TAB_COMMAND` 内部按 action 二级分发，避免每个 action 都占一个顶层 type。
 
 ---
@@ -214,7 +218,7 @@ export class MessageRouter {
   - 未知 type / 未注册 action → 忽略，不崩
   - 异步 handler → `return true` 保活通道；同步 handler → 不保活
   - handler 抛异常 → 被 catch，不污染其它消息
-  - （dispatch 的 type 穷尽性由 `assertNever` 编译期保证，无需单测）
+  - （dispatch 为 Map 形状查表、无 `assertNever`；type 穷尽性改由 `registration.test.ts` 的编译期覆盖断言（content）/ 类型约束（background）守门，见 §2.4）
 - **现有 230+ 测试**：步骤 3 重命名会命中 mock 了 `FLOAT_FILL` 的测试，同步改字面量即验收门。
 - **`content.ts:466` 回归测试**：iframe 超时响应不再被 `ok` 误判为成功（对齐 `submit-flow.test.ts` 已有的"submit 响应丢失 → 跨页验证"用例风格）。
 - **手动验证**（交付用户）：浮动按钮触发 → sidepanel 填充 → 提交 → 三态更新全链路在真实 WP 站点跑通；Blogger/Jetpack 跨域 iframe 提交不受影响（桥梁未动）。
@@ -240,7 +244,7 @@ export class MessageRouter {
 - ✅ 全量 `vitest` 全绿（含新增 router 测试与 `:466` 回归测试）
 - ✅ 代码中 `FLOAT_FILL` 字面量归零（iframe 的 6 种消息除外，它们本就不叫 FLOAT_FILL）
 - ✅ `lib/types.ts:124-148` 的 `MessageType`/`FloatFillAction`/`ExtMessage` 已删除
-- ✅ 新增消息 type 时，dispatch 的 `assertNever` 强制加 case（编译期）；router 注册覆盖由测试守门
+- ✅ 新增 `TabCommandAction` 时，`registration.test.ts` 的编译期覆盖断言强制 content 同步加 handler；新增 background type 时须手动加入其 expected 列表（拼错 type 名编译期即报错）；router 注册覆盖由测试期守门（dispatch 为 Map 形状查表、无 `assertNever`，不提供穷尽性——诚实记录，见 §2.4）
 - ✅ `content.ts:466` 的 iframe 超时响应不再被误判成功
 - ✅ 真实站点手动验证：浮动按钮→填充→提交→三态更新全链路正常；Blogger iframe 提交不受影响
 

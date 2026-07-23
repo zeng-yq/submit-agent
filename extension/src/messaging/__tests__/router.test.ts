@@ -1,6 +1,6 @@
 // src/messaging/__tests__/router.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { MessageRouter } from '@/messaging/router'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { MessageRouter, sendToTab, sendProgress, sendMessage } from '@/messaging/router'
 import type { ExtensionMessage } from '@/messaging/messages'
 
 describe('MessageRouter', () => {
@@ -81,5 +81,74 @@ describe('MessageRouter', () => {
 		expect(handler).toHaveBeenCalledOnce()
 		expect(sendResponse).toHaveBeenCalledWith({ ok: true, analysis: { fields: [] } })
 		expect(ret).toBeUndefined() // 同步 → 不保活
+	})
+})
+
+describe('发送封装：sendToTab / sendProgress / sendMessage', () => {
+	let tabsSend: ReturnType<typeof vi.fn<(tabId: number, msg: unknown, cb: (r: unknown) => void) => void>>
+	let runtimeSend: ReturnType<typeof vi.fn<(msg: unknown) => Promise<unknown>>>
+
+	beforeEach(() => {
+		tabsSend = vi.fn<(tabId: number, msg: unknown, cb: (r: unknown) => void) => void>()
+		runtimeSend = vi.fn<(msg: unknown) => Promise<unknown>>()
+		vi.stubGlobal('chrome', {
+			runtime: {
+				sendMessage: runtimeSend,
+				lastError: undefined as { message: string } | undefined,
+			},
+			tabs: { sendMessage: tabsSend },
+		})
+	})
+	afterEach(() => {
+		vi.unstubAllGlobals()
+		vi.useRealTimers()
+	})
+
+	it('sendToTab 超时 → reject', async () => {
+		vi.useFakeTimers()
+		// chrome.tabs.sendMessage 不回调 → 计时器到点触发 reject
+		const p = sendToTab(1, { type: 'CLOSE_TAB' } as ExtensionMessage, 50)
+		vi.advanceTimersByTime(50)
+		await expect(p).rejects.toThrow(/did not respond within 50ms/)
+	})
+
+	it('sendToTab chrome.runtime.lastError 存在 → reject', async () => {
+		tabsSend.mockImplementation((_tabId, _msg, cb) => {
+			;(chrome.runtime as { lastError?: { message: string } }).lastError = {
+				message: 'Receiving end does not exist',
+			}
+			cb(undefined)
+		})
+		await expect(sendToTab(1, { type: 'CLOSE_TAB' } as ExtensionMessage, 1000)).rejects.toThrow(
+			/Receiving end does not exist/,
+		)
+	})
+
+	it('sendToTab 正常 → resolve 响应', async () => {
+		tabsSend.mockImplementation((_tabId, _msg, cb) => {
+			cb({ ok: true, value: 42 })
+		})
+		await expect(sendToTab(1, { type: 'CLOSE_TAB' } as ExtensionMessage, 1000)).resolves.toEqual({
+			ok: true,
+			value: 42,
+		})
+	})
+
+	it('sendProgress → 发 FILL_PROGRESS 且吞错不 throw（fire-and-forget）', async () => {
+		runtimeSend.mockRejectedValue(new Error('no receiver'))
+		expect(() => sendProgress('progress', { filled: 1 })).not.toThrow()
+		await new Promise((r) => setTimeout(r, 0)) // flush 微任务，让被吞的 reject 落定
+		expect(runtimeSend).toHaveBeenCalledWith({
+			type: 'FILL_PROGRESS',
+			action: 'progress',
+			payload: { filled: 1 },
+		})
+	})
+
+	it('sendMessage → 类型化透传 chrome.runtime.sendMessage', async () => {
+		runtimeSend.mockResolvedValue({ ok: true })
+		const r = await sendMessage({ type: 'SITES_CHANGED' } as ExtensionMessage)
+		expect(runtimeSend).toHaveBeenCalledWith({ type: 'SITES_CHANGED' })
+		expect(r).toEqual({ ok: true })
 	})
 })
