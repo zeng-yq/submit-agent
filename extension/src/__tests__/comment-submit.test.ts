@@ -197,6 +197,40 @@ describe('resolveSubmitButton', () => {
 		expect(res.button?.tagName).toBe('A')
 		expect(res.form).not.toBeNull()
 	})
+
+	it('Blogger/Google 评论组件：无 form 的 <div role="button">Publicar</div>', async () => {
+		const mod = await loadModule()
+		// 还原实测结构：textarea 无 id/name、祖先 class 不含 "comment"、
+		// 提交按钮是 Material 风格的 <div role="button" aria-disabled>
+		doc.body.innerHTML = `
+			<div>
+				<textarea class="KHxj8b"></textarea>
+				<div role="button" tabindex="-1" aria-disabled="true">Publicar</div>
+			</div>`
+		const res = mod.resolveSubmitButton('textarea.KHxj8b')
+		expect(res.button?.tagName).toBe('DIV')
+		expect(res.button?.textContent).toBe('Publicar')
+	})
+
+	it('Blogger/Google：提交按钮在 textarea 多层祖先外、祖先 class 不含 comment', async () => {
+		const mod = await loadModule()
+		// 还原实测结构：textarea 祖先链全是混淆类名（不含 comment），
+		// Publicar 按钮在 textarea 第 4 层祖先的另一子树里，不在 parentElement 内
+		doc.body.innerHTML = `
+			<div class="x5vlw">
+				<div class="qhsbmc">
+					<div class="edhGSc"><div class="RpC4Ne"><div class="Pc9Gce">
+						<textarea class="KHxj8b"></textarea>
+					</div></div></div>
+					<div class="submit-area">
+						<div role="button" tabindex="-1">Editar</div>
+						<div role="button" tabindex="-1" aria-disabled="true">Publicar</div>
+					</div>
+				</div>
+			</div>`
+		const res = mod.resolveSubmitButton('textarea.KHxj8b')
+		expect(res.button?.textContent).toBe('Publicar')
+	})
 })
 
 describe('detectCaptcha', () => {

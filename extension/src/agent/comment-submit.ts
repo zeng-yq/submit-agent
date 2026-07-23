@@ -112,7 +112,7 @@ export function findSubmitButtonInForm(form: HTMLFormElement | null): HTMLElemen
 	//   非 WP 站点（OpenCart/Journal2、部分 Bootstrap 主题）常用 <a class="button"> + jQuery AJAX 提交，
 	//   故纳入 a[role="button"] / a[class*=button] / a[class*=submit]，并用关键词过滤以避免误判导航链接。
 	const clickables = Array.from(form.querySelectorAll<HTMLElement>(
-		'button, input[type="button"], a[role="button"], a[class*="button"], a[class*="submit"]'
+		'button, input[type="button"], [role="button"], a[class*="button"], a[class*="submit"]'
 	))
 	for (const btn of clickables) {
 		const text = `${btn.textContent ?? (btn as HTMLInputElement).value ?? ''} ${btn.className ?? ''} ${btn.id ?? ''}`.toLowerCase()
@@ -130,7 +130,7 @@ export function findSubmitButtonInForm(form: HTMLFormElement | null): HTMLElemen
  */
 function findSubmitButtonInContainer(scope: HTMLElement): HTMLElement | null {
 	const candidates = Array.from(scope.querySelectorAll<HTMLElement>(
-		'button[type="submit"], button:not([type]), input[type="submit"], [role="submit"], button, a[role="button"]',
+		'button[type="submit"], button:not([type]), input[type="submit"], [role="submit"], button, [role="button"]',
 	))
 	for (const btn of candidates) {
 		const text = `${btn.getAttribute('value') ?? ''} ${btn.className ?? ''} ${btn.id ?? ''} ${btn.textContent ?? ''}`.toLowerCase()
@@ -138,6 +138,9 @@ function findSubmitButtonInContainer(scope: HTMLElement): HTMLElement | null {
 	}
 	return null
 }
+
+/** 无 form 祖先时，向上回溯查找提交按钮的最大层数（覆盖 Google Material 等按钮与输入框相距多层的组件） */
+const COMMENT_SCOPE_MAX_DEPTH = 8
 
 /** 从评论框 selector（或 WP form 选择器兜底）定位 form + 提交按钮 */
 export function resolveSubmitButton(commentSelector: string | null): {
@@ -155,14 +158,15 @@ export function resolveSubmitButton(commentSelector: string | null): {
 				if (btn) return { form, button: btn }
 			}
 			// 无 form 祖先（如 Blogger/Jetpack 跨域 iframe 内 SPA 式评论框）：
-			// 从 textarea 最近的评论容器内用关键词搜按钮
-			const container = ta.closest<HTMLElement>(
+			// 在 textarea 最近的评论容器内搜按钮；找不到则逐层向上扩大范围
+			// （Google Material 等组件提交按钮与输入框相距多层，且祖先 class 不含 "comment"）
+			let scope: HTMLElement | null = ta.closest<HTMLElement>(
 				'[class*="comment-form"], [id*="respond"], [class*="comment-respond"], [class*="comment"]',
-			)
-			const scope = container || ta.parentElement
-			if (scope) {
+			) ?? ta.parentElement
+			for (let depth = 0; scope && depth < COMMENT_SCOPE_MAX_DEPTH; depth++) {
 				const btn = findSubmitButtonInContainer(scope)
 				if (btn) return { form: null, button: btn }
+				scope = scope.parentElement
 			}
 		}
 	}
