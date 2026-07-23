@@ -4,6 +4,8 @@
  * 不 import chrome，可在 jsdom 单测；由 content.ts 的 submit case 调用。
  */
 
+import type { VerifyResult } from '@/agent/types'
+
 /** 判断 URL 是否可能是评论表单提交地址（排除静态资源/analytics/wp-admin） */
 export function isFormSubmitUrl(url: string | URL): boolean {
 	if (!url) return false
@@ -122,6 +124,21 @@ export function findSubmitButtonInForm(form: HTMLFormElement | null): HTMLElemen
 	return null
 }
 
+/**
+ * 在任意容器内用关键词搜索可点击提交按钮。
+ * 无 form 祖先时的兜底（如 Blogger / Jetpack 跨域 iframe 内 SPA 式评论框）。
+ */
+function findSubmitButtonInContainer(scope: HTMLElement): HTMLElement | null {
+	const candidates = Array.from(scope.querySelectorAll<HTMLElement>(
+		'button[type="submit"], button:not([type]), input[type="submit"], [role="submit"], button, a[role="button"]',
+	))
+	for (const btn of candidates) {
+		const text = `${btn.getAttribute('value') ?? ''} ${btn.className ?? ''} ${btn.id ?? ''} ${btn.textContent ?? ''}`.toLowerCase()
+		if (SUBMIT_KEYWORDS.some(k => text.includes(k))) return btn
+	}
+	return null
+}
+
 /** 从评论框 selector（或 WP form 选择器兜底）定位 form + 提交按钮 */
 export function resolveSubmitButton(commentSelector: string | null): {
 	form: HTMLFormElement | null
@@ -136,6 +153,16 @@ export function resolveSubmitButton(commentSelector: string | null): {
 			if (form) {
 				const btn = findSubmitButtonInForm(form)
 				if (btn) return { form, button: btn }
+			}
+			// 无 form 祖先（如 Blogger/Jetpack 跨域 iframe 内 SPA 式评论框）：
+			// 从 textarea 最近的评论容器内用关键词搜按钮
+			const container = ta.closest<HTMLElement>(
+				'[class*="comment-form"], [id*="respond"], [class*="comment-respond"], [class*="comment"]',
+			)
+			const scope = container || ta.parentElement
+			if (scope) {
+				const btn = findSubmitButtonInContainer(scope)
+				if (btn) return { form: null, button: btn }
 			}
 		}
 	}
@@ -380,4 +407,78 @@ export async function performClick(
 	}
 
 	return { success: false, submitResult: 'timeout', error: '所有点击策略均失败' }
+}
+
+/** 检测到 Cloudflare Turnstile 后等待自动完成的超时（managed 模式通常 2-5s，留余量） */
+const CLOUDFLARE_WAIT_MS = 10000
+
+/** executeSubmit 的返回结构（对齐 FLOAT_FILL submit case 的 sendResponse 体） */
+export interface SubmitResponse {
+	ok: boolean
+	clicked: boolean
+	verifyResult: VerifyResult
+	error?: string
+}
+
+/**
+ * 在当前 frame 上下文执行评论提交流程：定位按钮 → 验证码检测 → 点击 → 弱验证。
+ * 纯 DOM，依赖当前 realm 的 document/window，主文档与跨域 iframe 内均可执行——
+ * iframe 内 content script 调用时，裸 document/window/globalThis 自动指向该 iframe，
+ * 故 resolveSubmitButton / waitForSubmitOrNavigate / 拦截器均在该 iframe 内生效。
+ * 由 content.ts 的 submit case（主文档直调）与远程评论 iframe handler（postMessage 触发）共用。
+ */
+export async function executeSubmit(commentSelector: string | null): Promise<SubmitResponse> {
+	const { form, button } = resolveSubmitButton(commentSelector)
+	if (!button) {
+		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '未找到提交按钮' }
+	}
+	// reCAPTCHA / hCaptcha：需人工、无法自动通过 → 直接放弃，不硬闯
+	if (detectCaptcha(form)) {
+		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到 reCAPTCHA/hCaptcha，请手动提交' }
+	}
+	// 图片验证码（如 Captcha.ashx）：需人工输入 → 填好其他字段后放弃提交，由用户手动补验证码
+	if (detectImageCaptcha(form)) {
+		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到图片验证码，请手动填写后提交' }
+	}
+	// Cloudflare Turnstile：managed 模式通常自动完成 → 等待后再提交，
+	// 超时后若提交仍失败，由下方 verify 逻辑判定为失败
+	if (detectCloudflare(form)) {
+		await sleep(CLOUDFLARE_WAIT_MS)
+	}
+
+	const clickRes = await performClick(button, form)
+	if (!clickRes.success) {
+		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: clickRes.error }
+	}
+
+	// 提交被重定向到登录页 → 直接判定失败，不再走 timeout+cleared 检查
+	if (clickRes.submitResult === 'login_required') {
+		return { ok: true, clicked: true, verifyResult: 'login_required', error: '检测到跳转登录页，未提交成功' }
+	}
+
+	// 评论待审核（WP 原生跳转 moderation-hash）→ 判定失败，未实际发布
+	if (clickRes.submitResult === 'pending_moderation') {
+		return { ok: true, clicked: true, verifyResult: 'pending_moderation', error: '评论待审核，未发布' }
+	}
+
+	// timeout 时再查评论框是否被清空（AJAX 提交成功标志）
+	let verifyResult: VerifyResult = clickRes.submitResult
+	// AJAX moderation：提交报告 ajax，但 DOM 可能出现待审核提示
+	if (verifyResult === 'ajax') {
+		await sleep(1500)
+		if (isModerationContent(document)) verifyResult = 'pending_moderation'
+	}
+	if (verifyResult === 'timeout' && commentSelector) {
+		await sleep(3000)
+		const ta = document.querySelector<HTMLTextAreaElement>(commentSelector)
+		const cleared = !ta || !(ta.value?.trim())
+		if (cleared) verifyResult = 'cleared'
+	}
+
+	return {
+		ok: true,
+		clicked: true,
+		verifyResult,
+		error: verifyResult === 'pending_moderation' ? '评论待审核，未发布' : clickRes.error,
+	}
 }

@@ -504,3 +504,79 @@ describe('detectModeration', () => {
 		expect(mod.detectModeration()).toBe(false)
 	})
 })
+
+describe('executeSubmit', () => {
+	it('未找到提交按钮 → not_attempted', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>no form here</div>`
+		const r = await mod.executeSubmit(null)
+		expect(r.ok).toBe(true)
+		expect(r.clicked).toBe(false)
+		expect(r.verifyResult).toBe('not_attempted')
+		expect(r.error).toContain('未找到提交按钮')
+	})
+
+	it('检测到 reCAPTCHA → 短路 not_attempted', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<div class="g-recaptcha" data-sitekey="x"></div>
+				<button type="submit">Publish</button>
+			</form>`
+		const r = await mod.executeSubmit('#comment')
+		expect(r.clicked).toBe(false)
+		expect(r.verifyResult).toBe('not_attempted')
+	})
+
+	it('检测到图片验证码 → 短路 not_attempted', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<img src="/Captcha.ashx">
+				<button type="submit">Publish</button>
+			</form>`
+		const r = await mod.executeSubmit('#comment')
+		expect(r.clicked).toBe(false)
+		expect(r.verifyResult).toBe('not_attempted')
+	})
+
+	it('submit 事件 → ajax', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<button type="submit" id="btn">Publish</button>
+			</form>`
+		const p = mod.executeSubmit('#comment')
+		// performClick 合成事件后 sleep(40) 再等待信号
+		await vi.advanceTimersByTimeAsync(40)
+		win.document.dispatchEvent(new win.Event('submit', { bubbles: true }))
+		// submitDelay 150ms + ajax 后置 moderation 复核 1500ms
+		await vi.advanceTimersByTimeAsync(150 + 1500)
+		const r = await p
+		expect(r.clicked).toBe(true)
+		expect(r.verifyResult).toBe('ajax')
+	})
+
+	it('timeout 后评论框被清空 → cleared', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment">filled</textarea>
+				<button type="submit" id="btn">Publish</button>
+			</form>`
+		const ta = doc.getElementById('comment') as HTMLTextAreaElement
+		const p = mod.executeSubmit('#comment')
+		// synthetic sleep(40) + waitFor 超时 10000（无提交信号）
+		await vi.advanceTimersByTimeAsync(40 + 10000)
+		// timeout 后置：sleep(3000)，期间评论框被 AJAX 清空
+		ta.value = ''
+		await vi.advanceTimersByTimeAsync(3000)
+		const r = await p
+		expect(r.verifyResult).toBe('cleared')
+	})
+})

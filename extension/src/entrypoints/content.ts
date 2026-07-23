@@ -4,13 +4,10 @@ import { analyzeForms, waitForAnalysisFields } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible, waitForFormFields, fillAndVerify } from '@/agent/dom-utils'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { resolveSubmitButton, detectCaptcha, detectCloudflare, detectImageCaptcha, performClick, isModerationContent, detectModeration } from '@/agent/comment-submit'
+import { executeSubmit, detectModeration, type SubmitResponse } from '@/agent/comment-submit'
 import { isRemoteCommentIframeHost, isRemoteCommentSystem, REMOTE_COMMENT_IFRAME_SELECTORS } from '@/agent/form-analyzer/comment-system-detector'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
-
-/** 检测到 Cloudflare Turnstile 后等待自动完成的超时（managed 模式通常 2-5s，留余量） */
-const CLOUDFLARE_WAIT_MS = 10000
 
 /**
  * Find and unhide form inputs within a comment form container.
@@ -202,6 +199,42 @@ function fillIframeFields(
 	})
 }
 
+/**
+ * 通过 postMessage 让远程评论 iframe 在其自身上下文内执行提交（按钮在跨域 iframe 内）。
+ * 17s 超时：外层 FormFillEngine sendToTab 为 20s，留 3s IPC 抖动；超时返回 null 由调用方兜底。
+ */
+function submitViaIframe(
+	iframe: HTMLIFrameElement,
+	commentSelector: string | null,
+): Promise<SubmitResponse | null> {
+	return new Promise((resolve) => {
+		const timeout = setTimeout(() => {
+			window.removeEventListener('message', handler)
+			resolve(null)
+		}, 17000)
+
+		const handler = (event: MessageEvent) => {
+			if (event.data?.source !== SA_MSG_SOURCE) return
+			if (event.data?.type !== 'IFRAME_SUBMIT_RESULT') return
+			clearTimeout(timeout)
+			window.removeEventListener('message', handler)
+			resolve(event.data.result as SubmitResponse)
+		}
+
+		window.addEventListener('message', handler)
+		try {
+			iframe.contentWindow?.postMessage(
+				{ source: SA_MSG_SOURCE, type: 'SUBMIT_IFRAME', commentSelector },
+				'*',
+			)
+		} catch {
+			clearTimeout(timeout)
+			window.removeEventListener('message', handler)
+			resolve(null)
+		}
+	})
+}
+
 /** Initialize remote comment iframe content script handlers (Blogger / Jetpack Verbum) */
 function initRemoteCommentIframeHandlers(): void {
 	window.addEventListener('message', async (event: MessageEvent) => {
@@ -239,6 +272,16 @@ function initRemoteCommentIframeHandlers(): void {
 			}
 			event.source?.postMessage(
 				{ source: SA_MSG_SOURCE, type: 'IFRAME_FILL_RESULT', result: { filled, failed } },
+				{ targetOrigin: '*' },
+			)
+		}
+
+		if (event.data.type === 'SUBMIT_IFRAME') {
+			// 在 iframe 自身上下文执行提交（裸 document/window 自动指向该 iframe）
+			const commentSelector = (event.data.commentSelector as string | null) ?? null
+			const result = await executeSubmit(commentSelector)
+			event.source?.postMessage(
+				{ source: SA_MSG_SOURCE, type: 'IFRAME_SUBMIT_RESULT', result },
 				{ targetOrigin: '*' },
 			)
 		}
@@ -415,60 +458,17 @@ export default defineContentScript({
 							)
 							const commentSelector = commentField?.selector ?? null
 
-							const { form, button } = resolveSubmitButton(commentSelector)
-							if (!button) {
-								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '未找到提交按钮' })
-								return
-							}
-							// reCAPTCHA / hCaptcha：需人工、无法自动通过 → 直接失败，不硬闯
-							if (detectCaptcha(form)) {
-								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到 reCAPTCHA/hCaptcha，请手动提交' })
-								return
-							}
-							// 图片验证码（如 Captcha.ashx）：需人工输入 → 填好其他字段后放弃提交，由用户手动补验证码
-							if (detectImageCaptcha(form)) {
-								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '检测到图片验证码，请手动填写后提交' })
-								return
-							}
-							// Cloudflare Turnstile：managed 模式通常自动完成 → 等待超时后再提交，
-							// 超时后若提交仍失败，由下方 verify 逻辑判定为失败
-							if (detectCloudflare(form)) {
-								await new Promise((r) => setTimeout(r, CLOUDFLARE_WAIT_MS))
-							}
-
-							const clickRes = await performClick(button, form)
-							if (!clickRes.success) {
-								sendResponse({ ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: clickRes.error })
+							// 远程评论 iframe（Blogger / Jetpack Verbum）：提交按钮在跨域 iframe 内，
+							// 主文档定位不到 → 通过 postMessage 让 iframe 在自身上下文执行 executeSubmit
+							const remoteIframe = document.querySelector<HTMLIFrameElement>(REMOTE_COMMENT_IFRAME_SELECTORS)
+							if (remoteIframe) {
+								const r = await submitViaIframe(remoteIframe, commentSelector)
+								sendResponse(r ?? { ok: true, clicked: false, verifyResult: 'not_attempted' as VerifyResult, error: '跨域 iframe 提交超时，请手动提交' })
 								return
 							}
 
-							// 提交被重定向到登录页 → 直接判定失败，不再走 timeout+cleared 检查
-							if (clickRes.submitResult === 'login_required') {
-								sendResponse({ ok: true, clicked: true, verifyResult: 'login_required' as VerifyResult, error: '检测到跳转登录页，未提交成功' })
-								return
-							}
-
-							// 评论待审核（WP 原生跳转 moderation-hash）→ 判定失败，未实际发布
-							if (clickRes.submitResult === 'pending_moderation') {
-								sendResponse({ ok: true, clicked: true, verifyResult: 'pending_moderation' as VerifyResult, error: '评论待审核，未发布' })
-								return
-							}
-
-							// timeout 时再查评论框是否被清空（AJAX 提交成功标志）
-							let verifyResult: VerifyResult = clickRes.submitResult
-							// AJAX moderation：提交报告 ajax，但 DOM 可能出现待审核提示
-							if (verifyResult === 'ajax') {
-								await new Promise((r) => setTimeout(r, 1500))
-								if (isModerationContent(document)) verifyResult = 'pending_moderation'
-							}
-							if (verifyResult === 'timeout' && commentSelector) {
-								await new Promise((r) => setTimeout(r, 3000))
-								const ta = document.querySelector<HTMLTextAreaElement>(commentSelector)
-								const cleared = !ta || !(ta.value?.trim())
-								if (cleared) verifyResult = 'cleared'
-							}
-
-							sendResponse({ ok: true, clicked: true, verifyResult, error: verifyResult === 'pending_moderation' ? '评论待审核，未发布' : clickRes.error })
+							// 主文档路径（普通 WP 等原生表单）：executeSubmit 在当前上下文执行
+							sendResponse(await executeSubmit(commentSelector))
 						} catch (err) {
 							sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
 						}
