@@ -120,33 +120,6 @@ export interface ExtSettings {
 	autoRewriteDesc: boolean
 }
 
-/** Message types for background <-> content script communication */
-export type MessageType =
-	| 'SUBMIT_CONTROL'
-	| 'FETCH_PAGE_CONTENT'
-	| 'FLOAT_BUTTON_TOGGLE'
-	| 'FILL_PROGRESS'
-	| 'STATUS_UPDATE'
-	| 'CLOSE_TAB'
-
-/** FILL_PROGRESS message actions */
-export type FloatFillAction =
-	| 'start'
-	| 'analyze'
-	| 'fill'
-	| 'progress'
-	| 'done'
-	| 'error'
-	| 'no-product'
-	| 'all-done'
-
-export interface ExtMessage {
-	type: MessageType
-	action: string
-	payload?: unknown
-	targetTabId?: number
-}
-
 /** Analysis status for imported backlinks */
 export type BacklinkStatus =
 	| 'pending'

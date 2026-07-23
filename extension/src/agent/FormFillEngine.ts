@@ -7,7 +7,6 @@
 import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
 import type { FormAnalysisResult } from './FormAnalyzer'
-import type { PageContent } from './PageContentExtractor'
 import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type FieldValueMap, type LogEntry, type LogLevel, type LLMFieldData, type LLMFieldValue, type VerifyResult } from './types'
 import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict } from './verify-after-navigation'
 import type { SubmitResponse } from './comment-submit'
@@ -221,7 +220,7 @@ export async function executeFormFill(config: FormFillEngineConfig): Promise<Fil
 		}
 
 		const analysis = analyzeResponse.analysis
-		const pageContent = analyzeResponse.pageContent as PageContent | undefined
+		const pageContent = analyzeResponse.pageContent
 
 		log('success', 'analyze', `表单分析完成: 发现 ${analysis.fields.length} 个字段`, {
 			fields: analysis.fields.map(f => ({

@@ -32,7 +32,8 @@ export function registerBackgroundHandlers(router: MessageRouter): void {
 	router.on('CLOSE_TAB', (_msg, ctx) => {
 		if (ctx.tabId != null) chrome.tabs.remove(ctx.tabId).catch(() => {})
 	})
-	// STATUS_UPDATE：T6 确认无发送方后删除；SITE_ADDED 仅 bg 发送（无需 bg handler）
+	// STATUS_UPDATE：有 sender（FloatButton.content.ts:448），handleStatusUpdate 未注册
+	// （T2 漏注册导致管道断裂），保留待后续 SP 决策；SITE_ADDED 仅 bg 发送（无需 bg handler）
 }
 
 async function handleSubmitControl(

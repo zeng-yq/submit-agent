@@ -1,6 +1,7 @@
 // src/messaging/messages.ts
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { SubmitResponse } from '@/agent/comment-submit'
+import type { PageContent } from '@/agent/PageContentExtractor'
 import type { SiteType, VerifyResult } from '@/agent/types'
 import type { SiteData } from '@/lib/types'
 
@@ -49,7 +50,7 @@ export type TabCommandMessage =
 	| { type: 'TAB_COMMAND'; action: 'verify-moderation' }
 
 /* ---------- 响应类型（复用既有，避免漂移） ---------- */
-export interface AnalyzeResponse { ok: boolean; analysis: FormAnalysisResult; pageContent?: unknown; error?: string }
+export interface AnalyzeResponse { ok: boolean; analysis: FormAnalysisResult; pageContent?: PageContent; error?: string }
 export interface FillResponse { ok: boolean; filled: number; failed: number; error?: string }
 export interface SimpleResponse { ok: boolean; error?: string }
 export interface VerifyModerationResponse { ok: boolean; moderation: boolean }
@@ -59,14 +60,14 @@ export type ExtensionMessage =
 	| FillProgressMessage
 	| TabCommandMessage
 	| { type: 'CHECK_SITE_MATCH'; payload: { url: string } }
-	| { type: 'FLOAT_BUTTON_TOGGLE'; payload: { enabled: boolean } }
+	| { type: 'FLOAT_BUTTON_TOGGLE'; enabled: boolean }
 	| { type: 'FLOAT_ADD_SITE'; url: string }
 	| { type: 'ADD_SITE'; payload: { name: string; submit_url: string; domain?: string; category: string; dr: number; notes: string } }
 	| { type: 'DELETE_SITE'; payload: { siteName: string } }
 	| { type: 'CLOSE_TAB' }
 	| { type: 'SUBMIT_CONTROL'; action: 'open_submit_page'; payload: string }
 	| { type: 'FETCH_PAGE_CONTENT'; payload: { url: string } }
-	| { type: 'SUBMISSION_STATUS_CHANGED'; payload: { siteName: string; toggleState: string } }
+	| { type: 'SUBMISSION_STATUS_CHANGED'; payload: { siteName: string; toggleState: 'not_started' | 'submitted' | 'failed' } }
 	| { type: 'SITES_CHANGED' }
 	| { type: 'PRODUCTS_CHANGED' }
 	| { type: 'SITE_ADDED'; url: string }
