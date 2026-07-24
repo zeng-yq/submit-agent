@@ -46,57 +46,72 @@ const HONEYPOT_NAME_PATTERNS: RegExp[] = [
   /[a-f0-9]{32,}/i, // Random hash-named hidden fields (32+ hex chars)
 ];
 
+/** 蜜罐各信号的评分权重（值搬运自原 honeypotScore，逐字保留） */
+const HONEYPOT_WEIGHTS = {
+  ariaHidden: 80,        // aria-hidden="true"
+  namePattern: 60,       // name/id/class 命中 honeypot 模式
+  nonAlnumLabel: 40,     // aria-label/title 仅非字母数字
+  negativeTabindex: 50,  // tabindex<0 且无 label 信号
+  autocompleteOff: 50,   // autocomplete=off 且无 label 且非标准 name
+  hiddenParent: 50,      // 祖先 display:none/visibility:hidden
+  fontSizeZero: 60,      // font-size:0
+  zeroMaxDimension: 50,  // max-height/max-width:0
+} as const
+
+/** 蜜罐判定阈值（>= 此值判为 honeypot） */
+const HONEYPOT_THRESHOLD = 50
+
 /** Score an element's likelihood of being a honeypot field. Returns 0–100+. */
 export function honeypotScore(el: Element): number {
   const htmlEl = el as HTMLElement;
   let score = 0;
 
   // Signal: aria-hidden="true"
-  if (htmlEl.getAttribute('aria-hidden') === 'true') score += 80;
+  if (htmlEl.getAttribute('aria-hidden') === 'true') score += HONEYPOT_WEIGHTS.ariaHidden;
 
   // Signal: name/id/class matches honeypot patterns
   const name = (htmlEl.getAttribute('name') || '').toLowerCase();
   const id = (htmlEl.getAttribute('id') || '').toLowerCase();
   const cls = (htmlEl.getAttribute('class') || '').toLowerCase();
   const combined = `${name} ${id} ${cls}`;
-  if (HONEYPOT_NAME_PATTERNS.some(p => p.test(combined))) score += 60;
+  if (HONEYPOT_NAME_PATTERNS.some(p => p.test(combined))) score += HONEYPOT_WEIGHTS.namePattern;
 
   // Signal: label contains only non-alphanumeric characters
   const ariaLabel = htmlEl.getAttribute('aria-label') || '';
   const title = htmlEl.getAttribute('title') || '';
   const cheapLabel = ariaLabel || title;
-  if (cheapLabel && !/[a-zA-Z0-9]/.test(cheapLabel)) score += 40;
+  if (cheapLabel && !/[a-zA-Z0-9]/.test(cheapLabel)) score += HONEYPOT_WEIGHTS.nonAlnumLabel;
 
   // Signal: tabindex < 0 and no label signals
   const tabindex = htmlEl.getAttribute('tabindex');
-  if (tabindex !== null && parseInt(tabindex, 10) < 0 && !ariaLabel && !title && !htmlEl.id) score += 50;
+  if (tabindex !== null && parseInt(tabindex, 10) < 0 && !ariaLabel && !title && !htmlEl.id) score += HONEYPOT_WEIGHTS.negativeTabindex;
 
   // Signal: autocomplete="off" and no label and non-standard name
-  if (htmlEl.getAttribute('autocomplete') === 'off' && !ariaLabel && !title && !htmlEl.id) score += 50;
+  if (htmlEl.getAttribute('autocomplete') === 'off' && !ariaLabel && !title && !htmlEl.id) score += HONEYPOT_WEIGHTS.autocompleteOff;
 
   // Signal: parent element hidden
   let parent = htmlEl.parentElement;
   while (parent && parent !== htmlEl.ownerDocument.body) {
     const ps = parent.ownerDocument.defaultView?.getComputedStyle(parent);
     if (ps) {
-      if (ps.display === 'none' || ps.visibility === 'hidden') { score += 50; break; }
+      if (ps.display === 'none' || ps.visibility === 'hidden') { score += HONEYPOT_WEIGHTS.hiddenParent; break; }
     }
     parent = parent.parentElement;
   }
 
   // Signal: font-size: 0 (visual hiding)
   const style = htmlEl.ownerDocument.defaultView?.getComputedStyle(htmlEl);
-  if (style && parseFloat(style.fontSize) === 0) score += 60;
+  if (style && parseFloat(style.fontSize) === 0) score += HONEYPOT_WEIGHTS.fontSizeZero;
 
   // Signal: max-height or max-width: 0 (CSS transition hiding)
-  if (style && (parseFloat(style.maxHeight) === 0 || parseFloat(style.maxWidth) === 0)) score += 50;
+  if (style && (parseFloat(style.maxHeight) === 0 || parseFloat(style.maxWidth) === 0)) score += HONEYPOT_WEIGHTS.zeroMaxDimension;
 
   return score;
 }
 
 /** Check if an element is a honeypot (anti-spam trap) field. Threshold: score >= 50. */
 export function isHoneypotField(el: Element): boolean {
-  return honeypotScore(el) >= 50;
+  return honeypotScore(el) >= HONEYPOT_THRESHOLD;
 }
 
 /** Types of input elements to skip. */
