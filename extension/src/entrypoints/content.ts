@@ -1,4 +1,4 @@
-import { initFloatButton } from '@/agent/FloatButton.content'
+import { initFloatButton, disposeFloatButton } from '@/agent/FloatButton.content'
 import { getFloatButtonEnabled } from '@/lib/storage'
 import { analyzeForms, waitForAnalysisFields } from '@/agent/FormAnalyzer'
 import { extractPageContent } from '@/agent/PageContentExtractor'
@@ -313,6 +313,11 @@ export default defineContentScript({
 		const router = new MessageRouter()
 		registerContentHandlers(router)
 		router.attachRuntimeListener()
+
+		// WXT 在 content script 卸载时调用 main() 返回的 cleanup，释放悬浮按钮
+		return () => {
+			disposeFloatButton()
+		}
 	},
 })
 
