@@ -1,5 +1,6 @@
 import type { ExtensionMessage } from '@/messaging/messages'
-import { createButton, BUTTON_ID, type ButtonState, type SubmissionState, type ButtonHandle } from '@/agent/floatButtonUi'
+import { BUTTON_ID, type ButtonState, type SubmissionState } from '@/agent/floatButtonUi'
+import { FloatButtonStore } from '@/agent/floatButtonStore'
 
 /**
  * FloatButton.content.ts
@@ -12,30 +13,23 @@ import { createButton, BUTTON_ID, type ButtonState, type SubmissionState, type B
  * Primary: amber-gold, success: emerald, error: rose.
  *
  * SP-4 Task 1：CSS / createButton / 视觉函数已抽到 floatButtonUi.ts（纯渲染，回调驱动）。
- * 本文件保留模块状态 + 业务函数，通过构造 opts + callbacks 适配新 UI（行为等价）。
+ * SP-4 Task 2：状态 + 生命周期抽到 floatButtonStore.ts。本文件保留业务函数，操作 store。
  */
 
-let buttonHandle: ButtonHandle | null = null
-let currentState: ButtonState = 'idle'
-let currentSubmissionState: SubmissionState = 'not_started'
-let userEnabled = true
-let isKnownSite = false
-let matchedSiteName: string | null = null
+let store: FloatButtonStore | null = null
 
-/** 视觉适配：同步模块状态 + 委托 handle.setState */
+/** 视觉适配：委托 store.setState（同步状态 + handle.setState） */
 function setState(state: ButtonState) {
-	currentState = state
-	buttonHandle?.setState(state)
+	store?.setState(state)
 }
 
 /**
- * 视觉适配：保留原 isKnownSite 守卫 + 同步模块状态 + 委托 handle.updateToggleVisual。
+ * 视觉适配：保留原 isKnownSite 守卫 + 委托 store.setSubmissionState（同步状态 + handle.updateToggleVisual）。
  * （守卫在 glue 层；floatButtonUi 的 handle.updateToggleVisual 无守卫，纯视觉。）
  */
 function updateToggleVisual(state: SubmissionState) {
-	if (!isKnownSite) return
-	currentSubmissionState = state
-	buttonHandle?.updateToggleVisual(state)
+	if (!store?.isKnownSite) return
+	store.setSubmissionState(state)
 }
 
 function setSubmissionState(state: SubmissionState) {
@@ -45,11 +39,6 @@ function setSubmissionState(state: SubmissionState) {
 		type: 'STATUS_UPDATE',
 		payload: { status: state },
 	}).catch(() => {})
-}
-
-function removeButton() {
-	buttonHandle?.remove()
-	buttonHandle = null
 }
 
 /**
@@ -80,7 +69,7 @@ function sendMessageWithRetry(
 }
 
 function handleMainClick() {
-	if (currentState === 'loading') return
+	if (store?.currentState === 'loading') return
 
 	sendMessageWithRetry({ type: 'FILL_PROGRESS', action: 'start' })
 		.then((response: any) => {
@@ -94,18 +83,20 @@ function handleMainClick() {
 }
 
 async function refreshSiteMatch() {
+	if (!store) return
 	try {
 		const response = await chrome.runtime.sendMessage({
 			type: 'CHECK_SITE_MATCH',
 			payload: { url: window.location.href },
 		})
-		isKnownSite = response?.isKnownSite === true
-		matchedSiteName = response?.siteName ?? null
-		if (isKnownSite && response?.submissionStatus) {
-			currentSubmissionState = response.submissionStatus
+		const known = response?.isKnownSite === true
+		const name = response?.siteName ?? null
+		store.setSiteMatch(known, name)
+		if (known && response?.submissionStatus) {
+			store.currentSubmissionState = response.submissionStatus
 		}
 	} catch {
-		isKnownSite = false
+		store.isKnownSite = false
 	}
 }
 
@@ -117,20 +108,21 @@ function handleAddClick() {
 }
 
 function handleDeleteClick() {
-	if (!matchedSiteName) return
-	buttonHandle?.showDeletePopover()
+	if (!store?.matchedSiteName) return
+	store.showDeletePopover()
 }
 
 function performDelete() {
-	if (!matchedSiteName) return
+	if (!store?.matchedSiteName) return
+	const siteName = store.matchedSiteName
 
 	chrome.runtime.sendMessage({
 		type: 'DELETE_SITE',
-		payload: { siteName: matchedSiteName },
+		payload: { siteName },
 	}).then((response: any) => {
 		if (response?.success) {
 			chrome.runtime.sendMessage({ type: 'CLOSE_TAB' })
-			removeButton()
+			store?.unmount()
 		}
 	}).catch(() => {})
 }
@@ -140,19 +132,20 @@ function updateButtonState(state: ButtonState) {
 }
 
 function checkAndToggleButton() {
-	if (userEnabled) {
+	if (!store) return
+	if (store.userEnabled) {
 		if (!document.getElementById(BUTTON_ID)) {
-			buttonHandle = createButton({
-				isKnownSite,
-				currentState,
-				currentSubmissionState,
-				matchedSiteName,
+			store.mount({
+				isKnownSite: store.isKnownSite,
+				currentState: store.currentState,
+				currentSubmissionState: store.currentSubmissionState,
+				matchedSiteName: store.matchedSiteName,
 				callbacks: {
 					onMainClick: handleMainClick,
 					onDeleteClick: handleDeleteClick,
 					onAddClick: handleAddClick,
 					onClose: () => {
-						removeButton()
+						store?.unmount()
 						chrome.runtime.sendMessage({ type: 'FLOAT_BUTTON_TOGGLE', enabled: false }).catch(() => {})
 					},
 					onSegmentClick: setSubmissionState,
@@ -161,12 +154,12 @@ function checkAndToggleButton() {
 			})
 		}
 	} else {
-		removeButton()
+		store.unmount()
 	}
 }
 
 export async function initFloatButton(enabled: boolean) {
-	userEnabled = enabled
+	store = new FloatButtonStore(enabled)
 
 	// 通过 background 判断当前页面是否在资源库中
 	//（content script 无法访问扩展的 IndexedDB，必须委托给 background）
@@ -175,18 +168,19 @@ export async function initFloatButton(enabled: boolean) {
 			type: 'CHECK_SITE_MATCH',
 			payload: { url: window.location.href },
 		})
-		isKnownSite = response?.isKnownSite === true
-		matchedSiteName = response?.siteName ?? null
-		if (isKnownSite && response?.submissionStatus) {
-			currentSubmissionState = response.submissionStatus
+		const known = response?.isKnownSite === true
+		const name = response?.siteName ?? null
+		store.setSiteMatch(known, name)
+		if (known && response?.submissionStatus) {
+			store.currentSubmissionState = response.submissionStatus
 		}
 	} catch {
-		isKnownSite = false
+		store.isKnownSite = false
 	}
 
-	chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
+	store.registerMessageHandler((message: ExtensionMessage) => {
 		if (message.type === 'FLOAT_BUTTON_TOGGLE') {
-			userEnabled = message.enabled
+			store!.userEnabled = message.enabled
 			checkAndToggleButton()
 			return
 		}
@@ -222,15 +216,15 @@ export async function initFloatButton(enabled: boolean) {
 		}
 		if (message.type === 'SUBMISSION_STATUS_CHANGED') {
 			const { siteName, toggleState } = message.payload ?? {}
-			if (siteName && siteName === matchedSiteName) {
+			if (siteName && siteName === store?.matchedSiteName) {
 				updateToggleVisual(toggleState)
 			}
 		}
 		if (message.type === 'SITE_ADDED') {
-			refreshSiteMatch().then(() => {
-				removeButton()
-				checkAndToggleButton()
-			})
+			// unmount 会重置业务状态（userEnabled 保留），故 refresh 必须在 unmount 之后，
+			// 再用新状态重建按钮——与原 refresh→remove→check 行为等价。
+			store?.unmount()
+			refreshSiteMatch().then(() => checkAndToggleButton())
 		}
 	})
 
