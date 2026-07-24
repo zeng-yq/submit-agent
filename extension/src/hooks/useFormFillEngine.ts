@@ -3,8 +3,9 @@ import type { SiteData } from '@/lib/types'
 import { getLLMConfig, getActiveProductId } from '@/lib/storage'
 import { getProduct, listSubmissionsByProduct } from '@/lib/db'
 import { reloadSites, matchCurrentPage, getRandomUnsubmitted, filterSubmittable } from '@/lib/sites'
-import type { FillEngineStatus, FillResult, SiteType, LogEntry, LLMFieldData } from '@/agent/types'
+import type { FillEngineStatus, FillResult, LogEntry, LLMFieldData } from '@/agent/types'
 import { executeFormFill } from '@/agent/FormFillEngine'
+import { siteTypeFromCategory } from '@/agent/pipeline/site-type'
 
 const MAX_LOG_ENTRIES = 200
 
@@ -82,7 +83,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			const product = await getProduct(productId)
 			if (!product) throw new Error('Product not found')
 
-			const siteType: SiteType = site.category === 'blog_comment' ? 'blog_comment' : 'directory_submit'
+			const siteType = siteTypeFromCategory(site.category)
 
 			// Get tab ID from session storage (set by background when float button clicked)
 			const sessionData = await chrome.storage.session.get('floatFillTabId')
@@ -155,7 +156,7 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 				throw new Error('No available sites to submit to')
 			}
 
-			const siteType: SiteType = site.category === 'blog_comment' ? 'blog_comment' : 'directory_submit'
+			const siteType = siteTypeFromCategory(site.category)
 			const llmConfig = await getLLMConfig()
 
 			const fillResult = await executeFormFill({

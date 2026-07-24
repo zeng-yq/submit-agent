@@ -16,6 +16,7 @@ import { matchFields } from './pipeline/match'
 import { analyzePhase } from './pipeline/analyze'
 import { llmPhase } from './pipeline/llm'
 import { fillPhase } from './pipeline/fill'
+import { SITE_TYPE_STRATEGIES } from './pipeline/site-type'
 import type { FormFillDeps } from './pipeline/types'
 
 export interface FormFillEngineCallbacks {
@@ -195,7 +196,7 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		let submitted: boolean | undefined
 		let verifyResult: VerifyResult | undefined
 		let submitError: string | undefined
-		if (siteType === 'blog_comment' && failedCount === 0 && filledCount > 0) {
+		if (SITE_TYPE_STRATEGIES[siteType].autoSubmit && failedCount === 0 && filledCount > 0) {
 			log('info', 'fill', '正在自动提交评论并验证...')
 			const outcome = await runSubmitAndVerify({
 				sendSubmit: () => d.sendToTabMessage<SubmitResponse>(
