@@ -6,7 +6,7 @@
 
 import type { LLMSettings } from '@/lib/types'
 import type { ProductProfile, SiteData } from '@/lib/types'
-import { VERIFIED_SUCCESS, type FillEngineStatus, type FillResult, type SiteType, type LogEntry, type LogLevel, type LLMFieldData, type VerifyResult } from './types'
+import { VERIFIED_SUCCESS, verifyResultLabel, type FillEngineStatus, type FillResult, type SiteType, type LogEntry, type LogLevel, type LLMFieldData, type VerifyResult } from './types'
 import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict } from './verify-after-navigation'
 import type { SubmitResponse } from './comment-submit'
 import { callLLM } from './llm-utils'
@@ -41,7 +41,7 @@ export interface SubmitFlowDeps {
 	/** 发 submit 消息并等待回复；reject 表示 content script 上下文随整页跳转销毁 */
 	sendSubmit: () => Promise<SubmitResponse>
 	/** 跨页面验证（整页跳转落定后复核审核状态），返回 confirmed/moderation/unverified */
-	verifyNavigation: () => Promise<ModerationVerdict>
+	verifyNavigation: (commentText?: string) => Promise<ModerationVerdict>
 	/** 日志回调（可选） */
 	log?: (level: LogLevel, message: string) => void
 }
@@ -62,7 +62,7 @@ export interface SubmitFlowOutcome {
  * 销毁 content script 上下文使 sendToTab reject——此时主动跨页面验证，用跳转后页面状态反推是否成功，
  * 而非直接判 not_attempted 失败，否则既有 verifyAfterNavigation 救场机制会被完全绕过。
  */
-export async function runSubmitAndVerify(deps: SubmitFlowDeps): Promise<SubmitFlowOutcome> {
+export async function runSubmitAndVerify(deps: SubmitFlowDeps, commentText?: string): Promise<SubmitFlowOutcome> {
 	const { sendSubmit, verifyNavigation, log } = deps
 
 	let submitResponse: SubmitResponse | undefined
@@ -70,7 +70,7 @@ export async function runSubmitAndVerify(deps: SubmitFlowDeps): Promise<SubmitFl
 		submitResponse = await sendSubmit()
 	} catch (err) {
 		log?.('info', '提交响应丢失（疑似整页跳转销毁上下文），转入跨页面验证...')
-		return resolveLostSignal(await verifyNavigation(), err)
+		return resolveLostSignal(await verifyNavigation(commentText), err)
 	}
 
 	if (!submitResponse?.ok) {
@@ -85,7 +85,7 @@ export async function runSubmitAndVerify(deps: SubmitFlowDeps): Promise<SubmitFl
 
 	if (verifyResult === 'navigating' || verifyResult === 'pagehide') {
 		log?.('info', '提交触发整页跳转，等待页面落定后复核审核状态...')
-		const verdict = await verifyNavigation()
+		const verdict = await verifyNavigation(commentText)
 		verifyResult = applyNavigationVerdict(verifyResult, verdict)
 		if (verdict === 'moderation') submitError = '评论待审核，未发布'
 		else if (verdict === 'unverified') submitError = '提交后未能确认发布状态'
@@ -119,13 +119,13 @@ function buildRealDeps(config: FormFillEngineConfig): FormFillDeps {
 		sendToTabMessage: <R>(msg: ExtensionMessage, timeoutMs: number) => sendToTab<R>(tabId, msg, timeoutMs),
 		sendProgress,
 		callLLM: (opts) => callLLM({ config: llmConfig, ...opts }),
-		verifyNavigation: () => verifyAfterNavigation(tabId, {
+		verifyNavigation: (commentText?: string) => verifyAfterNavigation(tabId, {
 			getTabUrl: async (id) => {
 				try { const tab = await chrome.tabs.get(id); return tab.url ?? '' } catch { return '' }
 			},
-			sendVerify: (id) => sendToTab<VerifyModerationResponse>(id, { type: 'TAB_COMMAND', action: 'verify-moderation' }, 2000),
+			sendVerify: (id, txt) => sendToTab<VerifyModerationResponse>(id, { type: 'TAB_COMMAND', action: 'verify-moderation', payload: { commentText: txt } }, 2000),
 			sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-		}),
+		}, commentText),
 		log: (level, phase, message, data, url) => {
 			if (callbacks.onLog) callbacks.onLog({ id: ++logId, timestamp: Date.now(), level, phase, message, data, url })
 		},
@@ -198,6 +198,9 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		let submitError: string | undefined
 		if (SITE_TYPE_STRATEGIES[siteType].autoSubmit && failedCount === 0 && filledCount > 0) {
 			log('info', 'fill', '正在自动提交评论并验证...')
+			// 提取评论文本：跳转后在新页面搜索它作为「评论已发布」的正面证据
+			const commentField = analysis.fields.find(f => f.effective_type === 'comment')
+			const commentText = commentField ? fieldValues[commentField.canonical_id] : undefined
 			const outcome = await runSubmitAndVerify({
 				sendSubmit: () => d.sendToTabMessage<SubmitResponse>(
 					{
@@ -218,7 +221,7 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 				),
 				verifyNavigation: d.verifyNavigation,
 				log: (level, message) => d.log(level, 'fill', message),
-			})
+			}, commentText)
 			submitted = outcome.submitted
 			verifyResult = outcome.verifyResult
 			submitError = outcome.submitError
@@ -227,10 +230,8 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 			log(
 				verified ? 'success' : 'warning',
 				'fill',
-				// pending_moderation：submitError 已是「评论待审核，未发布」，省略冗余 verifyResult 码以缩短日志
-				verifyResult === 'pending_moderation'
-					? `提交结果: ${submitError}`
-					: `提交结果: ${verifyResult}${submitError ? ' - ' + submitError : ''}`,
+				`提交结果: ${verifyResultLabel(verifyResult)}`,
+				submitError,
 			)
 		}
 

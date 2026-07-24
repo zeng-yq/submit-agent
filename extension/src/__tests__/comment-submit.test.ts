@@ -557,6 +557,26 @@ describe('detectModeration', () => {
 	})
 })
 
+describe('commentVisibleOnPage', () => {
+	it('body 含评论文本（含多余空白/换行）→ true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>  Great   article,\nthanks   for  sharing!  </div>`
+		expect(mod.commentVisibleOnPage('Great article, thanks for sharing!')).toBe(true)
+	})
+
+	it('body 不含评论文本 → false', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>Some unrelated content here.</div>`
+		expect(mod.commentVisibleOnPage('Great article, thanks for sharing!')).toBe(false)
+	})
+
+	it('文本过短（归一化后 <6 字符）→ true（降级，不误判失败）', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>totally different</div>`
+		expect(mod.commentVisibleOnPage('hi')).toBe(true)
+	})
+})
+
 describe('executeSubmit', () => {
 	it('未找到提交按钮 → not_attempted', async () => {
 		const mod = await loadModule()

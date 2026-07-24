@@ -72,6 +72,19 @@ export function detectModeration(): boolean {
 	return isModerationUrl(location.href) || isModerationContent(document)
 }
 
+/**
+ * 跳转后的新页面是否出现了刚提交的评论文本（「评论已发布」的正面证据）。
+ * 归一化空白后子串匹配 document.body.textContent——textContent 天然完成 HTML 解码与
+ * <p> 分段连接，无需自行处理转义。文本过短则降级返回 true（不因指纹太短误判失败）。
+ */
+export function commentVisibleOnPage(text: string): boolean {
+	const norm = (s: string) => s.replace(/\s+/g, ' ').trim()
+	const needle = norm(text)
+	if (needle.length < 6) return true
+	const hay = norm(document.body?.textContent ?? '')
+	return hay.includes(needle)
+}
+
 /** 多语种提交关键词 */
 const SUBMIT_KEYWORDS = [
 	'submit', 'post', 'comment', 'publish', 'reply', 'respond', 'send',

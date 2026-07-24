@@ -10,8 +10,8 @@ export type ModerationVerdict = 'confirmed' | 'moderation' | 'unverified'
 export interface VerifyAfterNavigationDeps {
 	/** 读取目标 tab 当前 URL（真实实现对接 chrome.tabs.get） */
 	getTabUrl: (tabId: number) => Promise<string>
-	/** 向新页面 content script 发 verify-moderation 并等待回复（真实实现对接 sendToTab） */
-	sendVerify: (tabId: number) => Promise<{ ok: boolean; moderation: boolean }>
+	/** 向新页面 content script 发 verify-moderation（携带评论文本）并等待回复（真实实现对接 sendToTab） */
+	sendVerify: (tabId: number, commentText?: string) => Promise<{ ok: boolean; moderation: boolean; commentVisible: boolean }>
 	/** 延时（真实实现 = setTimeout） */
 	sleep: (ms: number) => Promise<void>
 	/** 等 URL 落定的总预算（ms），默认 6000 */
@@ -29,14 +29,18 @@ export interface VerifyAfterNavigationDeps {
 const FINAL_URL_MARKER = /#comment|unapproved=|moderation-hash=/i
 
 /**
- * 整页跳转后验证评论是否待审核。
+ * 整页跳转后验证评论发布状态。
  * 阶段 1：轮询 tab URL 等重定向落定（出现最终页标记，或连续两次相同）。
- * 阶段 2：向新页面 content script 发 verify-moderation，至多重试 3 次。
- * 返回 'confirmed'（已发布）/ 'moderation'（待审核）/ 'unverified'（无法确认，保守失败）。
+ * 阶段 2：向新页面 content script 发 verify-moderation（携带评论文本），在 verifyTimeoutMs 预算内重试：
+ *   - moderation=true（URL 参数/DOM 待审核标记）→ 'moderation'
+ *   - moderation=false 且页面搜到评论文本（commentVisible）→ 'confirmed'（已发布）
+ *   - moderation=false 但评论不可见：可能异步加载中，继续重试等待渲染；预算耗尽仍不可见 → 'unverified'（保守失败）
+ * commentText 缺省时 content script 返回 commentVisible=true（降级，退化为只看 moderation）。
  */
 export async function verifyAfterNavigation(
 	tabId: number,
 	deps: VerifyAfterNavigationDeps,
+	commentText?: string,
 ): Promise<ModerationVerdict> {
 	const { getTabUrl, sendVerify, sleep } = deps
 	const settleTimeoutMs = deps.settleTimeoutMs ?? 6000
@@ -58,14 +62,20 @@ export async function verifyAfterNavigation(
 		await sleep(pollMs)
 	}
 
-	// 阶段 2：问新页面 content script（在预算内持续重试，等 document_end 注入完成）
+	// 阶段 2：问新页面 content script（在预算内持续重试，等 document_end 注入完成 + 评论异步渲染）
 	//   整页跳转后 URL 落定往往早于 content script 就绪：chrome.tabs.sendMessage 会因
 	//   "Receiving end does not exist" 立即 reject，故按 verifyTimeoutMs 预算重试而非固定次数。
+	//   commentVisible=false 时也不立即判失败：评论可能异步加载（WP REST/Blogger/Lazy Load），
+	//   继续重试等待渲染；预算耗尽仍不可见才判 unverified。
 	const maxVerifyPolls = Math.max(1, Math.round(verifyTimeoutMs / pollMs))
 	for (let i = 0; i < maxVerifyPolls; i++) {
 		try {
-			const r = await sendVerify(tabId)
-			if (r?.ok === true) return r.moderation ? 'moderation' : 'confirmed'
+			const r = await sendVerify(tabId, commentText)
+			if (r?.ok === true) {
+				if (r.moderation) return 'moderation'
+				if (r.commentVisible) return 'confirmed'
+				// moderation=false && commentVisible=false：评论可能异步加载中，继续重试
+			}
 		} catch {
 			// content script 未就绪/出错 → 在预算内继续重试
 		}

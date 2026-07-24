@@ -28,6 +28,31 @@ export type VerifyResult =
 /** 自动提交后判定为「已确认成功」的验证结果集合（navigating/pagehide 仅在跳转后验证通过后才成立） */
 export const VERIFIED_SUCCESS: readonly VerifyResult[] = ['ajax', 'cleared', 'navigating', 'pagehide']
 
+/** 把提交验证结果映射为直白的中文状态文案（供日志/失败提示统一展示）。
+ * 参数取 string 而非强类型 VerifyResult：调用方（如 useFloatFill）可能持有弱类型 string，
+ * 且 switch 有 default 兜底，非法值统一映射为「未知提交状态」。 */
+export function verifyResultLabel(r: string | undefined): string {
+	switch (r) {
+		case 'ajax':
+		case 'navigating':
+		case 'pagehide':
+		case 'cleared':
+			return '评论已发布'
+		case 'timeout':
+			return '提交超时，未能确认结果'
+		case 'login_required':
+			return '需要登录，提交未成功'
+		case 'pending_moderation':
+			return '评论待审核，未发布'
+		case 'unverified':
+			return '提交后页面未见评论，判定未发布'
+		case 'not_attempted':
+			return '未提交（未找到按钮或遇验证码）'
+		default:
+			return '未知提交状态'
+	}
+}
+
 /** Result of a form fill operation */
 export interface FillResult {
 	filled: number

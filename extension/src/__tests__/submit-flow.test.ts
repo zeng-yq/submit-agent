@@ -51,6 +51,15 @@ describe('runSubmitAndVerify', () => {
 		expect(VERIFIED_SUCCESS).toContain(r.verifyResult)
 	})
 
+	it('navigating 时把 commentText 透传给 verifyNavigation', async () => {
+		const verifyNavigation = vi.fn().mockResolvedValue('confirmed')
+		await runSubmitAndVerify(
+			{ sendSubmit: vi.fn().mockResolvedValue(ok({ verifyResult: 'navigating' })), verifyNavigation },
+			'评论内容文本',
+		)
+		expect(verifyNavigation).toHaveBeenCalledWith('评论内容文本')
+	})
+
 	it('submit 成功 + navigating + moderation → pending_moderation', async () => {
 		const r = await runSubmitAndVerify({
 			sendSubmit: vi.fn().mockResolvedValue(ok({ verifyResult: 'pagehide' })),

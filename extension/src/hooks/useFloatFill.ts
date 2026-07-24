@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import type { SiteData } from '@/lib/types'
-import { VERIFIED_SUCCESS } from '@/agent/types'
+import { VERIFIED_SUCCESS, verifyResultLabel } from '@/agent/types'
 import type { VerifyResult } from '@/agent/types'
 import { filterSubmittable, matchCurrentPage } from '@/lib/sites'
 import { sendProgress } from '@/messaging/router'
@@ -67,7 +67,7 @@ export function useFloatFill({
 								markSubmitted(matched.name, activeProduct.id, r.verifyResult)
 							} else {
 								sendProgress('error')
-								markFailed(matched.name, activeProduct.id, r.submitError || `提交未确认(${r.verifyResult ?? 'not_attempted'})`, r.verifyResult)
+								markFailed(matched.name, activeProduct.id, r.submitError || verifyResultLabel(r.verifyResult), r.verifyResult)
 							}
 						} else {
 							// directory：维持原逻辑（填写成功即标记，不自动提交）

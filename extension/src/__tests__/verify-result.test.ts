@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { VERIFIED_SUCCESS } from '@/agent/types'
+import { VERIFIED_SUCCESS, verifyResultLabel } from '@/agent/types'
 import type { VerifyResult } from '@/agent/types'
 
 describe('VERIFIED_SUCCESS', () => {
@@ -14,5 +14,23 @@ describe('VERIFIED_SUCCESS', () => {
     for (const f of failures) {
       expect(VERIFIED_SUCCESS).not.toContain(f)
     }
+  })
+})
+
+describe('verifyResultLabel', () => {
+  it('成功类统一显示「评论已发布」', () => {
+    for (const r of ['ajax', 'navigating', 'pagehide', 'cleared'] as VerifyResult[]) {
+      expect(verifyResultLabel(r)).toBe('评论已发布')
+    }
+  })
+  it('各失败类有直白中文文案', () => {
+    expect(verifyResultLabel('timeout')).toBe('提交超时，未能确认结果')
+    expect(verifyResultLabel('login_required')).toBe('需要登录，提交未成功')
+    expect(verifyResultLabel('pending_moderation')).toBe('评论待审核，未发布')
+    expect(verifyResultLabel('unverified')).toBe('提交后页面未见评论，判定未发布')
+    expect(verifyResultLabel('not_attempted')).toBe('未提交（未找到按钮或遇验证码）')
+  })
+  it('undefined → 未知提交状态', () => {
+    expect(verifyResultLabel(undefined)).toBe('未知提交状态')
   })
 })

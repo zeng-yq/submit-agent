@@ -47,13 +47,13 @@ export type TabCommandMessage =
 	| { type: 'TAB_COMMAND'; action: 'annotate-active'; payload: AnnotateActivePayload }
 	| { type: 'TAB_COMMAND'; action: 'annotate-clear' }
 	| { type: 'TAB_COMMAND'; action: 'scroll-to-first'; payload: AnnotateFieldsPayload }
-	| { type: 'TAB_COMMAND'; action: 'verify-moderation' }
+	| { type: 'TAB_COMMAND'; action: 'verify-moderation'; payload?: { commentText?: string } }
 
 /* ---------- 响应类型（复用既有，避免漂移） ---------- */
 export interface AnalyzeResponse { ok: boolean; analysis: FormAnalysisResult; pageContent?: PageContent; error?: string }
 export interface FillResponse { ok: boolean; filled: number; failed: number; error?: string }
 export interface SimpleResponse { ok: boolean; error?: string }
-export interface VerifyModerationResponse { ok: boolean; moderation: boolean }
+export interface VerifyModerationResponse { ok: boolean; moderation: boolean; commentVisible: boolean }
 
 /* ---------- 既有单一职责 type ---------- */
 export type ExtensionMessage =

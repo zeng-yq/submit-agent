@@ -5,7 +5,7 @@ import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible } from '@/agent/field-filter'
 import { waitForFormFields, fillAndVerify } from '@/agent/dom-writers'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { executeSubmit, detectModeration, type SubmitResponse } from '@/agent/comment-submit'
+import { executeSubmit, detectModeration, commentVisibleOnPage, type SubmitResponse } from '@/agent/comment-submit'
 import { isRemoteCommentIframeHost, isRemoteCommentSystem, REMOTE_COMMENT_IFRAME_SELECTORS } from '@/agent/form-analyzer/comment-system-detector'
 import { MessageRouter } from '@/messaging/router'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
@@ -398,8 +398,12 @@ export function registerContentHandlers(router: MessageRouter): void {
 		return { ok: true }
 	})
 
-	// 整页跳转后引擎复核：返回当前页是否处于待审核（URL 参数 或 DOM 标记）
-	router.on('TAB_COMMAND', 'verify-moderation', () => ({ ok: true, moderation: detectModeration() }))
+	// 整页跳转后引擎复核：返回当前页是否待审核（URL 参数/DOM 标记）+ 是否已出现刚提交的评论文本
+	router.on('TAB_COMMAND', 'verify-moderation', (msg: any) => {
+		const commentText = (msg as { payload?: { commentText?: string } })?.payload?.commentText
+		// 无评论文本（识别不到 comment 字段）时 commentVisible=true：降级退化为只看 moderation，不引入新失败路径
+		return { ok: true, moderation: detectModeration(), commentVisible: commentText ? commentVisibleOnPage(commentText) : true }
+	})
 
 	router.on('TAB_COMMAND', 'submit', async (msg: any) => {
 		const fields = (msg as { payload?: { fields?: Array<{ selector: string; type?: string; effective_type?: string; name?: string; id?: string; canonical_id?: string }> } }).payload?.fields
