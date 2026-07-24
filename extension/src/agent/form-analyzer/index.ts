@@ -32,6 +32,43 @@ export function resolveField(
 }
 
 /**
+ * 构建字段选择器（必要时 stamp data-sa-field-N 保证唯一）+ 推断 purpose/effective_type，
+ * 返回完整 FormField。统一 input/textarea/select 与 contenteditable 路径的公共逻辑。
+ * 搬运自原 analyzeForms 两条路径的 buildSelector+stamp+infer 部分。
+ */
+function buildAndStampField(
+  doc: Document,
+  el: HTMLElement,
+  fieldIndex: number,
+  formIndex: number | undefined,
+  partial: {
+    name: string
+    id: string
+    type: string
+    label: string
+    placeholder: string
+    required: boolean
+    maxlength: number | null
+    tagName: string
+  },
+): FormField {
+  let selector = buildSelector(el)
+  if (doc.querySelectorAll(selector).length > 1) {
+    const attr = `data-sa-field-${fieldIndex}`
+    el.setAttribute(attr, '')
+    selector = `[${attr}]`
+  }
+  const raw = { ...partial, selector }
+  return {
+    canonical_id: `field_${fieldIndex}`,
+    ...raw,
+    inferred_purpose: inferFieldPurpose(raw),
+    effective_type: inferEffectiveType(raw),
+    form_index: formIndex,
+  }
+}
+
+/**
  * Analyze all forms on the page and extract structured field metadata.
  */
 export function analyzeForms(doc: Document): FormAnalysisResult {
@@ -78,41 +115,22 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
           : ((el as HTMLInputElement).type?.toLowerCase() || tag);
 
       const label = findLabel(doc, htmlEl);
-      const placeholder = (el as HTMLInputElement).placeholder || '';
-      const required = (el as HTMLInputElement).required || false;
       const maxlength = (el as HTMLInputElement).maxLength || null;
       // maxLength of -1 means no limit
       const effectiveMaxlength =
         maxlength !== null && maxlength >= 0 ? maxlength : null;
 
-      let selector = buildSelector(htmlEl);
-      // Ensure selector is unique in the document — stamp with data attribute if needed
-      if (doc.querySelectorAll(selector).length > 1) {
-        const attr = `data-sa-field-${fieldIndex}`;
-        htmlEl.setAttribute(attr, '');
-        selector = `[${attr}]`;
-      }
-
-      const rawField = {
+      const field = buildAndStampField(doc, htmlEl, fieldIndex, formElements.length > 0 ? rootIdx : undefined, {
         name: el.getAttribute('name') || '',
         id: el.id || '',
         type,
         label,
-        placeholder,
-        required,
+        placeholder: (el as HTMLInputElement).placeholder || '',
+        required: (el as HTMLInputElement).required || false,
         maxlength: effectiveMaxlength,
-        selector,
         tagName: tag,
-      };
-
-      fields.push({
-        canonical_id: `field_${fieldIndex}`,
-        ...rawField,
-        inferred_purpose: inferFieldPurpose(rawField),
-        effective_type: inferEffectiveType(rawField),
-        form_index: formElements.length > 0 ? rootIdx : undefined,
       });
-
+      fields.push(field);
       fieldIndex++;
     }
 
@@ -126,34 +144,17 @@ export function analyzeForms(doc: Document): FormAnalysisResult {
         const label = findLabel(doc, htmlEl);
         const ariaLabel = el.getAttribute('aria-label') || '';
 
-        let ceSelector = buildSelector(htmlEl);
-        // Ensure selector is unique in the document
-        if (doc.querySelectorAll(ceSelector).length > 1) {
-          const attr = `data-sa-field-${fieldIndex}`;
-          htmlEl.setAttribute(attr, '');
-          ceSelector = `[${attr}]`;
-        }
-
-        const ceField = {
+        const field = buildAndStampField(doc, htmlEl, fieldIndex, formElements.length > 0 ? rootIdx : undefined, {
           name: el.getAttribute('name') || '',
           id: el.id || '',
-          type: 'contenteditable' as const,
+          type: 'contenteditable',
           label: label || ariaLabel,
           placeholder: '',
           required: false,
-          maxlength: null as number | null,
-          selector: ceSelector,
+          maxlength: null,
           tagName: el.tagName.toLowerCase(),
-        };
-
-        fields.push({
-          canonical_id: `field_${fieldIndex}`,
-          ...ceField,
-          inferred_purpose: inferFieldPurpose(ceField),
-          effective_type: inferEffectiveType(ceField),
-          form_index: formElements.length > 0 ? rootIdx : undefined,
         });
-
+        fields.push(field);
         fieldIndex++;
       }
     }
