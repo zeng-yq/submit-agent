@@ -74,4 +74,50 @@ describe('createButton', () => {
 		h.remove()
 		expect(document.getElementById(BUTTON_ID)).toBeNull()
 	})
+
+	it('segment click 触发 onSegmentClick（带 state）', () => {
+		const onSegmentClick = vi.fn()
+		const h = createButton({
+			isKnownSite: true,
+			currentState: 'idle',
+			currentSubmissionState: 'not_started',
+			matchedSiteName: 'Example',
+			callbacks: { onMainClick: () => {}, onClose: () => {}, onSegmentClick },
+		})!
+		const segments = h.host.shadowRoot!.querySelectorAll<HTMLDivElement>('.status-segment')
+		expect(segments.length).toBeGreaterThan(0)
+		// 点“成功”段（STATUS_SEGMENTS[1].state === 'submitted'）
+		const submitted = Array.from(segments).find(s => s.getAttribute('data-state') === 'submitted')!
+		submitted.click()
+		expect(onSegmentClick).toHaveBeenCalledOnce()
+		expect(onSegmentClick).toHaveBeenCalledWith('submitted')
+	})
+
+	it('popover confirm click 触发 onConfirmDelete', () => {
+		const onConfirmDelete = vi.fn()
+		const h = createButton({
+			isKnownSite: true,
+			currentState: 'idle',
+			currentSubmissionState: 'not_started',
+			matchedSiteName: 'Example',
+			callbacks: { onMainClick: () => {}, onClose: () => {}, onConfirmDelete },
+		})!
+		const confirmBtn = h.host.shadowRoot!.querySelector<HTMLButtonElement>('.popover-confirm')!
+		confirmBtn.click()
+		expect(onConfirmDelete).toHaveBeenCalledOnce()
+	})
+
+	it('close btn click 触发 onClose', () => {
+		const onClose = vi.fn()
+		const h = createButton({
+			isKnownSite: false,
+			currentState: 'idle',
+			currentSubmissionState: 'not_started',
+			matchedSiteName: null,
+			callbacks: { onMainClick: () => {}, onClose },
+		})!
+		const closeBtn = h.host.shadowRoot!.querySelector<HTMLButtonElement>('.close-btn')!
+		closeBtn.click()
+		expect(onClose).toHaveBeenCalledOnce()
+	})
 })

@@ -19,8 +19,13 @@ describe('FloatButtonStore', () => {
   it('mount→handle 渲染；setState 更新', () => {
     const s = new FloatButtonStore(true)
     s.mount({ isKnownSite: false, currentState: 'idle', currentSubmissionState: 'not_started', matchedSiteName: null, callbacks: { onMainClick: () => {}, onClose: () => {} } })
+    // mount 委托到 handle → host 进入 document
+    expect(document.getElementById('submit-agent-float')).not.toBeNull()
     s.setState('loading')
     expect(s.currentState).toBe('loading')
+    // setState 委托到 handle.setState → mainBtn.disabled
+    const mainBtn = document.getElementById('submit-agent-float')!.shadowRoot!.querySelector('.action-btn') as HTMLButtonElement
+    expect(mainBtn.disabled).toBe(true)
   })
 
   it('unmount 重置业务状态（userEnabled 保留）', () => {

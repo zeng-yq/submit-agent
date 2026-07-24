@@ -81,7 +81,8 @@ function buildOpts(): ButtonRenderOpts {
 		onDeleteClick: () => store?.showDeletePopover(),
 		onConfirmDelete: performDelete,
 		onSegmentClick: (state: SubmissionState) => {
-			store?.setSubmissionState(state)
+			// 统一走 syncSubmission（含 isKnownSite 守卫）；STATUS_UPDATE 仍始终发送（保留原行为）。
+			syncSubmission(state)
 			chrome.runtime.sendMessage({ type: 'STATUS_UPDATE', payload: { status: state } }).catch(() => {})
 		},
 	}
@@ -138,7 +139,12 @@ function handleMessage(msg: ExtensionMessage): void {
 	if (!store) return
 	if (msg.type === 'FLOAT_BUTTON_TOGGLE') {
 		store.userEnabled = msg.enabled
-		checkAndToggle()
+		// enable：重新 CHECK_SITE_MATCH 拿最新 isKnownSite/matchedSiteName 再 mount。
+		// 必须 refresh：onClose→unmount 已重置业务状态（isKnownSite=false/matchedSiteName=null），
+		// 若仅 checkAndToggle 会用已重置的 store 渲染未知站点 UI（丢状态切换段 + 删除按钮）。
+		// disable：仅 unmount，无需查询。refreshAndMount 是 async，fire-and-forget。
+		if (store.userEnabled) refreshAndMount()
+		else checkAndToggle()
 		return
 	}
 	if (msg.type === 'FILL_PROGRESS') {
