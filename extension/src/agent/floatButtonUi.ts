@@ -522,7 +522,7 @@ export function createButton(opts: ButtonRenderOpts): ButtonHandle | null {
 	mainBtn.appendChild(iconSpan)
 	mainBtn.style.background = BUTTON_CONFIG[opts.currentState].bg
 	mainBtn.style.boxShadow = BUTTON_CONFIG[opts.currentState].shadow
-	mainBtn.addEventListener('click', opts.callbacks.onMainClick)
+	mainBtn.addEventListener('click', () => opts.callbacks.onMainClick())
 
 	const closeBtn = document.createElement('button')
 	closeBtn.className = 'close-btn'

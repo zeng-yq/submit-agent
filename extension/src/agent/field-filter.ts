@@ -109,7 +109,7 @@ export function honeypotScore(el: Element): number {
   return score;
 }
 
-/** Check if an element is a honeypot (anti-spam trap) field. Threshold: score >= 50. */
+/** Check if an element is a honeypot (anti-spam trap) field. Threshold: score >= HONEYPOT_THRESHOLD (=50). */
 export function isHoneypotField(el: Element): boolean {
   return honeypotScore(el) >= HONEYPOT_THRESHOLD;
 }

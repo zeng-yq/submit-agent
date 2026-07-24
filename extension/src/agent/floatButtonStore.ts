@@ -1,7 +1,8 @@
 /**
  * floatButtonStore.ts
  * 状态 + 生命周期层：持有 FloatButton 的业务状态与 ButtonHandle，并管理 message listener。
- * 把原模块级 8 个 let（host/shadow/mainBtn 折叠为 handle + currentState/currentSubmissionState/userEnabled/isKnownSite/matchedSiteName 5 业务状态 + messageListener）收进 class。
+ * 原模块级 8 个 let（host/shadow/mainBtn + currentState/currentSubmissionState/userEnabled/isKnownSite/matchedSiteName）
+ * + 内联 messageListener，收进 class（host/shadow/mainBtn 折叠为 handle）。
  *
  * 职责边界：
  * - mount/unmount 负责 handle 创建/销毁 + 业务状态重置（userEnabled 保留，spec §2.2）。

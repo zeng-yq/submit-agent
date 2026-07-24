@@ -113,13 +113,12 @@ function handleAddClick() {
 	}).catch(() => {})
 }
 
-/** 删除当前站点：局部捕获 siteName 防 round-trip 期间 matchedSiteName 变更。 */
+/** 删除当前站点（同步读取 matchedSiteName，sendMessage 前无 await 间隙）。 */
 function performDelete() {
 	if (!store?.matchedSiteName) return
-	const siteName = store.matchedSiteName
 	chrome.runtime.sendMessage({
 		type: 'DELETE_SITE',
-		payload: { siteName },
+		payload: { siteName: store.matchedSiteName },
 	}).then((response: any) => {
 		if (response?.success) {
 			chrome.runtime.sendMessage({ type: 'CLOSE_TAB' })
