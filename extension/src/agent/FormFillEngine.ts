@@ -192,7 +192,7 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		onStatusChange('filling')
 		const { filled: filledCount, failed: failedCount } = await fillPhase(d, { fieldsToFill })
 
-		// Step 5: 自动提交 + 弱验证（仅 blog_comment 且填写无失败时）
+		// Step 5: 自动提交 + 弱验证（strategy.autoSubmit 且填写无失败时）
 		let submitted: boolean | undefined
 		let verifyResult: VerifyResult | undefined
 		let submitError: string | undefined

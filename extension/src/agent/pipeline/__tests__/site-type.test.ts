@@ -35,24 +35,33 @@ describe('SITE_TYPE_STRATEGIES', () => {
 		expect(s.buildUserPrompt({ name: 'S', submit_url: 'https://x' } as any)).toContain('submission form')
 	})
 
-	it('blog buildSystemPrompt 有 pageContent → 返回非空（走 buildBlogCommentPrompt）', () => {
+	it('blog buildSystemPrompt 有 pageContent → 走 buildBlogCommentPrompt', () => {
 		const s = SITE_TYPE_STRATEGIES.blog_comment
 		const prompt = s.buildSystemPrompt(mkCtx({ pageContent: { title: 'pc', description: 'd', headings: [], content_preview: '' } }))
 		expect(typeof prompt).toBe('string')
 		expect(prompt.length).toBeGreaterThan(0)
+		// routing 契约：有 pageContent 必须走 buildBlogCommentPrompt
+		expect(prompt).toContain('博客评论表单')
+		expect(prompt).not.toContain('目录/列表网站上的产品提交表单')
 	})
 
-	it('blog buildSystemPrompt 无 pageContent → 仍返回非空（回退 directory prompt）', () => {
+	it('blog buildSystemPrompt 无 pageContent → 回退 buildDirectorySubmitPrompt', () => {
 		const s = SITE_TYPE_STRATEGIES.blog_comment
 		const prompt = s.buildSystemPrompt(mkCtx())  // 无 pageContent
 		expect(typeof prompt).toBe('string')
 		expect(prompt.length).toBeGreaterThan(0)
+		// routing 契约：无 pageContent 回退 buildDirectorySubmitPrompt
+		expect(prompt).toContain('目录/列表网站上的产品提交表单')
+		expect(prompt).not.toContain('博客评论表单')
 	})
 
-	it('directory buildSystemPrompt → 返回非空', () => {
+	it('directory buildSystemPrompt → 走 buildDirectorySubmitPrompt', () => {
 		const s = SITE_TYPE_STRATEGIES.directory_submit
 		const prompt = s.buildSystemPrompt(mkCtx())
 		expect(prompt.length).toBeGreaterThan(0)
+		// routing 契约：directory 必须走 buildDirectorySubmitPrompt
+		expect(prompt).toContain('目录/列表网站上的产品提交表单')
+		expect(prompt).not.toContain('博客评论表单')
 	})
 
 	it('Record 完备性：每个 SiteType 都有策略', () => {
