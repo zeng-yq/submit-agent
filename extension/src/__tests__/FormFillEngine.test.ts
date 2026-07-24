@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fuzzyMatchField, executeFormFill } from '@/agent/FormFillEngine';
+import { fuzzyMatchField } from '@/agent/pipeline/fuzzy';
+import { executeFormFill } from '@/agent/FormFillEngine';
 import type { FormFillEngineConfig } from '@/agent/FormFillEngine';
 import type { FormFillDeps } from '@/agent/pipeline/types';
 import type { AnalyzeResponse, FillResponse } from '@/messaging/messages';

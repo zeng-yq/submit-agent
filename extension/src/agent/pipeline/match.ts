@@ -1,7 +1,7 @@
 // src/agent/pipeline/match.ts
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { FieldValueMap } from '@/agent/types'
-import { fuzzyMatchField } from '@/agent/FormFillEngine'
+import { fuzzyMatchField } from './fuzzy'
 import type { FieldsToFill, MatchResult } from './types'
 
 /**
