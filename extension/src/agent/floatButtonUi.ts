@@ -513,8 +513,6 @@ export function createButton(opts: ButtonRenderOpts): ButtonHandle | null {
 	}
 
 	// Action button
-	const btnWrap = document.createElement('div')
-	btnWrap.style.position = 'relative'
 
 	mainBtn = document.createElement('button')
 	mainBtn.className = 'action-btn'

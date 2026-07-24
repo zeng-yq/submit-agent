@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom'
 
 let dom: JSDOM
 let doc: Document
-let win: Window
+let win: Window & typeof globalThis
 
 async function loadModule() {
 	dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
@@ -12,9 +12,9 @@ async function loadModule() {
 	})
 	// 注入到全局，让模块拿到正确的 document/window
 	globalThis.document = dom.window.document
-	globalThis.window = dom.window
+	globalThis.window = dom.window as unknown as Window & typeof globalThis
 	doc = dom.window.document
-	win = dom.window
+	win = dom.window as unknown as Window & typeof globalThis
 	return await import('@/agent/comment-submit')
 }
 

@@ -61,7 +61,6 @@ export function useSites(productId: string | null): UseSitesResult {
 	const markSubmitted = useCallback(
 		async (siteName: string, productId: string, verifyResult?: string) => {
 			const existing = submissions.get(siteName)
-			console.log('[SA-DIAG] markSubmitted', { siteName, existingStatus: existing?.status, existingId: existing?.id, verifyResult, stack: new Error().stack?.split('\n').slice(2, 5).join(' <- ') })
 			// 仅在显式传入时写入 verifyResult，避免无该参数的调用方（如 STATUS_UPDATE）清掉既有值
 			const extra = verifyResult !== undefined ? { verifyResult } : {}
 			if (existing) {
@@ -101,7 +100,6 @@ export function useSites(productId: string | null): UseSitesResult {
 	const markFailed = useCallback(
 		async (siteName: string, productId: string, error?: string, verifyResult?: string) => {
 			const existing = submissions.get(siteName)
-			console.log('[SA-DIAG] markFailed', { siteName, existingStatus: existing?.status, existingId: existing?.id, error, verifyResult, stack: new Error().stack?.split('\n').slice(2, 5).join(' <- ') })
 			const now = Date.now()
 			const extra = verifyResult !== undefined ? { verifyResult } : {}
 			if (existing) {
@@ -139,7 +137,6 @@ export function useSites(productId: string | null): UseSitesResult {
 	const resetSubmission = useCallback(
 		async (siteName: string) => {
 			const existing = submissions.get(siteName)
-			console.log('[SA-DIAG] resetSubmission', { siteName, existingStatus: existing?.status, stack: new Error().stack?.split('\n').slice(2, 5).join(' <- ') })
 			if (existing) {
 				await deleteSubmission(existing.id)
 				await refresh()

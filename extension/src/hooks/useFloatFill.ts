@@ -63,7 +63,6 @@ export function useFloatFill({
 							// blog_comment：以提交验证结果为准
 							// TODO: 入库映射逻辑待补单测（见 spec §7）—— 需 mock chrome + 注入 markSubmitted/markFailed 驱动 FILL_PROGRESS start，当前依赖手动验证矩阵覆盖
 							const verified = VERIFIED_SUCCESS.includes((r.verifyResult ?? 'not_attempted') as VerifyResult)
-							console.log('[SA-DIAG] pathA', { verifyResult: r.verifyResult, filled: r.filled, failed: r.failed, isBlogComment, verified })
 							if (verified) {
 								markSubmitted(matched.name, activeProduct.id, r.verifyResult)
 							} else {
@@ -128,7 +127,6 @@ export function useFloatFill({
 				const submittable = filterSubmittable(sites)
 				const matched = matchCurrentPage(submittable, tabUrl)
 				if (!matched) return
-				console.log('[SA-DIAG] STATUS_UPDATE recv', { status, tabUrl, matchedName: matched.name })
 				if (status === 'not_started') resetSubmission(matched.name)
 				else if (status === 'submitted') markSubmitted(matched.name, activeProduct.id)
 				else if (status === 'failed') markFailed(matched.name, activeProduct.id)
