@@ -1,35 +1,32 @@
 // src/agent/pipeline/llm.ts
-import type { FieldValueMap } from '@/agent/types'
+import type { FieldValueMap, LLMFieldValue } from '@/agent/types'
 import { parseLLMJson, injectHrefNewline } from '@/agent/llm-utils'
 import { buildProductContext, pickAnchorText, pickFounderName } from '@/agent/prompts/product-context'
-import { buildBlogCommentPrompt } from '@/agent/prompts/blog-comment-prompt'
-import { buildDirectorySubmitPrompt } from '@/agent/prompts/directory-submit-prompt'
-import type { LLMFieldValue } from '@/agent/types'
+import { SITE_TYPE_STRATEGIES } from './site-type'
 import type { FormFillDeps, LlmPhaseInput } from './types'
 
 /**
  * 建 prompt → callLLM → parse → injectHrefNewline → 触发 onLLMFields。返回 fieldValues。
- * 搬运自原 executeFormFill Step 2+3（FormFillEngine.ts:268-327）。
+ * prompt 选择/temperature/label 走 SITE_TYPE_STRATEGIES（消除 siteType 分支）。
  */
 export async function llmPhase(deps: FormFillDeps, input: LlmPhaseInput): Promise<FieldValueMap> {
   const { analysis, pageContent, product, site, siteType, signal } = input
+  const strategy = SITE_TYPE_STRATEGIES[siteType]
 
   // Step 2: build prompt
   const selectedAnchor = pickAnchorText(product)
   const selectedFounderName = pickFounderName(product)
   const productContext = buildProductContext(product, selectedAnchor, selectedFounderName)
-  let systemPrompt: string
-  if (siteType === 'blog_comment' && pageContent) {
-    systemPrompt = buildBlogCommentPrompt({ productContext, pageContent, fields: analysis.fields, forms: analysis.forms })
-  } else {
-    systemPrompt = buildDirectorySubmitPrompt({ productContext, pageInfo: analysis.page_info, fields: analysis.fields, forms: analysis.forms })
-  }
-  const userPrompt = siteType === 'blog_comment'
-    ? `Fill the comment form on ${site.name}. Page URL: ${site.submit_url || 'current page'}.`
-    : `Fill the submission form on ${site.name}. Submit URL: ${site.submit_url || 'current page'}.`
+  const systemPrompt = strategy.buildSystemPrompt({
+    productContext,
+    pageContent,
+    pageInfo: analysis.page_info,
+    fields: analysis.fields,
+    forms: analysis.forms,
+  })
+  const userPrompt = strategy.buildUserPrompt(site)
 
-  const promptType = siteType === 'blog_comment' ? '博客评论' : '目录提交'
-  deps.log('info', 'llm', `正在调用 LLM (${promptType})...`, {
+  deps.log('info', 'llm', `正在调用 LLM (${strategy.label})...`, {
     systemPromptLength: systemPrompt.length,
     userPromptLength: userPrompt.length,
     systemPrompt,
@@ -40,7 +37,7 @@ export async function llmPhase(deps: FormFillDeps, input: LlmPhaseInput): Promis
   const rawResponse = await deps.callLLM({
     systemPrompt,
     userPrompt,
-    temperature: siteType === 'blog_comment' ? 0.7 : 0.3,
+    temperature: strategy.temperature,
     maxTokens: 2048,
     signal,
     jsonMode: true,
