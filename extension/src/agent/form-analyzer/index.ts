@@ -1,4 +1,4 @@
-import { isFormField } from '../dom-utils';
+import { isFormField } from '../field-filter';
 import type { FormField, FormGroup, FormAnalysisResult } from './types';
 import { buildSelector, findLabel, deduplicateFields, extractPageInfo } from './form-scanner';
 import { classifyForm } from './form-classifier';
