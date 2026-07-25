@@ -150,6 +150,47 @@ describe('findSubmitButtonInForm', () => {
 	})
 })
 
+describe('Blogger 跨域 iframe 多语种发布按钮', () => {
+	// c-wiz 评论框无 <form>，发布按钮是 div[role=button][jsname=M2UYVd]，编辑按钮是 J8YHde。
+	// findSubmitButtonInContainer 靠 SUBMIT_KEYWORDS 识别，多语种"发布"文案须覆盖，
+	// 否则按钮被判为 null → executeSubmit 返回 not_attempted「未找到提交按钮」。
+	// 文案均取自真实 Blogger 评论 iframe（hl 参数遍历实证，2026-07-25）。
+	const cases: Array<[string, string]> = [
+		['印尼语', 'Publikasikan'],
+		['越南语', 'Đăng'],
+		['西班牙语', 'Publicar'],
+		['法语', 'Publier'],
+		['德语', 'Veröffentlichen'],
+		['俄语', 'Опубликовать'],
+		['日语', '公開'],
+		['韩语', '게시'],
+		['简中', '发布'],
+		['繁中', '發布'],
+		['泰语', 'เผยแพร่'],
+		['阿拉伯语', 'نشر'],
+		['土耳其语', 'Yayınla'],
+		['波兰语', 'Opublikuj'],
+		['荷兰语', 'Publiceren'],
+		['意大利语', 'Pubblica'],
+		['印地语', 'प्रकाशित करें'],
+		['孟加拉语', 'প্রকাশ করুন'],
+	]
+	for (const [name, label] of cases) {
+		it(`${name}「${label}」被识别为提交按钮（而非 Edit）`, async () => {
+			const mod = await loadModule()
+			doc.body.innerHTML = `
+				<div class="comment-form">
+					<textarea id="comment"></textarea>
+					<div role="button" jsname="J8YHde">Edit</div>
+					<div role="button" jsname="M2UYVd" aria-label="${label}">${label}</div>
+				</div>`
+			const res = mod.resolveSubmitButton('#comment')
+			expect(res.button, `${name} 应识别为提交按钮`).toBeTruthy()
+			expect(res.button?.textContent?.trim()).toBe(label)
+		})
+	}
+})
+
 describe('resolveSubmitButton', () => {
 	it('通过评论框 selector 定位同表单的提交按钮', async () => {
 		const mod = await loadModule()

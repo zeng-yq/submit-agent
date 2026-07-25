@@ -95,11 +95,32 @@ export function computeVerifyCommentVisible(commentText: string | undefined): bo
 	return commentText ? commentVisibleOnPage(commentText) : false
 }
 
-/** 多语种提交关键词 */
+/** 多语种提交关键词。
+ * 前段：通用提交/发布词（WP 等原生表单）。后段：Blogger 评论 iframe 各语种「发布」按钮
+ * 真实文案（hl 参数遍历实证，2026-07-25）——c-wiz 评论框的发布按钮是 div[role=button]，
+ * findSubmitButtonInContainer 靠此列表识别，缺某语种会让按钮判 null → not_attempted「未找到按钮」。 */
 const SUBMIT_KEYWORDS = [
+	// 通用提交/发布
 	'submit', 'post', 'comment', 'publish', 'reply', 'respond', 'send',
 	'publicar', 'responder', 'enviar', 'comentar', 'anzeigen', 'absenden',
 	'提交', '评论', '发送', '发表', '回答', '返信',
+	// Blogger 评论 iframe 各语种「发布」按钮文案
+	'publikasikan',    // 印尼语
+	'đăng',            // 越南语
+	'publier',         // 法语
+	'veröffentlichen', // 德语
+	'опубликовать',    // 俄语
+	'pubblica',        // 意大利语
+	'publiceren',      // 荷兰语
+	'opublikuj',       // 波兰语
+	'yayınla',         // 土耳其语
+	'公開',            // 日语
+	'게시',            // 韩语
+	'发布', '發布',    // 简中 / 繁中
+	'เผยแพร่',         // 泰语
+	'نشر',             // 阿拉伯语
+	'प्रकाशित',        // 印地语（核心词，匹配「प्रकाशित करें」）
+	'প্রকাশ',          // 孟加拉语（核心词，匹配「প্রকাশ করুন」）
 ]
 
 /** 在指定 form 内查找提交按钮 */
