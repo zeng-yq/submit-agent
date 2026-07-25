@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Trash2, Info, CheckCircle2, AlertTriangle, XCircle, Copy, Check } from 'lucide-react'
+import { ChevronRight, ChevronDown, Trash2, Info, CheckCircle2, AlertTriangle, XCircle, Copy, Check, Square } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { LogEntry, LogLevel, LogPhase, LLMFieldData } from '@/agent/types'
 
@@ -9,6 +9,9 @@ interface ActivityLogProps {
 	onClear?: () => void
 	llmFieldData?: LLMFieldData | null
 	className?: string
+	batchProgress?: { attempted: number; succeeded: number; target: number }
+	batchRunning?: boolean
+	onStopBatch?: () => void
 }
 
 const LEVEL_CONFIG: Record<LogLevel, { icon: typeof Info; colorClass: string; bgClass: string }> = {
@@ -155,7 +158,7 @@ function LLMFieldValueItem({ label, value }: { label: string; value: string }) {
 	)
 }
 
-export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, className }: ActivityLogProps) {
+export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, className, batchProgress, batchRunning, onStopBatch }: ActivityLogProps) {
 	const displayCount = totalLogCount ?? logs.length
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const userScrolledRef = useRef(false)
@@ -180,8 +183,30 @@ export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, classN
 	return (
 		<div className={cn('rounded-lg border border-border bg-card overflow-hidden flex flex-col', className)}>
 			<div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/30 shrink-0">
-				<span className="text-xs font-medium">{'活动日志'}</span>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-2 min-w-0">
+					<span className="text-xs font-medium shrink-0">{'活动日志'}</span>
+					{batchProgress && (
+						<span className="text-[10px] text-muted-foreground tabular-nums truncate">
+							{'批量提交 · 成功 '}
+							<span className={batchRunning ? 'text-green-500 dark:text-green-400 font-medium' : ''}>
+								{batchProgress.succeeded}
+							</span>
+							{`/${batchProgress.target} · 已尝试 ${batchProgress.attempted}`}
+						</span>
+					)}
+				</div>
+				<div className="flex items-center gap-2 shrink-0">
+					{batchRunning && onStopBatch && (
+						<button
+							type="button"
+							className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
+							onClick={onStopBatch}
+							title="停止批量提交"
+						>
+							<Square className="w-2.5 h-2.5 fill-current" />
+							{'停止'}
+						</button>
+					)}
 					<span className="text-[10px] text-muted-foreground tabular-nums">
 						{displayCount} 条
 					</span>

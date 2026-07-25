@@ -23,6 +23,10 @@ interface DashboardProps {
 	llmFieldData: LLMFieldData | null
 	activeSiteName: string | null
 	onImportCsv?: (csvText: string) => Promise<SiteImportResult>
+	onBatchSubmit?: () => void
+	onStopBatch?: () => void
+	batchRunning?: boolean
+	batchProgress?: { attempted: number; succeeded: number; target: number }
 }
 
 type Tab = 'all' | 'undone' | 'done' | 'failed' | 'log'
@@ -54,6 +58,10 @@ export function Dashboard({
 	llmFieldData,
 	activeSiteName,
 	onImportCsv,
+	onBatchSubmit,
+	onStopBatch,
+	batchRunning,
+	batchProgress,
 }: DashboardProps) {
 	const [tab, setTab] = useState<Tab>('all')
 	const [search, setSearch] = useState('')
@@ -177,6 +185,13 @@ export function Dashboard({
 		}
 	}, [isEngineActive])
 
+	// 批量自动提交启动后立即切到活动日志面板
+	useEffect(() => {
+		if (batchRunning) {
+			setTab('log')
+		}
+	}, [batchRunning])
+
 	// 价格筛选是 AI 目录专属，切到其他分类时清空，避免残留过滤在"全部"视图里误隐藏博客站点
 	useEffect(() => {
 		if (categoryFilter !== 'ai_directory') {
@@ -219,10 +234,13 @@ export function Dashboard({
 					onClear={onClearEngineLogs}
 					llmFieldData={llmFieldData}
 					className="flex-1"
+					batchProgress={batchProgress}
+					batchRunning={batchRunning}
+					onStopBatch={onStopBatch}
 				/>
 			) : (
 				<>
-					{/* 分类 & 价格筛选 */}
+					{/* 分类 & 价格筛选 & 搜索 */}
 					<div className="flex items-center gap-2">
 						<select
 							value={categoryFilter}
@@ -246,9 +264,6 @@ export function Dashboard({
 								))}
 							</select>
 						)}
-					</div>
-					{/* 搜索 & 操作 */}
-					<div className="flex items-center gap-2">
 						<input
 							type="text"
 							placeholder={'搜索站点...'}
@@ -256,6 +271,9 @@ export function Dashboard({
 							onChange={(e) => setSearch(e.target.value)}
 							className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 						/>
+					</div>
+					{/* 操作 */}
+					<div className="flex items-center gap-2">
 						{categoryFilter === 'ai_directory' && onImportCsv && (
 							<>
 								<input
@@ -289,6 +307,21 @@ export function Dashboard({
 								>
 									{opening ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
 									{opening ? '打开中...' : `随机 ${count}`}
+								</Button>
+							)
+						})()}
+						{!batchRunning && tab === 'undone' && categoryFilter === 'blog_comment' && (() => {
+							const noCandidates = undoneSites.filter((s) => !!s.submit_url).length === 0
+							return (
+								<Button
+									variant="outline"
+									size="xs"
+									disabled={noCandidates || !onBatchSubmit}
+									title={noCandidates ? '没有可提交的博客外链' : '从未提交的博客外链中随机提交，直到成功 20 条'}
+									onClick={() => onBatchSubmit?.()}
+								>
+									<Play className="w-3 h-3" />
+									{'自动提交 20'}
 								</Button>
 							)
 						})()}

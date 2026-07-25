@@ -10,6 +10,7 @@ import { useFormFillEngine } from '@/hooks/useFormFillEngine'
 import { useBacklinkState } from '@/hooks/useBacklinkState'
 import { useBacklinkAnalysis } from '@/hooks/useBacklinkAnalysis'
 import { useFloatFill } from '@/hooks/useFloatFill'
+import { useBatchSubmit } from '@/hooks/useBatchSubmit'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { importAiDirectoryFromCsv } from '@/lib/sites'
@@ -63,6 +64,21 @@ export default function App() {
 		reset,
 		resetUI,
 		setCurrentEngineSite,
+	})
+
+	const {
+		isRunning: batchRunning,
+		progress: batchProgress,
+		start: startBatch,
+		stopBatch,
+	} = useBatchSubmit({
+		activeProduct,
+		sites,
+		submissions,
+		startSubmission,
+		markSubmitted,
+		markFailed,
+		stop,
 	})
 
 	useEffect(() => {
@@ -125,6 +141,18 @@ export default function App() {
 
 		dashboardRunningRef.current = false
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
+
+	// 批量随机提交 20 个博客外链（与单条提交共用 dashboardRunningRef 互斥）
+	const handleBatchSubmit = useCallback(async () => {
+		if (!activeProduct) return
+		if (dashboardRunningRef.current) return
+		dashboardRunningRef.current = true
+		try {
+			await startBatch()
+		} finally {
+			dashboardRunningRef.current = false
+		}
+	}, [activeProduct, startBatch])
 
 	const handleAddSite = useCallback(async (category: string, dr: number, notes: string) => {
 		setAddSiteError('')
@@ -294,6 +322,10 @@ export default function App() {
 							llmFieldData={llmFieldData}
 							activeSiteName={currentEngineSite?.name ?? null}
 							onImportCsv={handleImportAiDirectory}
+							onBatchSubmit={handleBatchSubmit}
+							onStopBatch={stopBatch}
+							batchRunning={batchRunning}
+							batchProgress={batchProgress}
 						/>
 					)}
 				</div>
