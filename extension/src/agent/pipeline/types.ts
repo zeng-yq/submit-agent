@@ -51,4 +51,6 @@ export interface MatchResult {
   fieldsToFill: FieldsToFill
   skipped: number
   matchedViaFuzzy: boolean
+  /** 单字段表单 + LLM 多值时，取最长值填入的标志（供日志体现） */
+  singleFieldLongestPick?: boolean
 }

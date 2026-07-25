@@ -168,7 +168,14 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		const valueCount = Object.keys(fieldValues).length
 
 		// Map LLM field values → form fields (exact match → fuzzy fallback). Pure.
-		const { fieldsToFill, matchedViaFuzzy } = matchFields(analysis, fieldValues)
+		const { fieldsToFill, matchedViaFuzzy, singleFieldLongestPick } = matchFields(analysis, fieldValues)
+		if (singleFieldLongestPick && fieldsToFill.length > 0) {
+			// 单字段表单（如 Blogger c-wiz 评论框）+ LLM 多值：取最长值（评论正文）填入
+			log('info', 'llm', `单字段表单: LLM 返回多值，取最长值（评论正文）填入`, {
+				field: fieldsToFill[0].canonical_id,
+				valueLength: fieldsToFill[0].value.length,
+			})
+		}
 		if (matchedViaFuzzy && fieldsToFill.length > 0) {
 			log('info', 'llm', `模糊匹配成功: ${fieldsToFill.length} 个字段`, {
 				matchedFields: fieldsToFill.map(f => f.canonical_id),
