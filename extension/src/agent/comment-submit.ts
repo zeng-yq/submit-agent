@@ -79,7 +79,14 @@ export function detectModeration(): boolean {
  */
 export function commentVisibleOnPage(text: string): boolean {
 	const norm = (s: string) => s.replace(/\s+/g, ' ').trim()
-	const needle = norm(text)
+	// needle 可能含 HTML（评论正文带 <a> 锚文本标签），hay 是 textContent（已去标签）；
+	// 统一去标签后比对，否则带标签的 needle 在 textContent 里 includes 必失败 → 误判 unverified。
+	const stripHtml = (s: string): string => {
+		const el = document.createElement('div')
+		el.innerHTML = s
+		return el.textContent || ''
+	}
+	const needle = norm(stripHtml(text))
 	if (needle.length < 6) return true
 	const hay = norm(document.body?.textContent ?? '')
 	return hay.includes(needle)

@@ -656,6 +656,14 @@ describe('commentVisibleOnPage', () => {
 		doc.body.innerHTML = `<div>totally different</div>`
 		expect(mod.commentVisibleOnPage('hi')).toBe(true)
 	})
+
+	it('评论文本含 <a> 锚文本标签 → 按 textContent 去标签匹配 → true', async () => {
+		// 评论正文带 <a href> 锚文本链接；页面渲染后 textContent 只剩锚文本纯文本。
+		// needle 须去标签后与 textContent 对齐，否则 includes 永远 false → 误判 unverified。
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>nice post. check out <a href="https://productai.com">these tools</a> for more.</div>`
+		expect(mod.commentVisibleOnPage('nice post. check out <a href="https://productai.com">these tools</a> for more.')).toBe(true)
+	})
 })
 
 describe('computeVerifyCommentVisible', () => {

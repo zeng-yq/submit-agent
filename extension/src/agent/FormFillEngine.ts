@@ -214,7 +214,12 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 			// 用 pickCommentField 识别评论框（textarea / comment|reply|message 语义）——
 			// effective_type==='comment' 是死分支（inferEffectiveType 永不返回 'comment'），勿用。
 			const commentField = pickCommentField(analysis.fields)
-			const commentText = commentField ? fieldValues[commentField.canonical_id] : undefined
+			// 用实际填入评论框的值（fieldsToFill）而非 fieldValues[canonical_id]：单字段表单走
+			// 「取最长值」时，fieldValues[commentField.canonical_id] 可能是 LLM 把该字段当 name
+			// 的值，与实际填入的评论正文不一致，导致跨页验证搜错文本 → 误判 unverified。
+			const commentText = commentField
+				? fieldsToFill.find(f => f.canonical_id === commentField.canonical_id)?.value
+				: undefined
 			const outcome = await runSubmitAndVerify({
 				sendSubmit: () => d.sendToTabMessage<SubmitResponse>(
 					{

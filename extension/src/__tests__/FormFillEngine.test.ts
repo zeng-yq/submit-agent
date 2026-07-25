@@ -130,4 +130,30 @@ describe('executeFormFill (end-to-end, mock deps)', () => {
     expect(r.notes).toBe('Cancelled.')
     expect(onStatusChange).toHaveBeenCalledWith('idle')
   });
+
+  it('单字段表单 + LLM 多值：commentText 用实际填入的最长值（评论正文），非 fieldValues[field_0]', async () => {
+    // 复现 Blogger：表单只有 1 个 textarea(field_0)，LLM 模仿 prompt 示例返回
+    // name/email/url/comment 多值。matchFields 取最长值（comment）填入评论框；
+    // 跨页验证的 commentText 必须是实际填入的评论正文，否则新页面搜 name 搜不到 → unverified。
+    const textareaField = { canonical_id: 'field_0', name: '', id: '', type: 'textarea', label: 'Comment', placeholder: '', required: false, maxlength: null, selector: '#comment', tagName: 'textarea', form_index: 0 } as FormField;
+    const comment = '这是一条很长的评论正文，引用文章观点并植入锚文本链接，长度远超姓名邮箱网址等短字段。';
+    const deps = mkDeps({
+      sendToTabMessage: vi.fn(async (msg: any) => {
+        if (msg.action === 'analyze') return { ok: true, analysis: { fields: [textareaField], forms: [{ form_index: 0, filtered: false }], page_info: { title: 't', description: 'd', headings: [], content_preview: '' } } } as unknown as AnalyzeResponse;
+        if (msg.action === 'fill') return { ok: true, filled: 1, failed: 0 } as FillResponse;
+        if (msg.action === 'submit') return { ok: true, clicked: true, verifyResult: 'navigating' } as SubmitResponse;
+        return { ok: true };
+      }) as any,
+      callLLM: vi.fn().mockResolvedValue(JSON.stringify({
+        field_0: 'John Smith',
+        field_1: 'founder@example.com',
+        field_2: 'https://productai.com',
+        field_3: comment,
+      })),
+      verifyNavigation: vi.fn().mockResolvedValue('confirmed'),
+    });
+    await executeFormFill(mkConfig(), deps);
+    // commentText 应是实际填入评论框的最长值（field_3 评论正文），而非 field_0（name）
+    expect(deps.verifyNavigation).toHaveBeenCalledWith(comment);
+  });
 });
