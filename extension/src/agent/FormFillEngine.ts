@@ -88,6 +88,7 @@ export async function runSubmitAndVerify(deps: SubmitFlowDeps, commentText?: str
 		const verdict = await verifyNavigation(commentText)
 		verifyResult = applyNavigationVerdict(verifyResult, verdict)
 		if (verdict === 'moderation') submitError = '评论待审核，未发布'
+		else if (verdict === 'cloudflare') submitError = '需要 Cloudflare 人机验证，未发布'
 		else if (verdict === 'unverified') submitError = '提交后未能确认发布状态'
 	}
 
@@ -102,6 +103,9 @@ function resolveLostSignal(verdict: ModerationVerdict, err: unknown): SubmitFlow
 	}
 	if (verdict === 'moderation') {
 		return { submitted: true, verifyResult: 'pending_moderation', submitError: '评论待审核，未发布' }
+	}
+	if (verdict === 'cloudflare') {
+		return { submitted: true, verifyResult: 'blocked_cloudflare', submitError: '需要 Cloudflare 人机验证，未发布' }
 	}
 	const msg = err instanceof Error ? err.message : String(err)
 	return { submitted: undefined, verifyResult: 'not_attempted', submitError: `提交响应丢失且跳转后无法确认: ${msg}` }

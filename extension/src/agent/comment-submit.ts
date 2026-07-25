@@ -250,6 +250,33 @@ export function detectCloudflare(root: Element | Document | null): boolean {
 	return false
 }
 
+/** Cloudflare 整页人机验证挑战页的标志性标题（managed challenge / interstitial 通用） */
+const CLOUDFLARE_CHALLENGE_TITLE = /just a moment/i
+/** Cloudflare 整页挑战页的专属 DOM 信号（不出现在普通博客页面） */
+const CLOUDFLARE_CHALLENGE_SELECTORS = [
+	'#cf-challenge-running',
+	'#cf-spinner-please-wait',
+	'#cf-please-wait',
+	'.cf-browser-verification',
+]
+
+/**
+ * 当前页面是否为 Cloudflare 整页人机验证挑战页（"Just a moment..."）。
+ * 提交触发整页跳转后，若落定的新页面是 CF 挑战页，评论显然未发布 → 由上层判定失败，
+ * 避免在 CF 页上沿用 commentVisible 降级（评论文本缺失→true）误判为「评论已发布」。
+ * 仅识别整页挑战信号（标志性标题 + 专属元素），不靠 challenges.cloudflare.com iframe：
+ * 表单内 Turnstile widget 也用该 iframe，误伤会把可自动完成的 Turnstile 站点判成失败。
+ */
+export function detectCloudflareChallengePage(): boolean {
+	if (CLOUDFLARE_CHALLENGE_TITLE.test(document.title)) return true
+	for (const sel of CLOUDFLARE_CHALLENGE_SELECTORS) {
+		try {
+			if (document.querySelector(sel)) return true
+		} catch { /* 无效选择器 */ }
+	}
+	return false
+}
+
 /** 图片验证码（服务端生成扭曲字符图，如 Captcha.ashx）选择器：需人工输入，命中即放弃 */
 const IMAGE_CAPTCHA_SELECTORS = [
 	'img[src*="captcha" i]',

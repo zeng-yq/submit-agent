@@ -74,6 +74,14 @@ describe('verifyAfterNavigation', () => {
 			.mockResolvedValueOnce({ ok: true, moderation: true, commentVisible: true })
 		expect(await verifyAfterNavigation(1, { getTabUrl, sendVerify, sleep: noopSleep, pollMs: 1, settleTimeoutMs: 2, verifyTimeoutMs: 100 })).toBe('moderation')
 	})
+
+	it('落定页是 Cloudflare 挑战页 → cloudflare（优先于 commentVisible 降级）', async () => {
+		// 复现用户反馈的 bug：提交跳转到 CF 人机验证页，commentVisible 因评论文本缺失降级为 true，
+		// 旧行为误判 confirmed→成功。现应优先识别整页 CF 挑战，判 cloudflare（→失败）。
+		const getTabUrl = vi.fn().mockResolvedValue('https://x.com/post')
+		const sendVerify = vi.fn().mockResolvedValue({ ok: true, moderation: false, commentVisible: true, cloudflare: true })
+		expect(await verifyAfterNavigation(1, { getTabUrl, sendVerify, sleep: noopSleep })).toBe('cloudflare')
+	})
 })
 
 describe('applyNavigationVerdict', () => {
@@ -85,6 +93,12 @@ describe('applyNavigationVerdict', () => {
 	})
 	it('navigating + confirmed → 维持 navigating', () => {
 		expect(applyNavigationVerdict('navigating', 'confirmed')).toBe('navigating')
+	})
+	it('navigating + cloudflare → blocked_cloudflare', () => {
+		expect(applyNavigationVerdict('navigating', 'cloudflare')).toBe('blocked_cloudflare')
+	})
+	it('pagehide + cloudflare → blocked_cloudflare', () => {
+		expect(applyNavigationVerdict('pagehide', 'cloudflare')).toBe('blocked_cloudflare')
 	})
 	it('ajax（非跳转）→ 不受 verdict 影响', () => {
 		expect(applyNavigationVerdict('ajax', 'moderation')).toBe('ajax')

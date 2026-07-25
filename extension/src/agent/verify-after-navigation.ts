@@ -5,13 +5,13 @@
  */
 import type { VerifyResult } from './types'
 
-export type ModerationVerdict = 'confirmed' | 'moderation' | 'unverified'
+export type ModerationVerdict = 'confirmed' | 'moderation' | 'unverified' | 'cloudflare'
 
 export interface VerifyAfterNavigationDeps {
 	/** 读取目标 tab 当前 URL（真实实现对接 chrome.tabs.get） */
 	getTabUrl: (tabId: number) => Promise<string>
 	/** 向新页面 content script 发 verify-moderation（携带评论文本）并等待回复（真实实现对接 sendToTab） */
-	sendVerify: (tabId: number, commentText?: string) => Promise<{ ok: boolean; moderation: boolean; commentVisible: boolean }>
+	sendVerify: (tabId: number, commentText?: string) => Promise<{ ok: boolean; moderation: boolean; commentVisible: boolean; cloudflare: boolean }>
 	/** 延时（真实实现 = setTimeout） */
 	sleep: (ms: number) => Promise<void>
 	/** 等 URL 落定的总预算（ms），默认 6000 */
@@ -32,6 +32,7 @@ const FINAL_URL_MARKER = /#comment|unapproved=|moderation-hash=/i
  * 整页跳转后验证评论发布状态。
  * 阶段 1：轮询 tab URL 等重定向落定（出现最终页标记，或连续两次相同）。
  * 阶段 2：向新页面 content script 发 verify-moderation（携带评论文本），在 verifyTimeoutMs 预算内重试：
+ *   - cloudflare=true（落定页是 Cloudflare 整页挑战页）→ 'cloudflare'（优先拦截 commentVisible 降级误判）
  *   - moderation=true（URL 参数/DOM 待审核标记）→ 'moderation'
  *   - moderation=false 且页面搜到评论文本（commentVisible）→ 'confirmed'（已发布）
  *   - moderation=false 但评论不可见：可能异步加载中，继续重试等待渲染；预算耗尽仍不可见 → 'unverified'（保守失败）
@@ -72,6 +73,8 @@ export async function verifyAfterNavigation(
 		try {
 			const r = await sendVerify(tabId, commentText)
 			if (r?.ok === true) {
+				// 整页 Cloudflare 挑战页：评论显然未发布，优先判定（拦截 commentVisible 降级导致的 confirmed 误判）
+				if (r.cloudflare) return 'cloudflare'
 				if (r.moderation) return 'moderation'
 				if (r.commentVisible) return 'confirmed'
 				// moderation=false && commentVisible=false：评论可能异步加载中，继续重试
@@ -86,12 +89,13 @@ export async function verifyAfterNavigation(
 
 /**
  * 把「跳转后验证」结论应用到 verifyResult。
- * 仅 navigating/pagehide 受影响：moderation→pending_moderation，unverified→unverified，confirmed→维持原值。
+ * 仅 navigating/pagehide 受影响：moderation→pending_moderation，cloudflare→blocked_cloudflare，unverified→unverified，confirmed→维持原值。
  * 非跳转结果（ajax/cleared/...）原样返回。
  */
 export function applyNavigationVerdict(verifyResult: VerifyResult, verdict: ModerationVerdict): VerifyResult {
 	if (verifyResult !== 'navigating' && verifyResult !== 'pagehide') return verifyResult
 	if (verdict === 'moderation') return 'pending_moderation'
+	if (verdict === 'cloudflare') return 'blocked_cloudflare'
 	if (verdict === 'unverified') return 'unverified'
 	return verifyResult
 }

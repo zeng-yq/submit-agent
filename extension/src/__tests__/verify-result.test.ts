@@ -7,9 +7,9 @@ describe('VERIFIED_SUCCESS', () => {
     expect(VERIFIED_SUCCESS).toEqual(['ajax', 'cleared', 'navigating', 'pagehide'])
   })
 
-  it('不含任何失败/未确认结果（含新增的 unverified）', () => {
+  it('不含任何失败/未确认结果（含新增的 unverified / blocked_cloudflare）', () => {
     const failures: VerifyResult[] = [
-      'pending_moderation', 'login_required', 'timeout', 'not_attempted', 'unverified',
+      'pending_moderation', 'login_required', 'timeout', 'not_attempted', 'unverified', 'blocked_cloudflare',
     ]
     for (const f of failures) {
       expect(VERIFIED_SUCCESS).not.toContain(f)
@@ -28,6 +28,7 @@ describe('verifyResultLabel', () => {
     expect(verifyResultLabel('login_required')).toBe('需要登录，提交未成功')
     expect(verifyResultLabel('pending_moderation')).toBe('评论待审核，未发布')
     expect(verifyResultLabel('unverified')).toBe('提交后页面未见评论，判定未发布')
+    expect(verifyResultLabel('blocked_cloudflare')).toBe('需要 Cloudflare 人机验证，未发布')
     expect(verifyResultLabel('not_attempted')).toBe('未提交（未找到按钮或遇验证码）')
   })
   it('undefined → 未知提交状态', () => {

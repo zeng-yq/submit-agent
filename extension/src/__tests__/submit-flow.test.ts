@@ -30,6 +30,16 @@ describe('runSubmitAndVerify', () => {
 		expect(r.verifyResult).toBe('pending_moderation')
 	})
 
+	it('submit 响应丢失 + 跳转后落定 CF 挑战页 → blocked_cloudflare', async () => {
+		// 远程评论 iframe 提交触发顶层导航销毁上下文，落定页是 CF 人机验证 → 判失败（非 not_attempted 兜底）。
+		const r = await runSubmitAndVerify({
+			sendSubmit: vi.fn().mockRejectedValue(new Error('port closed')),
+			verifyNavigation: vi.fn().mockResolvedValue('cloudflare'),
+		})
+		expect(r.verifyResult).toBe('blocked_cloudflare')
+		expect(VERIFIED_SUCCESS).not.toContain(r.verifyResult)
+	})
+
 	it('submit 响应丢失 + 跳转后无法确认 → not_attempted（保守失败）', async () => {
 		const r = await runSubmitAndVerify({
 			sendSubmit: vi.fn().mockRejectedValue(new Error('port closed')),
@@ -66,6 +76,17 @@ describe('runSubmitAndVerify', () => {
 			verifyNavigation: vi.fn().mockResolvedValue('moderation'),
 		})
 		expect(r.verifyResult).toBe('pending_moderation')
+	})
+
+	it('submit 成功 + navigating + cloudflare → blocked_cloudflare 且提示需 Cloudflare 验证', async () => {
+		// 复现用户反馈的 bug：提交跳转到 CF 人机验证页，应判失败且 submitError 指明原因。
+		const r = await runSubmitAndVerify({
+			sendSubmit: vi.fn().mockResolvedValue(ok({ verifyResult: 'navigating' })),
+			verifyNavigation: vi.fn().mockResolvedValue('cloudflare'),
+		})
+		expect(r.verifyResult).toBe('blocked_cloudflare')
+		expect(VERIFIED_SUCCESS).not.toContain(r.verifyResult)
+		expect(r.submitError).toMatch(/Cloudflare|人机验证/)
 	})
 
 	it('submit 成功 + ajax（无需跨页面验证）→ ajax，且不调用 verifyNavigation', async () => {

@@ -280,6 +280,46 @@ describe('detectCloudflare', () => {
 	})
 })
 
+describe('detectCloudflareChallengePage', () => {
+	// 提交触发整页跳转后，新页面若是 Cloudflare 人机验证整页挑战（"Just a moment..."），
+	// 应判定失败而非沿用 commentVisible 降级误判成功。此处检测整页挑战信号，
+	// 区别于表单内 Turnstile widget（detectCloudflare）。
+
+	it('title 为 "Just a moment..." → 整页 CF 挑战', async () => {
+		const mod = await loadModule()
+		doc.title = 'Just a moment...'
+		expect(mod.detectCloudflareChallengePage()).toBe(true)
+	})
+
+	it('#cf-challenge-running 元素 → 整页 CF 挑战', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div id="cf-challenge-running"></div>`
+		expect(mod.detectCloudflareChallengePage()).toBe(true)
+	})
+
+	it('.cf-browser-verification 元素 → 整页 CF 挑战', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div class="cf-browser-verification"></div>`
+		expect(mod.detectCloudflareChallengePage()).toBe(true)
+	})
+
+	it('表单内 Turnstile widget 不被误判为整页挑战', async () => {
+		// 表单内嵌的 Turnstile（由 detectCloudflare 处理，等待自动完成后提交）不应触发整页挑战判定，
+		// 否则正常的 CF Turnstile 站点会被误判失败。
+		const mod = await loadModule()
+		doc.title = '文章标题'
+		doc.body.innerHTML = `<form><div class="cf-turnstile" data-sitekey="x"></div></form>`
+		expect(mod.detectCloudflareChallengePage()).toBe(false)
+	})
+
+	it('普通博客页面 → false', async () => {
+		const mod = await loadModule()
+		doc.title = '我的博客文章'
+		doc.body.innerHTML = `<form><textarea id="comment"></textarea></form>`
+		expect(mod.detectCloudflareChallengePage()).toBe(false)
+	})
+})
+
 describe('detectImageCaptcha', () => {
 	it('检测到 Captcha.ashx 图片验证码', async () => {
 		const mod = await loadModule()

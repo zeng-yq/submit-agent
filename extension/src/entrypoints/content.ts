@@ -5,7 +5,7 @@ import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible } from '@/agent/field-filter'
 import { waitForFormFields, fillAndVerify } from '@/agent/dom-writers'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { executeSubmit, detectModeration, commentVisibleOnPage, type SubmitResponse } from '@/agent/comment-submit'
+import { executeSubmit, detectModeration, detectCloudflareChallengePage, commentVisibleOnPage, type SubmitResponse } from '@/agent/comment-submit'
 import { isRemoteCommentIframeHost, isRemoteCommentSystem, REMOTE_COMMENT_IFRAME_SELECTORS } from '@/agent/form-analyzer/comment-system-detector'
 import { MessageRouter } from '@/messaging/router'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
@@ -399,10 +399,11 @@ export function registerContentHandlers(router: MessageRouter): void {
 	})
 
 	// 整页跳转后引擎复核：返回当前页是否待审核（URL 参数/DOM 标记）+ 是否已出现刚提交的评论文本
+	// + 是否为 Cloudflare 整页挑战页（若是则上层判失败，拦截 commentVisible 降级误判成功）
 	router.on('TAB_COMMAND', 'verify-moderation', (msg: any) => {
 		const commentText = (msg as { payload?: { commentText?: string } })?.payload?.commentText
 		// 无评论文本（识别不到 comment 字段）时 commentVisible=true：降级退化为只看 moderation，不引入新失败路径
-		return { ok: true, moderation: detectModeration(), commentVisible: commentText ? commentVisibleOnPage(commentText) : true }
+		return { ok: true, moderation: detectModeration(), commentVisible: commentText ? commentVisibleOnPage(commentText) : true, cloudflare: detectCloudflareChallengePage() }
 	})
 
 	router.on('TAB_COMMAND', 'submit', async (msg: any) => {

@@ -53,7 +53,7 @@ export type TabCommandMessage =
 export interface AnalyzeResponse { ok: boolean; analysis: FormAnalysisResult; pageContent?: PageContent; error?: string }
 export interface FillResponse { ok: boolean; filled: number; failed: number; error?: string }
 export interface SimpleResponse { ok: boolean; error?: string }
-export interface VerifyModerationResponse { ok: boolean; moderation: boolean; commentVisible: boolean }
+export interface VerifyModerationResponse { ok: boolean; moderation: boolean; commentVisible: boolean; cloudflare: boolean }
 
 /* ---------- 既有单一职责 type ---------- */
 export type ExtensionMessage =

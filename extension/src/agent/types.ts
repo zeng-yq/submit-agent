@@ -23,6 +23,7 @@ export type VerifyResult =
 	| 'login_required' // 提交被重定向到登录页（未登录，提交失败）
 	| 'pending_moderation' // 评论待审核（WP moderation-hash，未实际发布）
 	| 'unverified' // 提交触发整页跳转，但跳转后无法确认发布状态（保守判失败）
+	| 'blocked_cloudflare' // 提交触发整页跳转，落定页是 Cloudflare 人机验证挑战页（评论未发布）
 	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 验证码）
 
 /** 自动提交后判定为「已确认成功」的验证结果集合（navigating/pagehide 仅在跳转后验证通过后才成立） */
@@ -46,6 +47,8 @@ export function verifyResultLabel(r: string | undefined): string {
 			return '评论待审核，未发布'
 		case 'unverified':
 			return '提交后页面未见评论，判定未发布'
+		case 'blocked_cloudflare':
+			return '需要 Cloudflare 人机验证，未发布'
 		case 'not_attempted':
 			return '未提交（未找到按钮或遇验证码）'
 		default:
