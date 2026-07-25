@@ -26,6 +26,7 @@ export type VerifyResult =
 	| 'blocked_cloudflare' // 提交触发整页跳转，落定页是 Cloudflare 人机验证挑战页（评论未发布）
 	| 'captcha' // 检测到 reCAPTCHA/hCaptcha/图片验证码，需人工、无法自动通过，命中即放弃提交
 	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 响应丢失）
+	| 'skipped_contact_form' // 页面为联系表单（无评论表单），非评论页，跳过填写与提交
 
 /** 自动提交后判定为「已确认成功」的验证结果集合（navigating/pagehide 仅在跳转后验证通过后才成立） */
 export const VERIFIED_SUCCESS: readonly VerifyResult[] = ['ajax', 'cleared', 'navigating', 'pagehide']
@@ -54,6 +55,8 @@ export function verifyResultLabel(r: string | undefined): string {
 			return '遇到验证码，无法自动提交'
 		case 'not_attempted':
 			return '未提交（未找到按钮或点击失败）'
+		case 'skipped_contact_form':
+			return '页面为联系表单，非评论，已跳过'
 		default:
 			return '未知提交状态'
 	}

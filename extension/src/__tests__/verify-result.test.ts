@@ -9,7 +9,7 @@ describe('VERIFIED_SUCCESS', () => {
 
   it('不含任何失败/未确认结果（含新增的 unverified / blocked_cloudflare）', () => {
     const failures: VerifyResult[] = [
-      'pending_moderation', 'login_required', 'timeout', 'not_attempted', 'captcha', 'unverified', 'blocked_cloudflare',
+      'pending_moderation', 'login_required', 'timeout', 'not_attempted', 'captcha', 'unverified', 'blocked_cloudflare', 'skipped_contact_form',
     ]
     for (const f of failures) {
       expect(VERIFIED_SUCCESS).not.toContain(f)
@@ -31,6 +31,7 @@ describe('verifyResultLabel', () => {
     expect(verifyResultLabel('blocked_cloudflare')).toBe('需要 Cloudflare 人机验证，未发布')
     expect(verifyResultLabel('not_attempted')).toBe('未提交（未找到按钮或点击失败）')
     expect(verifyResultLabel('captcha')).toBe('遇到验证码，无法自动提交')
+    expect(verifyResultLabel('skipped_contact_form')).toBe('页面为联系表单，非评论，已跳过')
   })
   it('undefined → 未知提交状态', () => {
     expect(verifyResultLabel(undefined)).toBe('未知提交状态')

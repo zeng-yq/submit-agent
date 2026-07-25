@@ -156,4 +156,31 @@ describe('executeFormFill (end-to-end, mock deps)', () => {
     // commentText 应是实际填入评论框的最长值（field_3 评论正文），而非 field_0（name）
     expect(deps.verifyNavigation).toHaveBeenCalledWith(comment);
   });
+
+  it('纯联系表单页面（web3forms + 无评论表单）→ skipped_contact_form 早退，不调 LLM/不提交', async () => {
+    const deps = mkDeps({
+      sendToTabMessage: vi.fn(async (msg: any) => {
+        if (msg.action === 'analyze') return {
+          ok: true,
+          analysis: {
+            fields: [
+              { canonical_id: 'f1', name: 'name', id: '', type: 'text', label: '', placeholder: '', required: false, maxlength: null, selector: '#name', tagName: 'input', form_index: 0 } as any,
+              { canonical_id: 'f2', name: 'email', id: '', type: 'email', label: '', placeholder: '', required: false, maxlength: null, selector: '#email', tagName: 'input', form_index: 0 } as any,
+              { canonical_id: 'f3', name: 'subject', id: '', type: 'text', label: '', placeholder: '', required: false, maxlength: null, selector: '#subject', tagName: 'input', form_index: 0 } as any,
+              { canonical_id: 'f4', name: 'phone', id: '', type: 'tel', label: '', placeholder: '', required: false, maxlength: null, selector: '#phone', tagName: 'input', form_index: 0 } as any,
+              { canonical_id: 'f5', name: 'messege', id: '', type: 'textarea', label: '', placeholder: 'Messege', required: false, maxlength: null, selector: '#messege', tagName: 'textarea', form_index: 0 } as any,
+            ],
+            forms: [{ form_index: 0, role: 'unknown', confidence: 'low', form_action: 'https://api.web3forms.com/submit', field_count: 5, filtered: false }] as any,
+            page_info: { title: 't', description: 'd', headings: [], content_preview: '' },
+          },
+        } as unknown as AnalyzeResponse;
+        return { ok: true };
+      }) as any,
+    });
+    const r = await executeFormFill(mkConfig(), deps);
+    expect(r.verifyResult).toBe('skipped_contact_form');
+    expect(r.submitted).toBe(false);
+    expect(deps.callLLM).not.toHaveBeenCalled();
+    expect(deps.sendToTabMessage).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'submit' }), expect.anything());
+  });
 });

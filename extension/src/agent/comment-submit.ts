@@ -364,78 +364,104 @@ interface NavApi {
 	removeEventListener(type: string, cb: (e: NavNavigateEvent) => void): void
 }
 
+/** 提交信号监听器：安装即可拦截 fetch/XHR + submit/beforeunload/pagehide/navigate。 */
+export interface SubmitListener {
+	/** 启动超时定时器并返回信号 promise（首次信号或超时 resolve） */
+	wait: (timeoutMs: number) => Promise<SubmitSignal>
+	/** 移除监听 + 还原原始 fetch/XHR（幂等，finish 与外层 finally 都可调用） */
+	cleanup: () => void
+}
+
 /**
- * 点击提交后等待提交信号：拦截 fetch/XHR + 监听 submit/beforeunload/pagehide。
+ * 创建提交信号监听器：调用即同步安装全部拦截器，返回 { wait, cleanup }。
+ * 拆成工厂（而非 waitForSubmitOrNavigate 的一次式）是为了让 performClick「先安装拦截器、再点击」——
+ * 否则点击触发的快速 fetch/XHR（如 jQuery $.ajax 在 click 同步栈内发出）会在拦截器装好前完成而漏检，
+ * 导致 waitFor 跑满超时 → 误走 timeout→cleared 路径。
  * 任一信号触发即 resolve；超时 resolve 'timeout'。结束后恢复原始 fetch/XHR。
  */
+export function createSubmitListener(): SubmitListener {
+	let resolved = false
+	let resolveFn!: (s: SubmitSignal) => void
+	const promise = new Promise<SubmitSignal>((resolve) => { resolveFn = resolve })
+	const originalFetch = window.fetch
+	const originalXHROpen = window.XMLHttpRequest.prototype.open
+	let timer: ReturnType<typeof setTimeout> | undefined
+	let submitDelayTimer: ReturnType<typeof setTimeout> | undefined
+
+	function finish(result: SubmitSignal) {
+		if (resolved) return
+		resolved = true
+		cleanup()
+		resolveFn(result)
+	}
+	function cleanup() {
+		if (timer) clearTimeout(timer)
+		if (submitDelayTimer) clearTimeout(submitDelayTimer)
+		document.removeEventListener('submit', onSubmit, true)
+		window.removeEventListener('beforeunload', onBeforeUnload)
+		window.removeEventListener('pagehide', onPageHide)
+		if (onNavigate && nav) nav.removeEventListener('navigate', onNavigate)
+		if (window.XMLHttpRequest) window.XMLHttpRequest.prototype.open = originalXHROpen
+		if (window.fetch) window.fetch = originalFetch
+	}
+	// 原生表单提交会同步先触发 submit，随后才触发 beforeunload/pagehide。
+	// 若立即判定 ajax 会把 WP 原生评论误标为 ajax（spec §7 要求区分 navigating）。
+	// 故 submit 后延迟 150ms：期间出现 beforeunload/pagehide 则由导航信号胜出，
+	// 超时未导航才判定为真正的 AJAX 提交。fetch/XHR 拦截仍立即判定 ajax。
+	const onSubmit = () => {
+		submitDelayTimer = setTimeout(() => finish('ajax'), 150)
+	}
+	const onBeforeUnload = () => finish('navigating')
+	const onPageHide = () => finish('pagehide')
+
+	// Navigation API（Chrome 102+，MV3 可用）：navigate 事件在卸载前同步触发，
+	// 可在内容上下文丢失前读取目标 URL。若跳转至登录页，判定 login_required（失败）。
+	const nav = (globalThis as unknown as { navigation?: NavApi }).navigation
+	let onNavigate: ((e: NavNavigateEvent) => void) | undefined
+	if (nav) {
+		onNavigate = (e) => {
+			const dest = e.destination?.url
+			if (dest && isLoginRedirectUrl(dest)) finish('login_required')
+			else if (dest && isModerationUrl(dest)) finish('pending_moderation')
+		}
+		nav.addEventListener('navigate', onNavigate)
+	}
+
+	// 拦截 fetch
+	window.fetch = function (this: typeof window, input: RequestInfo | URL, init?: RequestInit) {
+		const url = typeof input === 'string'
+			? input
+			: input instanceof URL ? input.href : input.url
+		if (!resolved && isFormSubmitUrl(url)) finish('ajax')
+		return originalFetch.call(this, input, init)
+	} as typeof fetch
+
+	// 拦截 XHR
+	window.XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string, ...rest: unknown[]) {
+		if (!resolved && isFormSubmitUrl(url)) finish('ajax')
+		return originalXHROpen.apply(this, [method, url, ...rest] as unknown as Parameters<XMLHttpRequest['open']>)
+	} as XMLHttpRequest['open']
+
+	document.addEventListener('submit', onSubmit, true)
+	window.addEventListener('beforeunload', onBeforeUnload)
+	window.addEventListener('pagehide', onPageHide)
+
+	return {
+		wait: (timeoutMs: number) => {
+			timer = setTimeout(() => finish('timeout'), timeoutMs)
+			return promise
+		},
+		cleanup,
+	}
+}
+
+/**
+ * 一次性等待提交信号（兼容旧调用者/单测）：安装 → 等待 → 清理。
+ * 生产路径由 performClick 直接用 createSubmitListener 控制安装时机。
+ */
 export function waitForSubmitOrNavigate(timeoutMs = 10000): Promise<SubmitSignal> {
-	return new Promise((resolve) => {
-		let resolved = false
-		const originalFetch = window.fetch
-		const originalXHROpen = window.XMLHttpRequest.prototype.open
-		let timer: ReturnType<typeof setTimeout>
-		let submitDelayTimer: ReturnType<typeof setTimeout> | undefined
-
-		function finish(result: SubmitSignal) {
-			if (resolved) return
-			resolved = true
-			cleanup()
-			resolve(result)
-		}
-		function cleanup() {
-			clearTimeout(timer)
-			if (submitDelayTimer) clearTimeout(submitDelayTimer)
-			document.removeEventListener('submit', onSubmit, true)
-			window.removeEventListener('beforeunload', onBeforeUnload)
-			window.removeEventListener('pagehide', onPageHide)
-			if (onNavigate && nav) nav.removeEventListener('navigate', onNavigate)
-			if (window.XMLHttpRequest) window.XMLHttpRequest.prototype.open = originalXHROpen
-			if (window.fetch) window.fetch = originalFetch
-		}
-		// 原生表单提交会同步先触发 submit，随后才触发 beforeunload/pagehide。
-		// 若立即判定 ajax 会把 WP 原生评论误标为 ajax（spec §7 要求区分 navigating）。
-		// 故 submit 后延迟 150ms：期间出现 beforeunload/pagehide 则由导航信号胜出，
-		// 超时未导航才判定为真正的 AJAX 提交。fetch/XHR 拦截仍立即判定 ajax。
-		const onSubmit = () => {
-			submitDelayTimer = setTimeout(() => finish('ajax'), 150)
-		}
-		const onBeforeUnload = () => finish('navigating')
-		const onPageHide = () => finish('pagehide')
-
-		// Navigation API（Chrome 102+，MV3 可用）：navigate 事件在卸载前同步触发，
-		// 可在内容上下文丢失前读取目标 URL。若跳转至登录页，判定 login_required（失败）。
-		const nav = (globalThis as unknown as { navigation?: NavApi }).navigation
-		let onNavigate: ((e: NavNavigateEvent) => void) | undefined
-		if (nav) {
-			onNavigate = (e) => {
-				const dest = e.destination?.url
-				if (dest && isLoginRedirectUrl(dest)) finish('login_required')
-				else if (dest && isModerationUrl(dest)) finish('pending_moderation')
-			}
-			nav.addEventListener('navigate', onNavigate)
-		}
-
-		// 拦截 fetch
-		window.fetch = function (this: typeof window, input: RequestInfo | URL, init?: RequestInit) {
-			const url = typeof input === 'string'
-				? input
-				: input instanceof URL ? input.href : input.url
-			if (!resolved && isFormSubmitUrl(url)) finish('ajax')
-			return originalFetch.call(this, input, init)
-		} as typeof fetch
-
-		// 拦截 XHR
-		window.XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string, ...rest: unknown[]) {
-			if (!resolved && isFormSubmitUrl(url)) finish('ajax')
-			return originalXHROpen.apply(this, [method, url, ...rest] as unknown as Parameters<XMLHttpRequest['open']>)
-		} as XMLHttpRequest['open']
-
-		document.addEventListener('submit', onSubmit, true)
-		window.addEventListener('beforeunload', onBeforeUnload)
-		window.addEventListener('pagehide', onPageHide)
-
-		timer = setTimeout(() => finish('timeout'), timeoutMs)
-	})
+	const { wait, cleanup } = createSubmitListener()
+	return wait(timeoutMs).finally(cleanup)
 }
 
 export interface PerformClickResult {
@@ -468,13 +494,13 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
  * 4 级降级点击。任一策略成功执行（不抛异常）即等待提交信号并返回。
  * 降级仅在"该策略抛异常"时触发；submitResult 透传给上层判断提交是否真发生。
  *
- * waitFor 为可注入的提交信号等待函数（默认 waitForSubmitOrNavigate），
+ * install 为可注入的监听器工厂（默认 createSubmitListener），返回 { wait, cleanup }，
  * 便于单测注入 mock 而无需依赖模块命名空间 spyOn。
  */
 export async function performClick(
 	button: HTMLElement | null,
 	form: HTMLFormElement | null,
-	waitFor: (timeoutMs: number) => Promise<SubmitSignal> = waitForSubmitOrNavigate,
+	install: () => SubmitListener = createSubmitListener,
 ): Promise<PerformClickResult> {
 	if (!button) return { success: false, submitResult: 'timeout', error: '提交按钮为空' }
 
@@ -501,15 +527,23 @@ export async function performClick(
 	]
 
 	for (const s of strategies) {
+		// 先安装拦截器再点击：点击触发的快速 fetch/XHR（如 jQuery $.ajax 在 click 同步栈内发出）
+		// 必须在拦截器装好后才能被捕获，否则漏检 → 误走 timeout→cleared。
+		const { wait, cleanup } = install()
 		try {
 			await s.fn()
 		} catch {
-			continue // 该策略抛异常 → 试下一级
+			cleanup() // 该策略抛异常 → 试下一级，先清理本次拦截器
+			continue
 		}
-		// 策略执行成功，等待提交信号（合成事件后给 DOM 一点时间）
-		if (s.name === 'synthetic') await sleep(40)
-		const submitResult = await waitFor(10000)
-		return { success: true, submitResult }
+		try {
+			// 策略执行成功，等待提交信号（合成事件后给 DOM 一点时间）
+			if (s.name === 'synthetic') await sleep(40)
+			const submitResult = await wait(10000)
+			return { success: true, submitResult }
+		} finally {
+			cleanup()
+		}
 	}
 
 	return { success: false, submitResult: 'timeout', error: '所有点击策略均失败' }
@@ -552,6 +586,12 @@ export async function executeSubmit(commentSelector: string | null): Promise<Sub
 		await sleep(CLOUDFLARE_WAIT_MS)
 	}
 
+	// 点击前快照评论文本：提交后评论框可能被清空/移除，需在点击前记录，用于后续内容验证。
+	// undefined（读不到 textarea 值）时跳过内容验证，保守不因读不到而误判失败。
+	const commentText = commentSelector
+		? document.querySelector<HTMLTextAreaElement>(commentSelector)?.value ?? undefined
+		: undefined
+
 	const clickRes = await performClick(button, form)
 	if (!clickRes.success) {
 		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: clickRes.error }
@@ -567,18 +607,26 @@ export async function executeSubmit(commentSelector: string | null): Promise<Sub
 		return { ok: true, clicked: true, verifyResult: 'pending_moderation', error: '评论待审核，未发布' }
 	}
 
-	// timeout 时再查评论框是否被清空（AJAX 提交成功标志）
+	// 同页提交（ajax/timeout→cleared）的内容验证兜底：
+	// 「拦截到请求」或「评论框被清空」只代表可能提交成功，不等于评论真出现在页面。
+	// 联系表单（web3forms 等）AJAX 提交后页面永不回显留言，或评论提交失败（校验错误/服务端报错），
+	// 都会发出请求/清空表单却无评论 → 用 commentVisibleOnPage 复核，搜不到则判 unverified。
 	let verifyResult: VerifyResult = clickRes.submitResult
 	// AJAX moderation：提交报告 ajax，但 DOM 可能出现待审核提示
 	if (verifyResult === 'ajax') {
 		await sleep(1500)
 		if (isModerationContent(document)) verifyResult = 'pending_moderation'
+		else if (commentText && !commentVisibleOnPage(commentText)) verifyResult = 'unverified'
 	}
 	if (verifyResult === 'timeout' && commentSelector) {
 		await sleep(3000)
 		const ta = document.querySelector<HTMLTextAreaElement>(commentSelector)
-		const cleared = !ta || !(ta.value?.trim())
-		if (cleared) verifyResult = 'cleared'
+		// 评论框被清空（AJAX 提交成功标志）。元素消失（!ta）不再判成功——保守判 timeout。
+		const cleared = ta ? !(ta.value?.trim()) : false
+		if (cleared) {
+			// cleared 候选再用评论文本复核：页面未出现评论 → unverified（如联系表单/提交失败）
+			verifyResult = (commentText && !commentVisibleOnPage(commentText)) ? 'unverified' : 'cleared'
+		}
 	}
 
 	return {

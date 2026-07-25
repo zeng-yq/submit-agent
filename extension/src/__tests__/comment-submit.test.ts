@@ -508,14 +508,14 @@ describe('waitForSubmitOrNavigate', () => {
 describe('performClick', () => {
 	it('第一策略成功执行 → 返回 success + submitResult', async () => {
 		const mod = await loadModule()
-		const fakeWaitFor = vi.fn().mockResolvedValue('ajax')
+		const fakeInstall = vi.fn(() => ({ wait: async () => 'ajax' as const, cleanup: () => {} }))
 		doc.body.innerHTML = `<form><button id="btn" type="submit">Go</button></form>`
 		const btn = doc.getElementById('btn') as HTMLElement
 		const form = doc.querySelector('form') as HTMLFormElement
-		const res = await mod.performClick(btn, form, fakeWaitFor)
+		const res = await mod.performClick(btn, form, fakeInstall)
 		expect(res.success).toBe(true)
 		expect(res.submitResult).toBe('ajax')
-		expect(fakeWaitFor).toHaveBeenCalled()
+		expect(fakeInstall).toHaveBeenCalled()
 	})
 
 	it('按钮不存在 → success:false', async () => {
@@ -527,14 +527,14 @@ describe('performClick', () => {
 
 	it('合成事件 + click 都抛异常时，降级到 form.submit', async () => {
 		const mod = await loadModule()
-		const fakeWaitFor = vi.fn().mockResolvedValue('navigating')
+		const fakeInstall = vi.fn(() => ({ wait: async () => 'navigating' as const, cleanup: () => {} }))
 		doc.body.innerHTML = `<form id="f"><button id="btn">Go</button></form>`
 		const btn = doc.getElementById('btn') as HTMLElement
 		const form = doc.querySelector('form') as HTMLFormElement
 		btn.click = () => { throw new Error('nope') }
 		Object.defineProperty(btn, 'dispatchEvent', { value: () => { throw new Error('nope') } })
 		form.requestSubmit = undefined as unknown as HTMLFormElement['requestSubmit']
-		const res = await mod.performClick(btn, form, fakeWaitFor)
+		const res = await mod.performClick(btn, form, fakeInstall)
 		expect(res.success).toBe(true)
 		expect(res.submitResult).toBe('navigating')
 	})
@@ -782,16 +782,75 @@ describe('executeSubmit', () => {
 		doc.body.innerHTML = `
 			<form id="commentform">
 				<textarea id="comment">filled</textarea>
-				<button type="submit" id="btn">Publish</button>
+				<button type="button" id="btn">Publish</button>
 			</form>`
 		const ta = doc.getElementById('comment') as HTMLTextAreaElement
 		const p = mod.executeSubmit('#comment')
-		// synthetic sleep(40) + waitFor 超时 10000（无提交信号）
+		// type=button 点击不触发 form submit / 导航 → 无提交信号 → waitFor 超时 10000
+		//（synthetic sleep(40) + 等待超时）
 		await vi.advanceTimersByTimeAsync(40 + 10000)
 		// timeout 后置：sleep(3000)，期间评论框被 AJAX 清空
 		ta.value = ''
 		await vi.advanceTimersByTimeAsync(3000)
 		const r = await p
 		expect(r.verifyResult).toBe('cleared')
+	})
+
+	it('ajax 提交后页面未见评论文本 → unverified（联系表单/提交失败场景）', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		// textarea HTML 空，仅 JS 设 value（模拟插件填写）；提交后 body.textContent 不含评论
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<button type="submit" id="btn">Publish</button>
+			</form>`
+		;(doc.getElementById('comment') as HTMLTextAreaElement).value = 'a long comment body that should appear after submit'
+		const p = mod.executeSubmit('#comment')
+		await vi.advanceTimersByTimeAsync(40)
+		win.document.dispatchEvent(new win.Event('submit', { bubbles: true }))
+		await vi.advanceTimersByTimeAsync(150 + 1500)
+		const r = await p
+		expect(r.clicked).toBe(true)
+		expect(r.verifyResult).toBe('unverified')
+	})
+
+	it('ajax 提交后页面出现评论文本 → 保持 ajax（真评论成功）', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		const comment = 'a long comment body that should appear after submit'
+		// 提交后评论被插入页面（模拟 AJAX 评论成功）
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<button type="submit" id="btn">Publish</button>
+			</form>
+			<div class="new-comment">${comment}</div>`
+		;(doc.getElementById('comment') as HTMLTextAreaElement).value = comment
+		const p = mod.executeSubmit('#comment')
+		await vi.advanceTimersByTimeAsync(40)
+		win.document.dispatchEvent(new win.Event('submit', { bubbles: true }))
+		await vi.advanceTimersByTimeAsync(150 + 1500)
+		const r = await p
+		expect(r.verifyResult).toBe('ajax')
+	})
+
+	it('timeout→cleared 但页面未见评论文本 → unverified（联系表单清空表单场景）', async () => {
+		vi.useFakeTimers()
+		const mod = await loadModule()
+		doc.body.innerHTML = `
+			<form id="commentform">
+				<textarea id="comment"></textarea>
+				<button type="button" id="btn">Publish</button>
+			</form>`
+		const ta = doc.getElementById('comment') as HTMLTextAreaElement
+		ta.value = 'a long comment body that should appear after submit'
+		const p = mod.executeSubmit('#comment')
+		// type=button 点击不触发 submit/导航 → 无信号 → waitFor 超时 10000
+		await vi.advanceTimersByTimeAsync(40 + 10000)
+		ta.value = '' // 提交后表单被 reset（清空）→ cleared 候选
+		await vi.advanceTimersByTimeAsync(3000)
+		const r = await p
+		expect(r.verifyResult).toBe('unverified')
 	})
 })

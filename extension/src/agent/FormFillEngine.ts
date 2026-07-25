@@ -10,6 +10,7 @@ import { VERIFIED_SUCCESS, verifyResultLabel, type FillEngineStatus, type FillRe
 import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict } from './verify-after-navigation'
 import type { SubmitResponse } from './comment-submit'
 import { pickCommentField } from './form-analyzer'
+import { isContactOnlyPage } from './form-analyzer/contact-detector'
 import { callLLM } from './llm-utils'
 import { sendToTab, sendProgress } from '@/messaging/router'
 import type { VerifyModerationResponse, ExtensionMessage } from '@/messaging/messages'
@@ -161,6 +162,17 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 			onStatusChange('error')
 			onError(new Error(msg))
 			return { filled: 0, skipped: 0, failed: 0, notes: 'No form fields found on this page.' }
+		}
+
+		// 纯联系表单页面（有联系表单 + 无评论表单）→ 直接判失败，跳过 LLM/填写/提交。
+		// 联系表单（Web3Forms/Formspree 等）留言发站长邮箱、不公开展示，对评论外链无效；
+		// 自动提交后页面永不出现评论内容，却可能被误判「评论已发布」，且每次都会给站长发一封真实邮件。
+		if (siteType === 'blog_comment' && isContactOnlyPage(analysis)) {
+			const msg = '页面为联系表单（无评论表单），非评论页，跳过填写与提交'
+			d.log('warning', 'system', msg)
+			d.sendProgress('done')
+			onStatusChange('done')
+			return { filled: 0, skipped: 0, failed: 0, notes: 'Contact form page, no comment form — skipped.', submitted: false, verifyResult: 'skipped_contact_form' }
 		}
 
 		// Step 2+3: build prompt + callLLM + parse（搬运至 pipeline/llm.ts）
