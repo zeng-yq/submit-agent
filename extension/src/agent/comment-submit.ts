@@ -492,11 +492,11 @@ export async function executeSubmit(commentSelector: string | null): Promise<Sub
 	}
 	// reCAPTCHA / hCaptcha：需人工、无法自动通过 → 直接放弃，不硬闯
 	if (detectCaptcha(form)) {
-		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到 reCAPTCHA/hCaptcha，无法自动提交' }
+		return { ok: true, clicked: false, verifyResult: 'captcha', error: '检测到 reCAPTCHA/hCaptcha，无法自动提交' }
 	}
 	// 图片验证码 / 验证码字段（Captcha.ashx、WordPress Really Simple CAPTCHA 等）：需人工输入，无法自动通过 → 直接放弃
 	if (detectImageCaptcha(form)) {
-		return { ok: true, clicked: false, verifyResult: 'not_attempted', error: '检测到验证码，需人工输入，无法自动提交' }
+		return { ok: true, clicked: false, verifyResult: 'captcha', error: '检测到验证码，需人工输入，无法自动提交' }
 	}
 	// Cloudflare Turnstile：managed 模式通常自动完成 → 等待后再提交，
 	// 超时后若提交仍失败，由下方 verify 逻辑判定为失败

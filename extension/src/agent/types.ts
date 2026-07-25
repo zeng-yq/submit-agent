@@ -24,7 +24,8 @@ export type VerifyResult =
 	| 'pending_moderation' // 评论待审核（WP moderation-hash，未实际发布）
 	| 'unverified' // 提交触发整页跳转，但跳转后无法确认发布状态（保守判失败）
 	| 'blocked_cloudflare' // 提交触发整页跳转，落定页是 Cloudflare 人机验证挑战页（评论未发布）
-	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 验证码）
+	| 'captcha' // 检测到 reCAPTCHA/hCaptcha/图片验证码，需人工、无法自动通过，命中即放弃提交
+	| 'not_attempted' // 未尝试提交（找不到按钮 / 点击失败 / 响应丢失）
 
 /** 自动提交后判定为「已确认成功」的验证结果集合（navigating/pagehide 仅在跳转后验证通过后才成立） */
 export const VERIFIED_SUCCESS: readonly VerifyResult[] = ['ajax', 'cleared', 'navigating', 'pagehide']
@@ -49,8 +50,10 @@ export function verifyResultLabel(r: string | undefined): string {
 			return '提交后页面未见评论，判定未发布'
 		case 'blocked_cloudflare':
 			return '需要 Cloudflare 人机验证，未发布'
+		case 'captcha':
+			return '遇到验证码，无法自动提交'
 		case 'not_attempted':
-			return '未提交（未找到按钮或遇验证码）'
+			return '未提交（未找到按钮或点击失败）'
 		default:
 			return '未知提交状态'
 	}

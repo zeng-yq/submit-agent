@@ -628,7 +628,7 @@ describe('executeSubmit', () => {
 		expect(r.error).toContain('未找到提交按钮')
 	})
 
-	it('检测到 reCAPTCHA → 短路 not_attempted', async () => {
+	it('检测到 reCAPTCHA → 短路 captcha', async () => {
 		const mod = await loadModule()
 		doc.body.innerHTML = `
 			<form id="commentform">
@@ -638,10 +638,10 @@ describe('executeSubmit', () => {
 			</form>`
 		const r = await mod.executeSubmit('#comment')
 		expect(r.clicked).toBe(false)
-		expect(r.verifyResult).toBe('not_attempted')
+		expect(r.verifyResult).toBe('captcha')
 	})
 
-	it('检测到图片验证码 → 短路 not_attempted', async () => {
+	it('检测到图片验证码 → 短路 captcha', async () => {
 		const mod = await loadModule()
 		doc.body.innerHTML = `
 			<form id="commentform">
@@ -651,10 +651,10 @@ describe('executeSubmit', () => {
 			</form>`
 		const r = await mod.executeSubmit('#comment')
 		expect(r.clicked).toBe(false)
-		expect(r.verifyResult).toBe('not_attempted')
+		expect(r.verifyResult).toBe('captcha')
 	})
 
-	it('__Captcha__ label + blob 图片（conspirazzi / Really Simple CAPTCHA）→ 短路 not_attempted', async () => {
+	it('__Captcha__ label + blob 图片（conspirazzi / Really Simple CAPTCHA）→ 短路 captcha', async () => {
 		const mod = await loadModule()
 		doc.body.innerHTML = `
 			<form id="commentform">
@@ -666,7 +666,7 @@ describe('executeSubmit', () => {
 			</form>`
 		const r = await mod.executeSubmit('#comment')
 		expect(r.clicked).toBe(false)
-		expect(r.verifyResult).toBe('not_attempted')
+		expect(r.verifyResult).toBe('captcha')
 		expect(r.error).toContain('验证码')
 	})
 
