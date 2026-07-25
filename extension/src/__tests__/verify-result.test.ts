@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { VERIFIED_SUCCESS, verifyResultLabel } from '@/agent/types'
+import { VERIFIED_SUCCESS, verifyResultLabel, describeSubmitFailure } from '@/agent/types'
 import type { VerifyResult } from '@/agent/types'
 
 describe('VERIFIED_SUCCESS', () => {
@@ -35,5 +35,32 @@ describe('verifyResultLabel', () => {
   })
   it('undefined → 未知提交状态', () => {
     expect(verifyResultLabel(undefined)).toBe('未知提交状态')
+  })
+})
+
+describe('describeSubmitFailure', () => {
+  it('submitError 优先于 verifyResult 与填写状态', () => {
+    expect(describeSubmitFailure({ submitError: '评论待审核，未发布', verifyResult: 'pending_moderation', filled: 3, failed: 0 }))
+      .toBe('评论待审核，未发布')
+  })
+  it('无 submitError 时翻译已知 verifyResult', () => {
+    expect(describeSubmitFailure({ verifyResult: 'captcha', filled: 2, failed: 0 })).toBe('遇到验证码，无法自动提交')
+    expect(describeSubmitFailure({ verifyResult: 'not_attempted', filled: 2, failed: 0 })).toBe('未提交（未找到按钮或点击失败）')
+  })
+  it('verifyResult 缺失 + 有字段填写失败 → 部分字段填写失败，未提交', () => {
+    expect(describeSubmitFailure({ filled: 2, failed: 1 })).toBe('部分字段填写失败，未提交')
+  })
+  it('verifyResult 缺失 + 未填任何字段 → 未填写任何字段', () => {
+    expect(describeSubmitFailure({ filled: 0, failed: 0 })).toBe('未填写任何字段')
+    expect(describeSubmitFailure({})).toBe('未填写任何字段')
+  })
+  it('verifyResult 缺失 + 填写成功但未提交 → 填写成功，未触发自动提交', () => {
+    expect(describeSubmitFailure({ filled: 3, failed: 0 })).toBe('填写成功，未触发自动提交')
+  })
+  it('verifyResult 为非枚举值时回退到填写阶段原因（不再退化成「未知提交状态」）', () => {
+    expect(describeSubmitFailure({ verifyResult: 'mystery', filled: 0, failed: 0 })).toBe('未填写任何字段')
+  })
+  it('无法判断时兜底「未知原因」', () => {
+    expect(describeSubmitFailure({ filled: -1 })).toBe('未知原因')
   })
 })

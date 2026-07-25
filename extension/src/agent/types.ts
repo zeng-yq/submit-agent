@@ -62,6 +62,28 @@ export function verifyResultLabel(r: string | undefined): string {
 	}
 }
 
+/** 把单次提交结果映射为失败面板用的简洁中文原因。
+ *
+ * 优先级：submitError（提交阶段明确错误）→ verifyResult 已知文案 → 填写阶段数值推断 → 兜底「未知原因」。
+ * 替代 `submitError || verifyResultLabel(verifyResult)`：后者在提交验证未运行（verifyResult 为空）
+ * 且 submitError 缺失时会退化成无信息量的「未知提交状态」，这里改为按填写阶段状态给出可读原因。 */
+export function describeSubmitFailure(r: {
+	submitError?: string
+	verifyResult?: string
+	filled?: number
+	failed?: number
+}): string {
+	if (r.submitError) return r.submitError
+	if (r.verifyResult) {
+		const label = verifyResultLabel(r.verifyResult)
+		if (label !== '未知提交状态') return label
+	}
+	if (r.failed && r.failed > 0) return '部分字段填写失败，未提交'
+	if (!r.filled || r.filled === 0) return '未填写任何字段'
+	if (r.filled > 0) return '填写成功，未触发自动提交'
+	return '未知原因'
+}
+
 /** Result of a form fill operation */
 export interface FillResult {
 	filled: number

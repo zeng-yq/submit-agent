@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { SiteData, SubmissionRecord } from '@/lib/types'
-import { VERIFIED_SUCCESS, verifyResultLabel } from '@/agent/types'
+import { VERIFIED_SUCCESS, describeSubmitFailure } from '@/agent/types'
 import type { VerifyResult, FillResult } from '@/agent/types'
 
 const BATCH_TARGET = 20
@@ -111,7 +111,7 @@ export function useBatchSubmit({
 						await markFailed(
 							site.name,
 							activeProduct.id,
-							r.submitError || verifyResultLabel(r.verifyResult),
+							describeSubmitFailure(r),
 							r.verifyResult
 						)
 					}
