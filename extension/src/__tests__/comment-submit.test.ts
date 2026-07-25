@@ -617,6 +617,28 @@ describe('commentVisibleOnPage', () => {
 	})
 })
 
+describe('computeVerifyCommentVisible', () => {
+	it('commentText 缺省 → false（保守不判成功，修复降级后门）', async () => {
+		// 复现用户反馈 bug：识别不到评论框时 commentText=undefined，旧逻辑 commentVisible 直接 true，
+		// 配合 moderation 只认 WP，所有「整页跳转 + 非 WP」站点无条件误判「评论已发布」。
+		const mod = await loadModule()
+		expect(mod.computeVerifyCommentVisible(undefined)).toBe(false)
+		expect(mod.computeVerifyCommentVisible('')).toBe(false)
+	})
+
+	it('commentText 存在 + 页面含评论文本 → true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>Great article, thanks for sharing!</div>`
+		expect(mod.computeVerifyCommentVisible('Great article, thanks for sharing!')).toBe(true)
+	})
+
+	it('commentText 存在 + 页面不含 → false', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>totally different content</div>`
+		expect(mod.computeVerifyCommentVisible('Great article, thanks for sharing!')).toBe(false)
+	})
+})
+
 describe('executeSubmit', () => {
 	it('未找到提交按钮 → not_attempted', async () => {
 		const mod = await loadModule()

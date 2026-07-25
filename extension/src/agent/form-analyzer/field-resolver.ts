@@ -90,3 +90,25 @@ export function classifyFields(fields: FormField[]): {
 
   return { commentFields, textareaFields, urlFields, emailFields, authorFields }
 }
+
+/** 评论框识别所需的最小字段结构（兼容完整 FormField 与消息序列化后的子集） */
+export interface CommentFieldLike {
+  type?: string
+  canonical_id?: string
+  name?: string
+  id?: string
+}
+
+/**
+ * 从字段列表里识别评论框：textarea，或 canonical_id/name/id 含 comment|reply|message 语义。
+ * 统一 content.ts（提交侧）与 FormFillEngine（验证侧）的识别口径，避免漂移——
+ * 不能用 effective_type==='comment'：inferEffectiveType 永不返回 'comment'
+ *（<textarea> 的 type==='textarea'，命中 `type !== 'text'` 直接返回 ''），
+ * 旧逻辑 find(f => f.effective_type === 'comment') 是死分支，导致 commentText 恒 undefined。
+ */
+export function pickCommentField<F extends CommentFieldLike>(fields: F[]): F | undefined {
+  return fields.find(f =>
+    f.type === 'textarea'
+    || /comment|reply|message/i.test(`${f.canonical_id ?? ''} ${f.name ?? ''} ${f.id ?? ''}`)
+  )
+}

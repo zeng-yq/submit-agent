@@ -36,7 +36,7 @@ const FINAL_URL_MARKER = /#comment|unapproved=|moderation-hash=/i
  *   - moderation=true（URL 参数/DOM 待审核标记）→ 'moderation'
  *   - moderation=false 且页面搜到评论文本（commentVisible）→ 'confirmed'（已发布）
  *   - moderation=false 但评论不可见：可能异步加载中，继续重试等待渲染；预算耗尽仍不可见 → 'unverified'（保守失败）
- * commentText 缺省时 content script 返回 commentVisible=true（降级，退化为只看 moderation）。
+ * commentText 缺省时 content script 返回 commentVisible=false（保守不判成功，避免非 WP 站点误判）。
  */
 export async function verifyAfterNavigation(
 	tabId: number,

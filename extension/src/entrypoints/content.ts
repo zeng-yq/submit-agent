@@ -5,8 +5,9 @@ import { extractPageContent } from '@/agent/PageContentExtractor'
 import { isVisible } from '@/agent/field-filter'
 import { waitForFormFields, fillAndVerify } from '@/agent/dom-writers'
 import { annotateFields, annotateActive, clearAnnotations } from '@/agent/FormAnnotator.content'
-import { executeSubmit, detectModeration, detectCloudflareChallengePage, commentVisibleOnPage, type SubmitResponse } from '@/agent/comment-submit'
+import { executeSubmit, detectModeration, detectCloudflareChallengePage, computeVerifyCommentVisible, type SubmitResponse } from '@/agent/comment-submit'
 import { isRemoteCommentIframeHost, isRemoteCommentSystem, REMOTE_COMMENT_IFRAME_SELECTORS } from '@/agent/form-analyzer/comment-system-detector'
+import { pickCommentField } from '@/agent/form-analyzer'
 import { MessageRouter } from '@/messaging/router'
 import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 import type { VerifyResult } from '@/agent/types'
@@ -402,19 +403,15 @@ export function registerContentHandlers(router: MessageRouter): void {
 	// + 是否为 Cloudflare 整页挑战页（若是则上层判失败，拦截 commentVisible 降级误判成功）
 	router.on('TAB_COMMAND', 'verify-moderation', (msg: any) => {
 		const commentText = (msg as { payload?: { commentText?: string } })?.payload?.commentText
-		// 无评论文本（识别不到 comment 字段）时 commentVisible=true：降级退化为只看 moderation，不引入新失败路径
-		return { ok: true, moderation: detectModeration(), commentVisible: commentText ? commentVisibleOnPage(commentText) : true, cloudflare: detectCloudflareChallengePage() }
+		// 无评论文本（识别不到 comment 字段）时 commentVisible=false：保守不判成功（避免非 WP 站点误判「评论已发布」）
+		return { ok: true, moderation: detectModeration(), commentVisible: computeVerifyCommentVisible(commentText), cloudflare: detectCloudflareChallengePage() }
 	})
 
 	router.on('TAB_COMMAND', 'submit', async (msg: any) => {
 		const fields = (msg as { payload?: { fields?: Array<{ selector: string; type?: string; effective_type?: string; name?: string; id?: string; canonical_id?: string }> } }).payload?.fields
 		try {
-			// 从已填字段里识别评论框 selector（textarea / comment 语义）
-			const commentField = fields?.find((f) =>
-				f.type === 'textarea'
-				|| f.effective_type === 'comment'
-				|| /comment|reply|message/i.test(`${f.canonical_id ?? ''} ${f.name ?? ''} ${f.id ?? ''}`)
-			)
+			// 从已填字段里识别评论框 selector（与验证侧共用 pickCommentField，避免漂移）
+			const commentField = pickCommentField(fields ?? [])
 			const commentSelector = commentField?.selector ?? null
 
 			// 远程评论 iframe（Blogger / Jetpack Verbum）：提交按钮在跨域 iframe 内，

@@ -85,6 +85,16 @@ export function commentVisibleOnPage(text: string): boolean {
 	return hay.includes(needle)
 }
 
+/**
+ * 计算 verify-moderation 复核的 commentVisible 字段。
+ * 有评论文本 → 在页面 body 搜索；缺省（识别不到评论框）→ false（保守不判成功）。
+ * 旧行为缺省返回 true，配合 moderation 只认 WP，会让所有「整页跳转 + 非 WP」站点
+ * 无条件误判「评论已发布」——故改为保守失败。
+ */
+export function computeVerifyCommentVisible(commentText: string | undefined): boolean {
+	return commentText ? commentVisibleOnPage(commentText) : false
+}
+
 /** 多语种提交关键词 */
 const SUBMIT_KEYWORDS = [
 	'submit', 'post', 'comment', 'publish', 'reply', 'respond', 'send',

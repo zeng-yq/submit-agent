@@ -9,6 +9,7 @@ import type { ProductProfile, SiteData } from '@/lib/types'
 import { VERIFIED_SUCCESS, verifyResultLabel, type FillEngineStatus, type FillResult, type SiteType, type LogEntry, type LogLevel, type LLMFieldData, type VerifyResult } from './types'
 import { verifyAfterNavigation, applyNavigationVerdict, type ModerationVerdict } from './verify-after-navigation'
 import type { SubmitResponse } from './comment-submit'
+import { pickCommentField } from './form-analyzer'
 import { callLLM } from './llm-utils'
 import { sendToTab, sendProgress } from '@/messaging/router'
 import type { VerifyModerationResponse, ExtensionMessage } from '@/messaging/messages'
@@ -202,8 +203,10 @@ export async function executeFormFill(config: FormFillEngineConfig, deps?: FormF
 		let submitError: string | undefined
 		if (SITE_TYPE_STRATEGIES[siteType].autoSubmit && failedCount === 0 && filledCount > 0) {
 			log('info', 'fill', '正在自动提交评论并验证...')
-			// 提取评论文本：跳转后在新页面搜索它作为「评论已发布」的正面证据
-			const commentField = analysis.fields.find(f => f.effective_type === 'comment')
+			// 提取评论文本：跳转后在新页面搜索它作为「评论已发布」的正面证据。
+			// 用 pickCommentField 识别评论框（textarea / comment|reply|message 语义）——
+			// effective_type==='comment' 是死分支（inferEffectiveType 永不返回 'comment'），勿用。
+			const commentField = pickCommentField(analysis.fields)
 			const commentText = commentField ? fieldValues[commentField.canonical_id] : undefined
 			const outcome = await runSubmitAndVerify({
 				sendSubmit: () => d.sendToTabMessage<SubmitResponse>(
