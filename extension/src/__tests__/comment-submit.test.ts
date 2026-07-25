@@ -664,6 +664,22 @@ describe('commentVisibleOnPage', () => {
 		doc.body.innerHTML = `<div>nice post. check out <a href="https://productai.com">these tools</a> for more.</div>`
 		expect(mod.commentVisibleOnPage('nice post. check out <a href="https://productai.com">these tools</a> for more.')).toBe(true)
 	})
+
+	it('WP wptexturize 把 ASCII 引号渲染成弯引号 → 归一化后仍匹配 → true', async () => {
+		// 真实根因（firesafedoors / news1.ahibo 用户反馈）：评论含 ASCII 撇号/引号时，WP wptexturize
+		// 渲染成 Unicode 弯引号（U+2018/2019 撇号、U+201C/201D 双引号）。needle 是填入评论框的 ASCII 原文，
+		// hay 是页面 textContent（弯引号）。不归一化则 hay.includes(needle) 必失败 → 误判 unverified，
+		// 但评论实际已发布（跳转 #comment-<ID>、用户在列表可见）。
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>I agree, it’s a “great” article that doesn’t disappoint.</div>`
+		expect(mod.commentVisibleOnPage(`I agree, it's a "great" article that doesn't disappoint.`)).toBe(true)
+	})
+
+	it('WP wptexturize 把 em-dash / 省略号转成 Unicode（-- → —，... → …）→ 归一化后仍匹配 → true', async () => {
+		const mod = await loadModule()
+		doc.body.innerHTML = `<div>Well-written—thorough and clear. Keep it up…</div>`
+		expect(mod.commentVisibleOnPage(`Well-written--thorough and clear. Keep it up...`)).toBe(true)
+	})
 })
 
 describe('computeVerifyCommentVisible', () => {

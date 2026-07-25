@@ -78,7 +78,17 @@ export function detectModeration(): boolean {
  * <p> 分段连接，无需自行处理转义。文本过短则降级返回 true（不因指纹太短误判失败）。
  */
 export function commentVisibleOnPage(text: string): boolean {
-	const norm = (s: string) => s.replace(/\s+/g, ' ').trim()
+	// WP wptexturize 渲染评论时把 ASCII 标点转成 Unicode 排版字符（'→’、"→”、--→—、...→… 等）。
+	// needle 是填入评论框的 ASCII 原文，hay 是页面 textContent（Unicode）。两边统一归一化到 ASCII，
+	// 否则 hay.includes(needle) 必失败 → 误判 unverified（评论实际已发布，跳转 #comment-<ID>、用户可见）。
+	const norm = (s: string) => s
+		.replace(/[‘’]/g, "'")
+		.replace(/[“”]/g, '"')
+		.replace(/—/g, '--')
+		.replace(/–/g, '-')
+		.replace(/…/g, '...')
+		.replace(/\s+/g, ' ')
+		.trim()
 	// needle 可能含 HTML（评论正文带 <a> 锚文本标签），hay 是 textContent（已去标签）；
 	// 统一去标签后比对，否则带标签的 needle 在 textContent 里 includes 必失败 → 误判 unverified。
 	const stripHtml = (s: string): string => {
