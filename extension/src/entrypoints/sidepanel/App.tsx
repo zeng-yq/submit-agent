@@ -143,12 +143,12 @@ export default function App() {
 	}, [activeProduct, reset, startSubmission, markSubmitted, markFailed])
 
 	// 批量随机提交 20 个博客外链（与单条提交共用 dashboardRunningRef 互斥）
-	const handleBatchSubmit = useCallback(async () => {
+	const handleBatchSubmit = useCallback(async (target?: number) => {
 		if (!activeProduct) return
 		if (dashboardRunningRef.current) return
 		dashboardRunningRef.current = true
 		try {
-			await startBatch()
+			await startBatch(target)
 		} finally {
 			dashboardRunningRef.current = false
 		}

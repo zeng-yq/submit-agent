@@ -54,7 +54,7 @@ export function useBatchSubmit({
 	const isRunningRef = useRef(false)
 	const stopRequestedRef = useRef(false)
 
-	const start = useCallback(async () => {
+	const start = useCallback(async (target: number = BATCH_TARGET) => {
 		if (isRunningRef.current || !activeProduct) return
 
 		// 1) 算候选：blog_comment + 有 submit_url + 状态非终态
@@ -74,11 +74,11 @@ export function useBatchSubmit({
 		stopRequestedRef.current = false
 		let succeeded = 0
 		let attempted = 0
-		setProgress({ attempted, succeeded, target: BATCH_TARGET })
+		setProgress({ attempted, succeeded, target })
 
 		try {
 			for (const site of candidates) {
-				if (stopRequestedRef.current || succeeded >= BATCH_TARGET) break
+				if (stopRequestedRef.current || succeeded >= target) break
 
 				// 2) 开 tab（复用 background open_submit_page，已含 waitForTabLoad + 渲染延迟）
 				let tabId: number | undefined
@@ -130,7 +130,7 @@ export function useBatchSubmit({
 				// 4) 进度（被中断的那一条不计入已尝试）
 				if (!aborted) {
 					attempted++
-					setProgress({ attempted, succeeded, target: BATCH_TARGET })
+					setProgress({ attempted, succeeded, target })
 				}
 
 				// 5) 关 tab（无论成败/中断，都关掉刚开的这一条）

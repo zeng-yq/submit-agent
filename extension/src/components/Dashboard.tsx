@@ -23,7 +23,7 @@ interface DashboardProps {
 	llmFieldData: LLMFieldData | null
 	activeSiteName: string | null
 	onImportCsv?: (csvText: string) => Promise<SiteImportResult>
-	onBatchSubmit?: () => void
+	onBatchSubmit?: (target?: number) => void
 	onStopBatch?: () => void
 	batchRunning?: boolean
 	batchProgress?: { attempted: number; succeeded: number; target: number }
@@ -68,6 +68,7 @@ export function Dashboard({
 	const [categoryFilter, setCategoryFilter] = useState<SiteCategory | 'all'>('all')
 	const [pricingFilter, setPricingFilter] = useState<SitePricing | 'all'>('all')
 	const [opening, setOpening] = useState(false)
+	const [bulkDeleting, setBulkDeleting] = useState(false)
 	const [importMsg, setImportMsg] = useState<string | null>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -157,6 +158,22 @@ export function Dashboard({
 		}
 		setOpening(false)
 	}, [undoneSites])
+
+	// 一键删除当前失败列表（受分类筛选 + 搜索过滤）中的外链：复用单条删除，串行 await
+	const handleBulkDeleteFailed = useCallback(async () => {
+		if (failedSites.length === 0 || !onDeleteSite) return
+		if (!window.confirm(
+			`确定要删除当前显示的 ${failedSites.length} 条失败外链吗？\n这将从外链库永久删除这些站点及其提交记录，不可撤销。`
+		)) return
+		setBulkDeleting(true)
+		try {
+			for (const site of failedSites) {
+				await Promise.resolve(onDeleteSite(site.name))
+			}
+		} finally {
+			setBulkDeleting(false)
+		}
+	}, [failedSites, onDeleteSite])
 
 	const tabs: { id: Tab; label: string; count: number }[] = [
 		{ id: 'all', label: '全部', count: allSites.length },
@@ -271,6 +288,19 @@ export function Dashboard({
 							onChange={(e) => setSearch(e.target.value)}
 							className="flex-1 px-2.5 py-1.5 text-xs rounded border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
 						/>
+						{tab === 'failed' && onDeleteSite && (
+							<Button
+								variant="destructive"
+								size="xs"
+								className="shrink-0"
+								disabled={bulkDeleting || failedSites.length === 0}
+								onClick={handleBulkDeleteFailed}
+								title={failedSites.length === 0 ? '没有失败外链' : `删除当前显示的 ${failedSites.length} 条失败外链`}
+							>
+								{bulkDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+								{bulkDeleting ? '删除中...' : '一键删除'}
+							</Button>
+						)}
 					</div>
 					{/* 操作 */}
 					<div className="flex items-center gap-2">
@@ -312,18 +342,19 @@ export function Dashboard({
 						})()}
 						{!batchRunning && tab === 'undone' && categoryFilter === 'blog_comment' && (() => {
 							const noCandidates = undoneSites.filter((s) => !!s.submit_url).length === 0
-							return (
+							return [20, 40, 60].map((n) => (
 								<Button
+									key={n}
 									variant="outline"
 									size="xs"
 									disabled={noCandidates || !onBatchSubmit}
-									title={noCandidates ? '没有可提交的博客外链' : '从未提交的博客外链中随机提交，直到成功 20 条'}
-									onClick={() => onBatchSubmit?.()}
+									title={noCandidates ? '没有可提交的博客外链' : `从未提交的博客外链中随机提交，直到成功 ${n} 条`}
+									onClick={() => onBatchSubmit?.(n)}
 								>
 									<Play className="w-3 h-3" />
-									{'自动提交 20'}
+									{`提交 ${n}`}
 								</Button>
-							)
+							))
 						})()}
 					</div>
 
