@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SiteData, SubmissionRecord } from '@/lib/types'
 import { reloadSites } from '@/lib/sites'
-import { listSubmissionsByProduct, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, getDB } from '@/lib/db'
+import { listSubmissionsByProductGroup, saveSubmission, updateSubmission, deleteSubmission, deleteSite, deleteSubmissionsBySite, getDB } from '@/lib/db'
+import { mergeSubmissionsBySite } from '@/lib/submissions'
 import type { ExtensionMessage } from '@/messaging/messages'
 
 const SITES_CHANGED = 'SITES_CHANGED'
@@ -28,7 +29,7 @@ export function useSites(productId: string | null): UseSitesResult {
 	const refresh = useCallback(async () => {
 		const [loadedSites, subs] = await Promise.all([
 			reloadSites(),
-			productId ? listSubmissionsByProduct(productId) : Promise.resolve([]),
+			productId ? listSubmissionsByProductGroup(productId) : Promise.resolve([]),
 		])
 		setSites(loadedSites)
 		setSubmissionList(subs)
@@ -50,13 +51,12 @@ export function useSites(productId: string | null): UseSitesResult {
 		return () => chrome.runtime.onMessage.removeListener(handler)
 	}, [refresh])
 
-	const submissions = useMemo(() => {
-		const map = new Map<string, SubmissionRecord>()
-		for (const sub of submissionList) {
-			map.set(sub.siteName, sub)
-		}
-		return map
-	}, [submissionList])
+	// 跨页面去重：同域名产品组的提交记录合并后按 siteName 索引，
+	// 每个 siteName 只保留「最强状态」的那条，避免同站点重复显示与重复提交。
+	const submissions = useMemo(
+		() => mergeSubmissionsBySite(submissionList),
+		[submissionList]
+	)
 
 	const markSubmitted = useCallback(
 		async (siteName: string, productId: string, verifyResult?: string) => {

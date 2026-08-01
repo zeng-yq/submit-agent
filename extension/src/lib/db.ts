@@ -214,6 +214,39 @@ export async function bulkPutSubmissions(records: SubmissionRecord[]): Promise<v
 	await tx.done
 }
 
+/**
+ * 查询「同网站产品组」的所有提交记录。
+ *
+ * 根据给定产品的 URL 域名，找到所有同域名产品，合并它们的提交记录。
+ * 用于跨页面去重：同一网站的不同页面被建为多个产品后，
+ * 它们之间不应向同一外链站点重复提交。
+ *
+ * 写入仍记在各自 productId 名下，查询时按域名组聚合。
+ */
+export async function listSubmissionsByProductGroup(productId: string): Promise<SubmissionRecord[]> {
+	const db = await getDB()
+	const anchor = await db.get('products', productId)
+	if (!anchor?.url) return []
+	const domain = extractDomain(anchor.url)
+	if (!domain) return []
+
+	const allProducts = await db.getAll('products')
+	const groupIds = allProducts
+		.filter((p) => p.url && extractDomain(p.url) === domain)
+		.map((p) => p.id)
+	if (groupIds.length === 0) return []
+
+	const tx = db.transaction('submissions', 'readonly')
+	const index = tx.store.index('by-product')
+	const results: SubmissionRecord[] = []
+	for (const id of groupIds) {
+		const subs = await index.getAll(id)
+		results.push(...subs)
+	}
+	await tx.done
+	return results
+}
+
 // ---- Site CRUD ----
 
 /** Seed sites from sites.json into IndexedDB. Uses put (upsert) so existing records are preserved. */

@@ -1,5 +1,5 @@
 import { getActiveProductId, setFloatButtonEnabled } from '@/lib/storage'
-import { deleteSite, deleteSubmissionsBySite, listSubmissionsByProduct, getSite, addSite } from '@/lib/db'
+import { deleteSite, deleteSubmissionsBySite, listSubmissionsByProductGroup, getSite, addSite } from '@/lib/db'
 import { loadSites, matchCurrentPage, reloadSites } from '@/lib/sites'
 import type { SubmissionStatus } from '@/lib/types'
 import { MessageRouter, type MsgCtx } from '@/messaging/router'
@@ -291,7 +291,8 @@ async function handleCheckSiteMatch(
 		let submissionStatus: 'not_started' | 'submitted' | 'failed' = 'not_started'
 
 		if (activeProductId) {
-			const subs = await listSubmissionsByProduct(activeProductId)
+			// 跨页面去重：按同域名产品组聚合查询，悬浮按钮状态反映整组提交情况
+			const subs = await listSubmissionsByProductGroup(activeProductId)
 			const sub = subs.find(s => s.siteName === matched.name)
 			if (sub) {
 				submissionStatus = toToggleState(sub.status)

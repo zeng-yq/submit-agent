@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { SiteData } from '@/lib/types'
 import { getLLMConfig, getActiveProductId } from '@/lib/storage'
-import { getProduct, listSubmissionsByProduct } from '@/lib/db'
+import { getProduct, listSubmissionsByProductGroup } from '@/lib/db'
 import { reloadSites, matchCurrentPage, getRandomUnsubmitted, filterSubmittable } from '@/lib/sites'
 import type { FillEngineStatus, FillResult, LogEntry, LLMFieldData } from '@/agent/types'
 import { executeFormFill } from '@/agent/FormFillEngine'
@@ -142,7 +142,8 @@ export function useFormFillEngine(): UseFormFillEngineResult {
 			const matched = matchCurrentPage(submittable, currentUrl)
 
 			// Get already-submitted site names to avoid duplicates
-			const existingSubmissions = await listSubmissionsByProduct(productId)
+			// 跨页面去重：按同域名产品组聚合，避免同网站不同页面重复提交同一外链站点
+			const existingSubmissions = await listSubmissionsByProductGroup(productId)
 			const submittedNames = new Set(
 				existingSubmissions
 					.filter((s) => s.status === 'submitted' || s.status === 'approved')
