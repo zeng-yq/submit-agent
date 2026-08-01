@@ -14,6 +14,7 @@ import { useBatchSubmit } from '@/hooks/useBatchSubmit'
 import { BacklinkAnalysis } from '@/components/BacklinkAnalysis'
 import { importBacklinksFromCsv } from '@/lib/backlinks'
 import { importAiDirectoryFromCsv } from '@/lib/sites'
+import { groupProductsByDomain } from '@/lib/submissions'
 import { Dialog, DialogHeader, DialogTitle, DialogCloseButton, DialogContent, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -265,21 +266,25 @@ export default function App() {
 									<path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
 								</svg>
 							</button>
-							{dropdownOpen && (
-								<div className="absolute top-full left-0 mt-1.5 bg-popover border border-border/60 rounded-lg shadow-lg z-50 min-w-[180px] py-1.5">
-									{products.map((p) => (
-										<button
-											key={p.id}
-											type="button"
-											className={`w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors cursor-pointer ${
-												p.id === activeProduct?.id ? 'font-semibold text-primary' : ''
-											}`}
-											onClick={() => { setActive(p.id); setDropdownOpen(false) }}
-										>
-											{p.name}
-										</button>
-									))}
-									<div className="border-t border-border/60 my-1" />
+								{dropdownOpen && (
+									<div className="absolute top-full left-0 mt-1.5 bg-popover border border-border/60 rounded-lg shadow-lg z-50 min-w-[180px] py-1.5">
+										{groupProductsByDomain(products).map((group, groupIdx) => (
+											<div key={group.key} className={groupIdx > 0 ? 'border-t border-border/40 my-1' : ''}>
+												{group.products.map((p) => (
+													<button
+														key={p.id}
+														type="button"
+														className={`w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors cursor-pointer ${
+															p.id === activeProduct?.id ? 'font-semibold text-primary' : ''
+														}`}
+														onClick={() => { setActive(p.id); setDropdownOpen(false) }}
+													>
+														{p.name}
+													</button>
+												))}
+											</div>
+										))}
+										<div className="border-t border-border/60 my-1" />
 									<button
 										type="button"
 										className="w-full text-left px-3.5 py-2 text-xs hover:bg-accent transition-colors text-muted-foreground cursor-pointer"

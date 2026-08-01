@@ -10,6 +10,7 @@ import { useProduct } from '@/hooks/useProduct'
 import { generateProfile, type GeneratedProfile } from '@/lib/profile-generator'
 import { isLLMConfigured } from '@/agent/constants'
 import { getLLMConfig } from '@/lib/storage'
+import { groupProductsByDomain } from '@/lib/submissions'
 
 type View = { name: 'list' } | { name: 'create' } | { name: 'edit'; product: ProductProfile }
 type CreateStep = 'url-input' | 'generating' | 'review' | 'manual'
@@ -183,69 +184,76 @@ export default function App() {
 						</Button>
 					</CardContent>
 				</Card>
-			) : (
-				<div className="space-y-3">
-					{products.map((product) => {
-						const isActive = activeProduct?.id === product.id
-						return (
-							<Card
-								key={product.id}
-								className={isActive ? 'border-primary' : 'hover:border-primary/50'}
+				) : (
+					<div>
+						{groupProductsByDomain(products).map((group, groupIdx) => (
+							<div
+								key={group.key}
+								className={groupIdx > 0 ? 'border-t border-border/40 pt-4 mt-4 space-y-3' : 'space-y-3'}
 							>
-								<CardHeader>
-									<div className="flex items-center gap-2">
-										<CardTitle>{product.name}</CardTitle>
-										{isActive && <Badge variant="default">{'当前使用'}</Badge>}
-									</div>
-									<div className="flex gap-1">
-										{!isActive && (
-											<Button
-												variant="outline"
-												size="sm"
-												onClick={() => setActive(product.id)}
-											>
-												{'设为当前'}
-											</Button>
-										)}
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => setView({ name: 'edit', product })}
+								{group.products.map((product) => {
+									const isActive = activeProduct?.id === product.id
+									return (
+										<Card
+											key={product.id}
+											className={isActive ? 'border-primary' : 'hover:border-primary/50'}
 										>
-											{'编辑'}
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-destructive"
-											onClick={() => {
-												if (confirm(`确定删除「${product.name}」？`)) {
-													deleteProduct(product.id)
-												}
-											}}
-										>
-											{'删除'}
-										</Button>
-									</div>
-								</CardHeader>
-								<CardContent>
-									<div className="text-foreground">{(product.description || '').slice(0, 100)}{(product.description || '').length > 100 ? '...' : ''}</div>
-									<div className="mt-1">
-										<a
-											href={product.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-primary hover:underline"
-										>
-											{product.url}
-										</a>
-									</div>
-								</CardContent>
-							</Card>
-						)
-					})}
-				</div>
-			)}
+											<CardHeader>
+												<div className="flex items-center gap-2">
+													<CardTitle>{product.name}</CardTitle>
+													{isActive && <Badge variant="default">{'当前使用'}</Badge>}
+												</div>
+												<div className="flex gap-1">
+													{!isActive && (
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => setActive(product.id)}
+														>
+															{'设为当前'}
+														</Button>
+													)}
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() => setView({ name: 'edit', product })}
+													>
+														{'编辑'}
+													</Button>
+													<Button
+														variant="ghost"
+														size="sm"
+														className="text-destructive"
+														onClick={() => {
+															if (confirm(`确定删除「${product.name}」？`)) {
+																deleteProduct(product.id)
+															}
+														}}
+													>
+														{'删除'}
+													</Button>
+												</div>
+											</CardHeader>
+											<CardContent>
+												<div className="text-foreground">{(product.description || '').slice(0, 100)}{(product.description || '').length > 100 ? '...' : ''}</div>
+												<div className="mt-1">
+													<a
+														href={product.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-primary hover:underline"
+													>
+														{product.url}
+													</a>
+												</div>
+											</CardContent>
+										</Card>
+									)
+								})}
+							</div>
+						))}
+					</div>
+				)}
 		</div>
 	)
 }
