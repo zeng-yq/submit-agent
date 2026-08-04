@@ -1,6 +1,7 @@
 import type { BacklinkAnalysisResult } from './types'
 import type { FormAnalysisResult, FormField, FormGroup } from '@/agent/FormAnalyzer'
 import { classifyFields } from '@/agent/FormAnalyzer'
+import { isContactOnlyPage } from '@/agent/form-analyzer/contact-detector'
 import type { LogEntry, LogLevel } from '@/agent/types'
 
 export type AnalysisStep = 'loading' | 'analyzing' | 'done'
@@ -77,7 +78,13 @@ export async function analyzeBacklink(
   const hasCommentArea = commentFields.length > 0 || textareaFields.length > 0
   const hasCommentExternalLinks = analysis.commentLinks?.hasExternalLinks ?? false
   const hasBloggerComment = commentSystem === 'blogger'
-  const canComment = (hasUnfilteredForm && hasCommentArea) || hasCommentExternalLinks || hasBloggerComment
+  let canComment = (hasUnfilteredForm && hasCommentArea) || hasCommentExternalLinks || hasBloggerComment
+
+  // 纯联系表单页面（有联系表单 + 无评论表单）→ 判不可发布。
+  // 联系表单留言发站长邮箱、不公开展示，对评论外链无效；避免 Contact 页面污染外链资源库。
+  // 提交阶段（FormFillEngine）另有一次兜底检测，此处为源头过滤。
+  const contactOnly = isContactOnlyPage(analysis)
+  if (contactOnly) canComment = false
 
   // Infer formType
   let formType: BacklinkAnalysisResult['formType'] = 'none'
@@ -102,7 +109,9 @@ export async function analyzeBacklink(
       ? hasCommentExternalLinks
         ? '检测到评论外链（无需可见表单）'
         : '检测到评论表单'
-      : '未发现评论表单',
+      : contactOnly
+        ? '联系表单页面（无评论表单）'
+        : '未发现评论表单',
     formType,
     cmsType,
     detectedFields,

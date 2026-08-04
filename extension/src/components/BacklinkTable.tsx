@@ -4,12 +4,14 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Button } from './ui/Button'
 import { ActivityLog } from './ActivityLog'
+import type { BatchProgress } from './ActivityLog'
 import { BacklinkRow } from './BacklinkRow'
 
 interface BacklinkTableProps {
 	backlinks: BacklinkRecord[]
 	analyzingId: string | null
 	isRunning: boolean
+	analysisProgress?: BatchProgress
 	onAnalyzeOne: (backlink: BacklinkRecord) => void
 	logs: LogEntry[]
 	totalLogCount?: number
@@ -24,6 +26,7 @@ export function BacklinkTable({
 	backlinks,
 	analyzingId,
 	isRunning,
+	analysisProgress,
 	onAnalyzeOne,
 	logs,
 	totalLogCount,
@@ -118,7 +121,7 @@ export function BacklinkTable({
 
 			{/* ── Content: ActivityLog or Virtualized Table ── */}
 			{tab === 'log' ? (
-				<ActivityLog logs={logs} totalLogCount={totalLogCount} onClear={onClearLogs} className="flex-1" />
+				<ActivityLog logs={logs} totalLogCount={totalLogCount} onClear={onClearLogs} className="flex-1" batchProgress={analysisProgress} batchRunning={isRunning} />
 			) : (
 				<>
 					{/* Header row — CSS Grid */}

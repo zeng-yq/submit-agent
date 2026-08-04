@@ -3,13 +3,20 @@ import { ChevronRight, ChevronDown, Trash2, Info, CheckCircle2, AlertTriangle, X
 import { cn } from '@/lib/cn'
 import type { LogEntry, LogLevel, LogPhase, LLMFieldData } from '@/agent/types'
 
+export interface BatchProgress {
+	attempted: number
+	succeeded: number
+	target: number
+	kind?: 'submit' | 'analyze'
+}
+
 interface ActivityLogProps {
 	logs: LogEntry[]
 	totalLogCount?: number
 	onClear?: () => void
 	llmFieldData?: LLMFieldData | null
 	className?: string
-	batchProgress?: { attempted: number; succeeded: number; target: number }
+	batchProgress?: BatchProgress
 	batchRunning?: boolean
 	onStopBatch?: () => void
 }
@@ -187,11 +194,25 @@ export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, classN
 					<span className="text-xs font-medium shrink-0">{'活动日志'}</span>
 					{batchProgress && (
 						<span className="text-[10px] text-muted-foreground tabular-nums truncate">
-							{'批量提交 · 成功 '}
-							<span className={batchRunning ? 'text-green-500 dark:text-green-400 font-medium' : ''}>
-								{batchProgress.succeeded}
-							</span>
-							{`/${batchProgress.target} · 已尝试 ${batchProgress.attempted}`}
+							{batchProgress.kind === 'analyze'
+								? (
+									<>
+										{'分析 · 可发布 '}
+										<span className={batchRunning ? 'text-green-500 dark:text-green-400 font-medium' : ''}>
+											{batchProgress.succeeded}
+										</span>
+										{` · 已分析 ${batchProgress.attempted}/${batchProgress.target}`}
+									</>
+								)
+								: (
+									<>
+										{'批量提交 · 成功 '}
+										<span className={batchRunning ? 'text-green-500 dark:text-green-400 font-medium' : ''}>
+											{batchProgress.succeeded}
+										</span>
+										{`/${batchProgress.target} · 已尝试 ${batchProgress.attempted}`}
+									</>
+								)}
 						</span>
 					)}
 				</div>
@@ -207,9 +228,11 @@ export function ActivityLog({ logs, totalLogCount, onClear, llmFieldData, classN
 							{'停止'}
 						</button>
 					)}
-					<span className="text-[10px] text-muted-foreground tabular-nums">
-						{displayCount} 条
-					</span>
+					{!batchProgress && (
+						<span className="text-[10px] text-muted-foreground tabular-nums">
+							{displayCount} 条
+						</span>
+					)}
 					{onClear && (
 						<button
 							type="button"

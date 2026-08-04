@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { FormField, FormGroup } from '@/agent/FormAnalyzer'
-import { calculateConfidence } from '@/lib/backlink-analyzer'
+import { calculateConfidence, analyzeBacklink } from '@/lib/backlink-analyzer'
+import type { FormAnalysisResult } from '@/agent/FormAnalyzer'
 
 function makeField(overrides: Partial<FormField> & { name: string }): FormField {
   const { name, id, type, label, placeholder, tagName, ...rest } = overrides
@@ -255,3 +256,88 @@ describe('评论系统信号', () => {
     expect(result).toBeCloseTo(0.9, 1)
   })
 })
+
+// analyzeBacklink 的 chrome.runtime.sendMessage mock
+function mockFetchPageContent(analysis: FormAnalysisResult) {
+  vi.stubGlobal('chrome', {
+    runtime: {
+      sendMessage: vi.fn().mockResolvedValue({ ok: true, analysis }),
+    },
+  })
+}
+
+describe('analyzeBacklink - 联系表单页面过滤', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('纯联系表单页面（web3forms action + phone/subject，无评论信号）→ canComment=false', async () => {
+    // 该字段组合原本会被判 canComment=true（有未过滤表单 + textarea），
+    // 但因命中 isContactOnlyPage 应被过滤为不可发布。
+    const analysis: FormAnalysisResult = {
+      fields: [
+        makeField({ name: 'name' }),
+        makeField({ name: 'email', type: 'email' }),
+        makeField({ name: 'subject' }),
+        makeField({ name: 'phone', type: 'tel' }),
+        makeField({ name: 'message', tagName: 'textarea', placeholder: 'Your message' }),
+      ],
+      forms: [makeForm({
+        form_index: 0,
+        filtered: false,
+        form_action: 'https://api.web3forms.com/submit',
+      })],
+      page_info: { title: 'Contact Us', description: '', headings: [], content_preview: '' },
+      commentLinks: { hasExternalLinks: false, uniqueDomains: 0, totalLinks: 0 },
+    }
+    mockFetchPageContent(analysis)
+
+    const result = await analyzeBacklink({ url: 'https://example.com/contact' })
+    expect(result.canComment).toBe(false)
+    expect(result.formType).toBe('none')
+    expect(result.summary).toContain('联系表单')
+  })
+
+  it('页面同时有评论系统 → 不当联系页过滤（仍可发布）', async () => {
+    // web3forms action 但页面挂了 wordpress 评论系统 → isContactOnlyPage=false
+    const analysis: FormAnalysisResult = {
+      fields: [
+        makeField({ name: 'comment', tagName: 'textarea', label: 'Comment' }),
+      ],
+      forms: [makeForm({
+        form_index: 0,
+        filtered: false,
+        form_action: 'https://api.web3forms.com/submit',
+      })],
+      page_info: { title: 'Post', description: '', headings: [], content_preview: '' },
+      commentLinks: { hasExternalLinks: false, uniqueDomains: 0, totalLinks: 0 },
+      commentSystem: { name: 'wordpress', boost: 1 },
+    }
+    mockFetchPageContent(analysis)
+
+    const result = await analyzeBacklink({ url: 'https://example.com/post' })
+    expect(result.canComment).toBe(true)
+  })
+
+  it('普通博客评论页（wp-comments-post.php）→ 不被误过滤', async () => {
+    const analysis: FormAnalysisResult = {
+      fields: [
+        makeField({ name: 'comment', tagName: 'textarea', label: 'Comment' }),
+        makeField({ name: 'author' }),
+      ],
+      forms: [makeForm({
+        form_index: 0,
+        filtered: false,
+        form_action: 'https://example.com/wp-comments-post.php',
+      })],
+      page_info: { title: 'Blog Post', description: '', headings: [], content_preview: '' },
+      commentLinks: { hasExternalLinks: false, uniqueDomains: 0, totalLinks: 0 },
+    }
+    mockFetchPageContent(analysis)
+
+    const result = await analyzeBacklink({ url: 'https://example.com/post' })
+    expect(result.canComment).toBe(true)
+    expect(result.cmsType).toBe('wordpress')
+  })
+})
+

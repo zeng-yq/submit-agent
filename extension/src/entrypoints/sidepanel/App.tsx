@@ -46,6 +46,7 @@ export default function App() {
 	const {
 		analyzingId,
 		isRunning: isBacklinkRunning,
+		analysisProgress,
 		startAnalysis,
 		analyzeOne: analyzeBacklink,
 		stop: stopBacklinkAnalysis,
@@ -366,11 +367,12 @@ export default function App() {
 			<div className="flex-1 overflow-hidden">
 				{tab === 'submit' && renderSubmitTab()}
 				{tab === 'analysis' && (
-					<BacklinkAnalysis
-						backlinks={backlinkState.backlinks}
-						analyzingId={analyzingId}
-						isRunning={isBacklinkRunning}
-						onImportCsv={importBacklinksFromCsv}
+						<BacklinkAnalysis
+							backlinks={backlinkState.backlinks}
+							analyzingId={analyzingId}
+							isRunning={isBacklinkRunning}
+							analysisProgress={analysisProgress}
+							onImportCsv={importBacklinksFromCsv}
 						onReload={backlinkState.reload}
 						onStartAnalysis={startAnalysis}
 						onAnalyzeOne={analyzeBacklink}

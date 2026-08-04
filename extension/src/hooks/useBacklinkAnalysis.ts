@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { BacklinkRecord, BacklinkStatus, SiteRecord } from '@/lib/types'
 import { updateBacklink, listBacklinksByStatus, listBacklinks, addSite, getSiteByDomain, getExistingDomains } from '@/lib/db'
 import { extractDomain } from '@/lib/backlinks'
@@ -196,12 +196,29 @@ export function useBacklinkAnalysis(state: ReturnType<typeof useBacklinkState>) 
 		}
 	}, [])
 
+	// 派生当前分析批次进度：仅在运行时显示（与自动提交语义一致）。
+	// 已分析 = publishable + not_publishable + error（排除预过滤的 skipped，因为 skipped 不在分析批次内）；
+	// 总数 = batchSize（预过滤后的 filtered 数量，不能用 stats.total，后者含 skipped）。
+	const analysisProgress = useMemo(() => {
+		if (!isRunning || !state.activeBatchId) return undefined
+		const batch = state.batchHistory.find(b => b.id === state.activeBatchId)
+		if (!batch) return undefined
+		const { publishable, not_publishable, error } = batch.stats
+		return {
+			attempted: publishable + not_publishable + error,
+			succeeded: publishable,
+			target: batchSize,
+			kind: 'analyze' as const,
+		}
+	}, [isRunning, state.activeBatchId, state.batchHistory, batchSize])
+
 	return {
 		analyzingId,
 		currentStep,
 		currentIndex,
 		batchSize,
 		isRunning,
+		analysisProgress,
 		startAnalysis,
 		stop,
 		analyzeOne,

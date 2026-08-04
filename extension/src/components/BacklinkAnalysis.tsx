@@ -3,11 +3,13 @@ import type { BacklinkRecord } from '@/lib/types'
 import type { LogEntry } from '@/agent/types'
 import { BacklinkToolbar } from './BacklinkToolbar'
 import { BacklinkTable } from './BacklinkTable'
+import type { BatchProgress } from './ActivityLog'
 
 interface BacklinkAnalysisProps {
 	backlinks: BacklinkRecord[]
 	analyzingId: string | null
 	isRunning: boolean
+	analysisProgress?: BatchProgress
 	onImportCsv: (csvText: string) => Promise<{ imported: number; skipped: number }>
 	onReload: () => void
 	onStartAnalysis: (count: number) => void
@@ -24,6 +26,7 @@ export function BacklinkAnalysis({
 	backlinks,
 	analyzingId,
 	isRunning,
+	analysisProgress,
 	onImportCsv,
 	onReload,
 	onStartAnalysis,
@@ -61,6 +64,7 @@ export function BacklinkAnalysis({
 				backlinks={backlinks}
 				analyzingId={analyzingId}
 				isRunning={isRunning}
+				analysisProgress={analysisProgress}
 				onAnalyzeOne={onAnalyzeOne}
 				logs={logs}
 				totalLogCount={totalLogCount}
