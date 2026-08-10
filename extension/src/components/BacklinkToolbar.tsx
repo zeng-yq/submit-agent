@@ -160,6 +160,7 @@ export function BacklinkToolbar({
 							<option value={8000}>8000</option>
 							<option value={15000}>15000</option>
 							<option value={30000}>30000</option>
+							<option value={60000}>60000</option>
 						</select>
 						<Button
 							variant="default"
