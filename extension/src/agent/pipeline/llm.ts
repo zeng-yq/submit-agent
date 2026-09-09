@@ -38,8 +38,9 @@ export async function llmPhase(deps: FormFillDeps, input: LlmPhaseInput): Promis
     systemPrompt,
     userPrompt,
     temperature: strategy.temperature,
-    // 思考模型的 reasoning token 也计入 max_tokens，2048 会被思考链耗尽导致正文为空（finish_reason: length）
-    maxTokens: 8192,
+    // DeepSeek 端点已在 callLLM 中禁用思考（lib/deepseek.ts），输出为短 JSON，2048 足够。
+    // 其他思考模型的 reasoning token 也计入 max_tokens，届时需调大避免思考链挤空正文
+    maxTokens: 2048,
     signal,
     jsonMode: true,
   })

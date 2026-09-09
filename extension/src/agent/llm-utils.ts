@@ -4,6 +4,7 @@
  */
 
 import type { LLMSettings } from '@/lib/types'
+import { disableDeepSeekThinking } from '@/lib/deepseek'
 
 const LLM_TIMEOUT_MS = 60_000
 
@@ -27,7 +28,7 @@ export async function callLLM(options: CallLLMOptions): Promise<string> {
 		systemPrompt,
 		userPrompt,
 		temperature = 0.3,
-		maxTokens = 8192,
+		maxTokens = 2048,
 		signal,
 		jsonMode = false,
 	} = options
@@ -46,6 +47,7 @@ export async function callLLM(options: CallLLMOptions): Promise<string> {
 		],
 		temperature,
 		max_tokens: maxTokens,
+		...disableDeepSeekThinking(config),
 	}
 
 	if (jsonMode) {

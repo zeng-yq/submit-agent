@@ -1,5 +1,6 @@
 import type { LLMSettings, ProductProfile } from './types'
 import { getLLMConfig } from './storage'
+import { disableDeepSeekThinking } from './deepseek'
 
 export type GeneratedProfile = Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt' | 'founderName' | 'founderEmail'>
 
@@ -159,6 +160,7 @@ export async function generateProfile(
 		temperature: 0.7,
 		max_tokens: 1024,
 		response_format: { type: 'json_object' },
+		...disableDeepSeekThinking(config),
 	}
 
 	let response = await fetch(endpoint, {

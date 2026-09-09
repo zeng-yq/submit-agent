@@ -1,5 +1,46 @@
-import { describe, it, expect } from 'vitest'
-import { parseLLMJson, injectHrefNewline } from '@/agent/llm-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { callLLM, parseLLMJson, injectHrefNewline } from '@/agent/llm-utils'
+
+const okLlmResponse = {
+	ok: true,
+	status: 200,
+	json: async () => ({ choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }], usage: {} }),
+	text: async () => '',
+}
+
+afterEach(() => {
+	vi.unstubAllGlobals()
+})
+
+describe('callLLM · DeepSeek thinking 禁用', () => {
+	it('DeepSeek 端点 → 请求 body 附带 thinking disabled', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(okLlmResponse)
+		vi.stubGlobal('fetch', fetchMock)
+
+		await callLLM({
+			config: { apiKey: 'k', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
+			systemPrompt: 's',
+			userPrompt: 'u',
+		})
+
+		const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+		expect(body.thinking).toEqual({ type: 'disabled' })
+	})
+
+	it('非 DeepSeek 端点 → 不附带 thinking（避免未知参数 400）', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(okLlmResponse)
+		vi.stubGlobal('fetch', fetchMock)
+
+		await callLLM({
+			config: { apiKey: 'k', baseUrl: 'https://openrouter.ai/api/v1', model: 'gpt-4o' },
+			systemPrompt: 's',
+			userPrompt: 'u',
+		})
+
+		const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+		expect(body.thinking).toBeUndefined()
+	})
+})
 
 describe('parseLLMJson', () => {
 	it('parses valid JSON', () => {
