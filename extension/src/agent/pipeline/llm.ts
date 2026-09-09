@@ -38,7 +38,8 @@ export async function llmPhase(deps: FormFillDeps, input: LlmPhaseInput): Promis
     systemPrompt,
     userPrompt,
     temperature: strategy.temperature,
-    maxTokens: 2048,
+    // 思考模型的 reasoning token 也计入 max_tokens，2048 会被思考链耗尽导致正文为空（finish_reason: length）
+    maxTokens: 8192,
     signal,
     jsonMode: true,
   })

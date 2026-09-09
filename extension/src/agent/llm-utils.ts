@@ -27,7 +27,7 @@ export async function callLLM(options: CallLLMOptions): Promise<string> {
 		systemPrompt,
 		userPrompt,
 		temperature = 0.3,
-		maxTokens = 2048,
+		maxTokens = 8192,
 		signal,
 		jsonMode = false,
 	} = options
@@ -89,7 +89,13 @@ export async function callLLM(options: CallLLMOptions): Promise<string> {
 	const data = await response.json()
 	const content = data.choices?.[0]?.message?.content
 	if (!content) {
-		throw new Error('LLM 返回了空响应')
+		// 排查用：记录完整响应结构（finish_reason、reasoning_content 等），便于定位空响应原因
+		console.warn('[callLLM] 空响应，原始返回:', JSON.stringify(data, null, 2))
+		throw new Error(
+			`LLM 返回了空响应 (finish_reason: ${data.choices?.[0]?.finish_reason ?? 'unknown'}, ` +
+				`usage: ${JSON.stringify(data.usage ?? null)}, ` +
+				`reasoning_content 长度: ${String(data.choices?.[0]?.message?.reasoning_content ?? '').length})`,
+		)
 	}
 
 	return content
