@@ -12,7 +12,7 @@ afterEach(() => {
 	vi.unstubAllGlobals()
 })
 
-describe('callLLM · DeepSeek thinking 禁用', () => {
+describe('callLLM · 思考模式禁用', () => {
 	it('DeepSeek 端点 → 请求 body 附带 thinking disabled', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(okLlmResponse)
 		vi.stubGlobal('fetch', fetchMock)
@@ -27,7 +27,21 @@ describe('callLLM · DeepSeek thinking 禁用', () => {
 		expect(body.thinking).toEqual({ type: 'disabled' })
 	})
 
-	it('非 DeepSeek 端点 → 不附带 thinking（避免未知参数 400）', async () => {
+	it('HY（腾讯混元 TokenHub）端点 → 同样附带 thinking disabled', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(okLlmResponse)
+		vi.stubGlobal('fetch', fetchMock)
+
+		await callLLM({
+			config: { apiKey: 'k', baseUrl: 'https://tokenhub.tencentmaas.com/v1', model: 'hy4-flash' },
+			systemPrompt: 's',
+			userPrompt: 'u',
+		})
+
+		const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+		expect(body.thinking).toEqual({ type: 'disabled' })
+	})
+
+	it('其他端点 → 不附带 thinking（避免未知参数 400）', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(okLlmResponse)
 		vi.stubGlobal('fetch', fetchMock)
 

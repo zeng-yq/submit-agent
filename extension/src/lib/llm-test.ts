@@ -1,5 +1,5 @@
 import type { LLMSettings } from './types'
-import { disableDeepSeekThinking } from './deepseek'
+import { disableThinking } from './thinking'
 
 export type TestResult =
 	| { ok: true }
@@ -25,7 +25,7 @@ export async function testLLMConnection(config: LLMSettings): Promise<TestResult
 				messages: [{ role: 'user', content: 'Hi' }],
 				max_tokens: 1,
 				// 思考链计入 output tokens，max_tokens=1 时会挤占正文导致空响应/400
-				...disableDeepSeekThinking(config),
+				...disableThinking(config),
 			}),
 			signal: controller.signal,
 		})

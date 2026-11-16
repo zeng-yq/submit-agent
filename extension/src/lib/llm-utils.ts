@@ -4,7 +4,7 @@
  */
 
 import type { LLMSettings } from '@/lib/types'
-import { disableDeepSeekThinking } from '@/lib/deepseek'
+import { disableThinking } from '@/lib/thinking'
 
 const LLM_TIMEOUT_MS = 60_000
 
@@ -47,7 +47,7 @@ export async function callLLM(options: CallLLMOptions): Promise<string> {
 		],
 		temperature,
 		max_tokens: maxTokens,
-		...disableDeepSeekThinking(config),
+		...disableThinking(config),
 	}
 
 	if (jsonMode) {
