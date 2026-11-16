@@ -28,6 +28,8 @@ export function buildCopyGenerationPrompt(input: {
 	url: string
 	analysis: string
 	seed: string
+	maxIntroChars: number
+	maxDescriptionChars: number
 }): { systemPrompt: string; userPrompt: string } {
 	const systemPrompt = [
 		'You write listing copy for a web directory submission.',
@@ -35,8 +37,8 @@ export function buildCopyGenerationPrompt(input: {
 		'- Write in English only.',
 		'- Use short sentences. Sound like a human talking, not a brochure.',
 		'- Never use em dashes or en dashes, and no long compound sentences.',
-		'- "intro" is at most 300 characters, plain text, no markdown.',
-		'- "description" is at most 1000 characters, written in markdown.',
+		`- "intro" is at most ${input.maxIntroChars} characters, plain text, no markdown.`,
+		`- "description" is at most ${input.maxDescriptionChars} characters, written in markdown.`,
 		'- Inside "description", include 1 to 3 markdown links pointing ONLY to this product site,',
 		`  e.g. [natural anchor text](${input.url}). Anchor text must be natural and varied, never "click here".`,
 		'- Do not mention directories, submissions, or SEO.',

@@ -81,10 +81,39 @@ describe('generateCopy · 守卫', () => {
 })
 
 describe('generateCopy · 校验与自动重试', () => {
-	it('简介超长：自动重试一次，第二次有效则返回，且两次种子不同', async () => {
-		const longIntro = 'a'.repeat(301)
+	it('字数为软约束：简介/详述超档不重试不报错，一次调用直接返回', async () => {
+		const longIntro = 'a'.repeat(312)
+		const longDescription = 'ExampleFlow is a [tool](https://example.com). ' + 'x'.repeat(1099)
 		const callLLM = llmReturning(
-			JSON.stringify({ intro: longIntro, description: JSON.parse(VALID_COPY_JSON).description }),
+			JSON.stringify({ intro: longIntro, description: longDescription }),
+		)
+
+		const copy = await generateCopy(makeProduct(), {
+			callLLM,
+			generateSeed: () => 's',
+			limits: { maxIntroChars: 300, maxDescriptionChars: 1000 },
+		})
+
+		expect(copy.intro).toHaveLength(312)
+		expect(callLLM).toHaveBeenCalledTimes(1)
+	})
+
+	it('自定义档位注入提示词：500/2000', async () => {
+		const callLLM = llmReturning(VALID_COPY_JSON)
+		await generateCopy(makeProduct(), {
+			callLLM,
+			generateSeed: () => 's',
+			limits: { maxIntroChars: 500, maxDescriptionChars: 2000 },
+		})
+		const { systemPrompt } = callLLM.mock.calls[0][0]
+		expect(systemPrompt).toContain('at most 500 characters')
+		expect(systemPrompt).toContain('at most 2000 characters')
+	})
+
+	it('链接违规时自动重试一次，第二次有效则返回，且两次种子不同', async () => {
+		const noLinkDescription = 'ExampleFlow is a tool. It helps teams. No links here at all.'
+		const callLLM = llmReturning(
+			JSON.stringify({ intro: 'ExampleFlow helps small teams automate work.', description: noLinkDescription }),
 			VALID_COPY_JSON,
 		)
 		const seeds = ['seed-first', 'seed-second']
@@ -92,37 +121,25 @@ describe('generateCopy · 校验与自动重试', () => {
 
 		const copy = await generateCopy(makeProduct(), { callLLM, generateSeed })
 
-		expect(copy.intro).toBe(JSON.parse(VALID_COPY_JSON).intro)
+		expect(copy.description).toContain('](https://example.com')
 		expect(callLLM).toHaveBeenCalledTimes(2)
 		expect(callLLM.mock.calls[0][0].userPrompt).toContain('seed-first')
 		expect(callLLM.mock.calls[1][0].userPrompt).toContain('seed-second')
 	})
 
-	it('两次都越界：报错含越界具体值', async () => {
-		const longIntro = 'a'.repeat(312)
+	it('两次都链接违规：报错含每次的具体违规', async () => {
+		const noLinkDescription = 'No links here.'
 		const callLLM = llmReturning(
-			JSON.stringify({ intro: longIntro, description: JSON.parse(VALID_COPY_JSON).description }),
-			JSON.stringify({ intro: 'b'.repeat(305), description: JSON.parse(VALID_COPY_JSON).description }),
+			JSON.stringify({ intro: 'i1', description: noLinkDescription }),
+			JSON.stringify({ intro: 'i2', description: noLinkDescription }),
 		)
 
 		await expect(generateCopy(makeProduct(), { callLLM, generateSeed: () => 's' })).rejects.toThrow(
-			/简介 305 字符，超过上限 300/,
+			/第 1 次: 详述缺少指向 example.com 的链接（找到 0 个，需要 1~3 个）；第 2 次/,
 		)
 	})
 
-	it('详述缺产品域名链接（0 个）：视为越界并重试', async () => {
-		const noLinkDescription = 'ExampleFlow is a tool. It helps teams. No links here at all.'
-		const callLLM = llmReturning(
-			JSON.stringify({ intro: 'ExampleFlow helps small teams automate work.', description: noLinkDescription }),
-			VALID_COPY_JSON,
-		)
-
-		const copy = await generateCopy(makeProduct(), { callLLM, generateSeed: () => 's' })
-		expect(copy.description).toContain('](https://example.com')
-		expect(callLLM).toHaveBeenCalledTimes(2)
-	})
-
-	it('详述产品域名链接超过 3 个：视为越界', async () => {
+	it('详述产品域名链接超过 3 个：视为违规重试', async () => {
 		const fourLinks = [
 			'[a](https://example.com/a)',
 			'[b](https://example.com/b)',
@@ -148,18 +165,5 @@ describe('generateCopy · 校验与自动重试', () => {
 
 		await generateCopy(makeProduct(), { callLLM, generateSeed: () => 's' })
 		expect(callLLM).toHaveBeenCalledTimes(1)
-	})
-
-	it('详述超长（>1000 字符）：报错含长度值', async () => {
-		const longDescription =
-			'ExampleFlow is a [tool](https://example.com). ' + 'x'.repeat(1001)
-		const callLLM = llmReturning(
-			JSON.stringify({ intro: 'ExampleFlow helps small teams automate work.', description: longDescription }),
-			JSON.stringify({ intro: 'ExampleFlow helps small teams automate work.', description: longDescription }),
-		)
-
-		await expect(generateCopy(makeProduct(), { callLLM, generateSeed: () => 's' })).rejects.toThrow(
-			/详述 \d+ 字符，超过上限 1000/,
-		)
 	})
 })

@@ -1,4 +1,10 @@
 import type { LLMSettings } from './types'
+import {
+	DEFAULT_COPY_CHAR_LIMITS,
+	isDescriptionCharLimit,
+	isIntroCharLimit,
+	type CopyCharLimits,
+} from './copy-limits'
 
 /** 内置 LLM 供应商：端点与模型固定，仅 API Key 可配置（见 GLOSSARY.md「LLM 供应商」） */
 export const LLM_PROVIDERS = {
@@ -13,6 +19,8 @@ export const DEFAULT_LLM_PROVIDER: LLMProviderId = 'deepseek'
 const STORAGE_KEYS = {
 	llmProvider: 'submitAgent_llmProvider',
 	activeProductId: 'submitAgent_activeProductId',
+	introCharLimit: 'submitAgent_introCharLimit',
+	descriptionCharLimit: 'submitAgent_descriptionCharLimit',
 	apiKeyByProvider: {
 		deepseek: 'submitAgent_deepseekApiKey',
 		hy: 'submitAgent_hyApiKey',
@@ -64,4 +72,24 @@ export async function setActiveProductId(id: string | null): Promise<void> {
 	} else {
 		await chrome.storage.local.set({ [STORAGE_KEYS.activeProductId]: id })
 	}
+}
+
+/** 文案字数软限制档位（不在预设清单内的存储值回退默认） */
+export async function getCopyCharLimits(): Promise<CopyCharLimits> {
+	const result = await chrome.storage.local.get([STORAGE_KEYS.introCharLimit, STORAGE_KEYS.descriptionCharLimit])
+	const intro = result[STORAGE_KEYS.introCharLimit]
+	const description = result[STORAGE_KEYS.descriptionCharLimit]
+	return {
+		maxIntroChars: isIntroCharLimit(intro) ? intro : DEFAULT_COPY_CHAR_LIMITS.maxIntroChars,
+		maxDescriptionChars: isDescriptionCharLimit(description)
+			? description
+			: DEFAULT_COPY_CHAR_LIMITS.maxDescriptionChars,
+	}
+}
+
+export async function setCopyCharLimits(limits: CopyCharLimits): Promise<void> {
+	await chrome.storage.local.set({
+		[STORAGE_KEYS.introCharLimit]: limits.maxIntroChars,
+		[STORAGE_KEYS.descriptionCharLimit]: limits.maxDescriptionChars,
+	})
 }

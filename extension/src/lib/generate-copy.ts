@@ -1,6 +1,7 @@
 import { buildCopyGenerationPrompt } from './prompts'
 import { callLLM, parseLLMJson } from './llm-utils'
-import { validateCopy } from './copy-validator'
+import { validateProductLinks } from './copy-validator'
+import { DEFAULT_COPY_CHAR_LIMITS, type CopyCharLimits } from './copy-limits'
 import type { LLMSettings, Product } from './types'
 
 export interface GeneratedCopy {
@@ -11,18 +12,22 @@ export interface GeneratedCopy {
 export interface GenerateCopyDeps {
 	callLLM: (options: { systemPrompt: string; userPrompt: string }) => Promise<string>
 	generateSeed?: () => string
+	/** 字数软限制（注入提示词约束 LLM，超出不报错）；默认 300/1000 */
+	limits?: CopyCharLimits
 }
 
 const MAX_ATTEMPTS = 2
 
 /**
- * 文案生成管线（测试接缝）：随机种子提示词 → 一次 LLM 调用 → JSON 解析 → 规格校验 → 越界自动重试一次。
+ * 文案生成管线（测试接缝）：随机种子提示词（含字数软限制） → 一次 LLM 调用 → JSON 解析
+ * → 链接数硬校验（1~3 个产品域名链接） → 违规自动重试一次。
  */
 export async function generateCopy(product: Product, deps: GenerateCopyDeps): Promise<GeneratedCopy> {
 	if (!product.analysis) {
 		throw new Error(`产品 ${product.domain} 还没有产品分析，请删除后重新添加该产品`)
 	}
 	const generateSeed = deps.generateSeed ?? defaultSeed
+	const limits = deps.limits ?? DEFAULT_COPY_CHAR_LIMITS
 
 	const violationsByAttempt: string[][] = []
 	for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -32,12 +37,14 @@ export async function generateCopy(product: Product, deps: GenerateCopyDeps): Pr
 			url: product.url,
 			analysis: product.analysis,
 			seed: generateSeed(),
+			maxIntroChars: limits.maxIntroChars,
+			maxDescriptionChars: limits.maxDescriptionChars,
 		})
 
 		const raw = await deps.callLLM({ systemPrompt, userPrompt })
 		const { intro, description } = parseCopyResponse(raw)
 
-		const violations = validateCopy(intro, description, product.domain)
+		const violations = validateProductLinks(description, product.domain)
 		if (violations.length === 0) {
 			return { intro, description }
 		}
