@@ -1,154 +1,34 @@
-/** Product profile stored in IndexedDB. User fills this once, agent uses it for every submission. */
-export interface ProductProfile {
-	id: string
-	name: string
-	url: string
-	description: string
-	anchorTexts: string
-	founderName: string
-	founderEmail: string
-	createdAt: number
-	updatedAt: number
-}
-
-export type SubmissionStatus =
-	| 'not_started'
-	| 'in_progress'
-	| 'submitted'
-	| 'approved'
-	| 'rejected'
-	| 'failed'
-	| 'skipped'
-
-/** Tracks per-site submission state in IndexedDB */
-export interface SubmissionRecord {
-	id: string
-	siteName: string
-	productId: string
-	status: SubmissionStatus
-	rewrittenDesc?: string
-	submittedAt?: number
-	notes?: string
-	error?: string        // 失败时的错误信息
-	failedAt?: number     // 失败时间戳 (Date.now())
-	verifyResult?: string // 提交验证结果（ajax/navigating/pagehide/cleared/timeout 等，spec §4）
-	submittedFromFloatButton?: boolean
-	createdAt: number
-	updatedAt: number
-}
-
-/** Site record stored in IndexedDB, extends SiteData with DB metadata */
-export interface SiteRecord extends SiteData {
-  domain?: string
-  createdAt: number
-  updatedAt: number
-}
-
-/** Site category — fixed set of 3 categories for the submit dashboard */
-export type SiteCategory = 'blog_comment' | 'ai_directory' | 'others'
-
-export const SITE_CATEGORIES: { value: SiteCategory; label: string }[] = [
-  { value: 'blog_comment', label: '博客评论' },
-  { value: 'ai_directory', label: 'AI 目录' },
-  { value: 'others', label: '其他' },
-]
-
-/** Get display label for a category value; unknown values map to their raw string. */
-export function getCategoryLabel(category: string): string {
-  return SITE_CATEGORIES.find((c) => c.value === category)?.label ?? category
-}
-
-/** Site pricing — structured enum for the price tier (CSV 免费/付费/混合) */
-export type SitePricing = 'free' | 'paid' | 'mixed'
-
-export const SITE_PRICINGS: { value: SitePricing; label: string }[] = [
-  { value: 'free', label: '免费' },
-  { value: 'paid', label: '付费' },
-  { value: 'mixed', label: '混合' },
-]
-
-/** Get display label for a pricing value; unknown/empty → '' (不渲染标签). */
-export function getPricingLabel(pricing: string): string {
-  return SITE_PRICINGS.find((p) => p.value === pricing)?.label ?? ''
-}
-
-/** One entry from sites.json */
-export interface SiteData {
-	name: string
-	submit_url: string | null
-	category: SiteCategory
-	dr: number | null
-	status?: string
-	monthly_traffic?: number
-	pricing?: string
-	notes?: string
-	pricing_type?: SitePricing
-	requires_login?: boolean
-}
-
-/** sites.json top-level structure */
-export interface SitesDatabase {
-	meta: {
-		name: string
-		description: string
-		last_updated: string
-		total_sites: number
-		license: string
-		repository: string
-	}
-	sites: SiteData[]
-}
-
-/** LLM config persisted in chrome.storage.local */
+/** LLM 配置。端点与模型固定为 DeepSeek 官方值，仅 API Key 由用户配置。 */
 export interface LLMSettings {
 	apiKey: string
 	baseUrl: string
 	model: string
 }
 
-export type ProviderKey = 'openrouter' | 'openai' | 'deepseek' | 'custom'
-
-/** Per-provider LLM configs + active provider selection */
-export interface ProviderConfigs {
-	active: ProviderKey
-	configs: Record<ProviderKey, LLMSettings>
-}
-
-/** Extension-wide settings persisted in chrome.storage.local */
-export interface ExtSettings {
-	llm: LLMSettings
-	autoRewriteDesc: boolean
-}
-
-/** Analysis status for imported backlinks */
-export type BacklinkStatus =
-	| 'pending'
-	| 'publishable'
-	| 'not_publishable'
-	| 'skipped'
-	| 'error'
-
-/** Extended analysis result from LLM for backlink suitability */
-export interface BacklinkAnalysisResult {
-	canComment: boolean
-	summary: string
-	formType: 'blog_comment' | 'directory' | 'contact_form' | 'forum' | 'none'
-	cmsType: 'wordpress' | 'blogger' | 'discuz' | 'custom' | 'unknown'
-	detectedFields: string[]
-	confidence: number
-	commentSystem?: string
-}
-
-/** Backlink record imported from Semrush CSV, stored in IndexedDB */
-export interface BacklinkRecord {
+/**
+ * 产品：用户推广的一个网站，所有资料与文案的载体（见 GLOSSARY.md）。
+ * 基本信息抓取自产品首页，可人工修改；analysis/intro/description 由 LLM 产出。
+ */
+export interface Product {
 	id: string
-	sourceUrl: string
-	sourceTitle: string
-	pageAscore: number
-	status: BacklinkStatus
-	analysisLog: string[]
-	analysisResult?: BacklinkAnalysisResult
-	domain?: string
+	/** 裸域名，如 example.com（输入时已去协议/路径/www 前缀） */
+	domain: string
+	/** 网站名 */
+	name: string
+	/** 网站首页 URL，如 https://example.com */
+	url: string
+	/** logo，dataURL；首页抓不到则为空，用户可手动上传 */
+	logoDataUrl?: string
+	/** og 宣传封面图，dataURL；首页抓不到则为空，用户可手动上传 */
+	ogDataUrl?: string
+	/** 联系邮箱，默认 support@裸域名 */
+	email: string
+	/** 产品分析：添加产品时 LLM 基于首页内容生成的定位素材，后续文案生成的原料 */
+	analysis?: string
+	/** 最近一次生成的简介（英文，≤300 字符），仅用于展示缓存 */
+	intro?: string
+	/** 最近一次生成的详述（markdown，≤1000 字符，含 1～3 个产品域名链接），仅用于展示缓存 */
+	description?: string
 	createdAt: number
 	updatedAt: number
 }

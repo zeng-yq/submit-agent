@@ -1,78 +1,22 @@
-import type { ExtSettings, LLMSettings, ProviderConfigs, ProviderKey } from './types'
+import type { LLMSettings } from './types'
+
+export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1'
+export const DEEPSEEK_MODEL = 'deepseek-v4-flash'
 
 const STORAGE_KEYS = {
-	llmConfig: 'submitAgent_llmConfig',
-	providerConfigs: 'submitAgent_providerConfigs',
-	autoRewrite: 'submitAgent_autoRewrite',
+	deepseekApiKey: 'submitAgent_deepseekApiKey',
 	activeProductId: 'submitAgent_activeProductId',
-	floatButtonEnabled: 'submitAgent_floatButtonEnabled',
-	analysisConcurrency: 'submitAgent_analysisConcurrency',
 } as const
 
-const EMPTY_LLM: LLMSettings = { apiKey: '', baseUrl: '', model: '' }
-
-function defaultProviderConfigs(): ProviderConfigs {
-	return {
-		active: 'openrouter',
-		configs: {
-			openrouter: { apiKey: '', baseUrl: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-lite-001' },
-			openai: { apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-			deepseek: { apiKey: '', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
-			custom: { ...EMPTY_LLM },
-		},
-	}
+/** 端点与模型固定，仅 API Key 可配置（DeepSeek 专属，见 GLOSSARY.md） */
+export async function getDeepSeekConfig(): Promise<LLMSettings> {
+	const result = await chrome.storage.local.get(STORAGE_KEYS.deepseekApiKey)
+	const apiKey = (result[STORAGE_KEYS.deepseekApiKey] as string) ?? ''
+	return { apiKey, baseUrl: DEEPSEEK_BASE_URL, model: DEEPSEEK_MODEL }
 }
 
-export async function getProviderConfigs(): Promise<ProviderConfigs> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.providerConfigs)
-	const stored = result[STORAGE_KEYS.providerConfigs] as ProviderConfigs | undefined
-	if (stored?.active && stored?.configs) return stored
-	return defaultProviderConfigs()
-}
-
-export async function setProviderConfigs(configs: ProviderConfigs): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.providerConfigs]: configs })
-}
-
-/** Resolves the active provider config into a single LLMSettings for the agent to use */
-export async function getLLMConfig(): Promise<LLMSettings> {
-	const pc = await getProviderConfigs()
-	const cfg = pc.configs[pc.active]
-	if (!cfg || (!cfg.baseUrl && !cfg.model)) {
-		return defaultProviderConfigs().configs.openrouter
-	}
-	return cfg
-}
-
-export async function setLLMConfig(config: LLMSettings): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.llmConfig]: config })
-}
-
-export async function getAutoRewrite(): Promise<boolean> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.autoRewrite)
-	return (result[STORAGE_KEYS.autoRewrite] as boolean) ?? true
-}
-
-export async function setAutoRewrite(value: boolean): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.autoRewrite]: value })
-}
-
-export async function getFloatButtonEnabled(): Promise<boolean> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.floatButtonEnabled)
-	return (result[STORAGE_KEYS.floatButtonEnabled] as boolean) ?? true
-}
-
-export async function setFloatButtonEnabled(value: boolean): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.floatButtonEnabled]: value })
-}
-
-export async function getAnalysisConcurrency(): Promise<number> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.analysisConcurrency)
-	return (result[STORAGE_KEYS.analysisConcurrency] as number) ?? 3
-}
-
-export async function setAnalysisConcurrency(value: number): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.analysisConcurrency]: value })
+export async function setDeepSeekApiKey(apiKey: string): Promise<void> {
+	await chrome.storage.local.set({ [STORAGE_KEYS.deepseekApiKey]: apiKey })
 }
 
 export async function getActiveProductId(): Promise<string | null> {
@@ -86,12 +30,4 @@ export async function setActiveProductId(id: string | null): Promise<void> {
 	} else {
 		await chrome.storage.local.set({ [STORAGE_KEYS.activeProductId]: id })
 	}
-}
-
-export async function getExtSettings(): Promise<ExtSettings> {
-	const [llm, autoRewriteDesc] = await Promise.all([
-		getLLMConfig(),
-		getAutoRewrite(),
-	])
-	return { llm, autoRewriteDesc }
 }

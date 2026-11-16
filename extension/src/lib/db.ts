@@ -1,414 +1,64 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
-import type { ProductProfile, SiteRecord, SiteData, SubmissionRecord, BacklinkRecord, BacklinkStatus, SiteCategory } from './types'
-import { extractDomain } from './backlinks'
+import type { Product } from './types'
 
 const DB_NAME = 'submit-agent'
-const DB_VERSION = 7
+const DB_VERSION = 8
+
+/** v7 及以前的 store。旧功能已整体移除，升级时全部清空，不做数据迁移。 */
+const LEGACY_STORES = ['products', 'submissions', 'sites', 'backlinks'] as const
 
 interface SubmitAgentDB extends DBSchema {
 	products: {
 		key: string
-		value: ProductProfile
-		indexes: { 'by-updated': number }
-	}
-	submissions: {
-		key: string
-		value: SubmissionRecord
-		indexes: {
-			'by-site': string
-			'by-product': string
-			'by-status': string
-			'by-updated': number
-		}
-	}
-	sites: {
-		key: string
-		value: SiteRecord
-		indexes: {
-			'by-category': string
-			'by-dr': number
-			'by-domain': string
-		}
-	}
-	backlinks: {
-		key: string
-		value: BacklinkRecord
-		indexes: {
-			'by-status': string
-			'by-url': string
-			'by-updated': number
-		}
+		value: Product
+		indexes: { 'by-domain': string; 'by-updated': number }
 	}
 }
 
 let dbPromise: Promise<IDBPDatabase<SubmitAgentDB>> | null = null
 
-export function getDB() {
+function getDB() {
 	if (!dbPromise) {
 		dbPromise = openDB<SubmitAgentDB>(DB_NAME, DB_VERSION, {
-			upgrade(db, oldVersion, _newVersion, tx) {
-				if (oldVersion < 1) {
-					const products = db.createObjectStore('products', { keyPath: 'id' })
-					products.createIndex('by-updated', 'updatedAt')
-
-					const submissions = db.createObjectStore('submissions', { keyPath: 'id' })
-					submissions.createIndex('by-site', 'siteName')
-					submissions.createIndex('by-product', 'productId')
-					submissions.createIndex('by-status', 'status')
-					submissions.createIndex('by-updated', 'updatedAt')
+			upgrade(db) {
+				// idb 的类型化 API 只认识新 schema 的 store，删除旧 store 需走原生接口
+				const legacy = db as unknown as IDBDatabase
+				for (const storeName of LEGACY_STORES) {
+					if (legacy.objectStoreNames.contains(storeName)) legacy.deleteObjectStore(storeName)
 				}
-				if (oldVersion < 2) {
-					const sites = db.createObjectStore('sites', { keyPath: 'name' })
-					sites.createIndex('by-category', 'category')
-					sites.createIndex('by-dr', 'dr')
-					}
-				if (oldVersion < 3) {
-					const backlinks = db.createObjectStore('backlinks', { keyPath: 'id' })
-					backlinks.createIndex('by-status', 'status')
-					backlinks.createIndex('by-url', 'sourceUrl')
-					backlinks.createIndex('by-updated', 'updatedAt')
-				}
-				if (oldVersion < 4) {
-					// Schema-less: new optional fields (error, failedAt) need no index changes
-				}
-				if (oldVersion < 6) {
-					if (db.objectStoreNames.contains('sites')) {
-						tx.objectStore('sites').createIndex('by-domain', 'domain')
-					}
-				}
-				if (oldVersion < 7) {
-					if (db.objectStoreNames.contains('sites')) {
-						const store = tx.objectStore('sites')
-						const request = store.openCursor()
-						request.onsuccess = () => {
-							const cursor = request.result
-							if (cursor) {
-								const record = cursor.value
-								if (!record.domain && record.submit_url) {
-									record.domain = extractDomain(record.submit_url)
-									cursor.update(record)
-								}
-								cursor.continue()
-							}
-						}
-					}
-				}
+				const products = db.createObjectStore('products', { keyPath: 'id' })
+				products.createIndex('by-domain', 'domain', { unique: true })
+				products.createIndex('by-updated', 'updatedAt')
 			},
 		})
 	}
 	return dbPromise
 }
 
-// ---- Product CRUD ----
-
-export async function saveProduct(
-	data: Omit<ProductProfile, 'id' | 'createdAt' | 'updatedAt'>
-): Promise<ProductProfile> {
-	const db = await getDB()
-	const now = Date.now()
-	const record: ProductProfile = {
-		...data,
-		id: crypto.randomUUID(),
-		createdAt: now,
-		updatedAt: now,
-	}
-	await db.put('products', record)
-	return record
-}
-
-export async function updateProduct(product: ProductProfile): Promise<ProductProfile> {
-	const db = await getDB()
-	const updated = { ...product, updatedAt: Date.now() }
-	await db.put('products', updated)
-	return updated
-}
-
-export async function getProduct(id: string): Promise<ProductProfile | undefined> {
-	const db = await getDB()
-	return db.get('products', id)
-}
-
-export async function listProducts(): Promise<ProductProfile[]> {
+/** 全部产品，按更新时间倒序 */
+export async function listProducts(): Promise<Product[]> {
 	const db = await getDB()
 	const all = await db.getAllFromIndex('products', 'by-updated')
 	return all.reverse()
 }
 
+export async function getProduct(id: string): Promise<Product | undefined> {
+	const db = await getDB()
+	return db.get('products', id)
+}
+
+export async function getProductByDomain(domain: string): Promise<Product | undefined> {
+	const db = await getDB()
+	return db.getFromIndex('products', 'by-domain', domain)
+}
+
+/** 新建或整体覆盖保存（updatedAt 由调用方负责设置） */
+export async function saveProduct(product: Product): Promise<void> {
+	const db = await getDB()
+	await db.put('products', product)
+}
+
 export async function deleteProduct(id: string): Promise<void> {
 	const db = await getDB()
 	await db.delete('products', id)
-}
-
-export async function bulkPutProducts(records: ProductProfile[]): Promise<void> {
-	const db = await getDB()
-	const tx = db.transaction('products', 'readwrite')
-	await tx.store.clear()
-	for (const record of records) {
-		await tx.store.put(record)
-	}
-	await tx.done
-}
-
-// ---- Submission CRUD ----
-
-export async function saveSubmission(
-	data: Omit<SubmissionRecord, 'id' | 'createdAt' | 'updatedAt'>
-): Promise<SubmissionRecord> {
-	const db = await getDB()
-	const now = Date.now()
-	const record: SubmissionRecord = {
-		...data,
-		id: crypto.randomUUID(),
-		createdAt: now,
-		updatedAt: now,
-	}
-	await db.put('submissions', record)
-	return record
-}
-
-export async function updateSubmission(submission: SubmissionRecord): Promise<SubmissionRecord> {
-	const db = await getDB()
-	const updated = { ...submission, updatedAt: Date.now() }
-	await db.put('submissions', updated)
-	return updated
-}
-
-export async function getSubmission(id: string): Promise<SubmissionRecord | undefined> {
-	const db = await getDB()
-	return db.get('submissions', id)
-}
-
-export async function getSubmissionBySite(siteName: string): Promise<SubmissionRecord | undefined> {
-	const db = await getDB()
-	return db.getFromIndex('submissions', 'by-site', siteName)
-}
-
-export async function listSubmissions(): Promise<SubmissionRecord[]> {
-	const db = await getDB()
-	const all = await db.getAllFromIndex('submissions', 'by-updated')
-	return all.reverse()
-}
-
-export async function listSubmissionsByProduct(productId: string): Promise<SubmissionRecord[]> {
-	const db = await getDB()
-	return db.getAllFromIndex('submissions', 'by-product', productId)
-}
-
-export async function deleteSubmission(id: string): Promise<void> {
-	const db = await getDB()
-	await db.delete('submissions', id)
-}
-
-export async function clearSubmissions(): Promise<void> {
-	const db = await getDB()
-	await db.clear('submissions')
-}
-
-export async function bulkPutSubmissions(records: SubmissionRecord[]): Promise<void> {
-	const db = await getDB()
-	const tx = db.transaction('submissions', 'readwrite')
-	await tx.store.clear()
-	for (const record of records) {
-		await tx.store.put(record)
-	}
-	await tx.done
-}
-
-/**
- * 查询「同网站产品组」的所有提交记录。
- *
- * 根据给定产品的 URL 域名，找到所有同域名产品，合并它们的提交记录。
- * 用于跨页面去重：同一网站的不同页面被建为多个产品后，
- * 它们之间不应向同一外链站点重复提交。
- *
- * 写入仍记在各自 productId 名下，查询时按域名组聚合。
- */
-export async function listSubmissionsByProductGroup(productId: string): Promise<SubmissionRecord[]> {
-	const db = await getDB()
-	const anchor = await db.get('products', productId)
-	if (!anchor?.url) return []
-	const domain = extractDomain(anchor.url)
-	if (!domain) return []
-
-	const allProducts = await db.getAll('products')
-	const groupIds = allProducts
-		.filter((p) => p.url && extractDomain(p.url) === domain)
-		.map((p) => p.id)
-	if (groupIds.length === 0) return []
-
-	const tx = db.transaction('submissions', 'readonly')
-	const index = tx.store.index('by-product')
-	const results: SubmissionRecord[] = []
-	for (const id of groupIds) {
-		const subs = await index.getAll(id)
-		results.push(...subs)
-	}
-	await tx.done
-	return results
-}
-
-// ---- Site CRUD ----
-
-/** Seed sites from sites.json into IndexedDB. Uses put (upsert) so existing records are preserved. */
-export async function seedSites(sites: SiteData[]): Promise<void> {
-	const db = await getDB()
-	const tx = db.transaction('sites', 'readwrite')
-	const now = Date.now()
-	for (const site of sites) {
-		const existing = await tx.store.get(site.name)
-		if (!existing) {
-			const raw = site.category as string
-			const category: SiteCategory = raw === 'Non-Blog Comment' ? 'others' : raw as SiteCategory
-			const record: SiteRecord = {
-				...site,
-				category,
-				domain: site.submit_url ? extractDomain(site.submit_url) : undefined,
-				createdAt: now,
-				updatedAt: now,
-			}
-			await tx.store.put(record)
-		}
-	}
-	await tx.done
-}
-
-export async function getSite(name: string): Promise<SiteRecord | undefined> {
-	const db = await getDB()
-	return db.get('sites', name)
-}
-
-export async function listSites(): Promise<SiteRecord[]> {
-	const db = await getDB()
-	return db.getAll('sites')
-}
-
-export async function addSite(site: SiteRecord): Promise<void> {
-	const db = await getDB()
-	await db.put('sites', site)
-}
-
-export async function updateSite(site: SiteRecord): Promise<SiteRecord> {
-	const db = await getDB()
-	const updated = { ...site, updatedAt: Date.now() }
-	await db.put('sites', updated)
-	return updated
-}
-
-export async function deleteSite(name: string): Promise<void> {
-	const db = await getDB()
-	await db.delete('sites', name)
-}
-
-export async function clearSites(): Promise<void> {
-	const db = await getDB()
-	await db.clear('sites')
-}
-
-export async function bulkPutSites(records: SiteRecord[]): Promise<void> {
-	const db = await getDB()
-	const tx = db.transaction('sites', 'readwrite')
-	await tx.store.clear()
-	for (const record of records) {
-		if (!record.domain && record.submit_url) {
-			record.domain = extractDomain(record.submit_url)
-		}
-		await tx.store.put(record)
-	}
-	await tx.done
-}
-
-export async function deleteSubmissionsBySite(siteName: string): Promise<void> {
-	const db = await getDB()
-	const tx = db.transaction('submissions', 'readwrite')
-	let cursor = await tx.store.index('by-site').openCursor(siteName)
-	while (cursor) {
-		await cursor.delete()
-		cursor = await cursor.continue()
-	}
-	await tx.done
-}
-
-// ---- Backlink CRUD ----
-
-export async function saveBacklink(
-	data: Omit<BacklinkRecord, 'id' | 'createdAt' | 'updatedAt'>
-): Promise<BacklinkRecord> {
-	const db = await getDB()
-	const now = Date.now()
-	const record: BacklinkRecord = {
-		...data,
-		domain: data.domain ?? extractDomain(data.sourceUrl),
-		id: crypto.randomUUID(),
-		createdAt: now,
-		updatedAt: now,
-	}
-	await db.put('backlinks', record)
-	return record
-}
-
-export async function updateBacklink(backlink: BacklinkRecord): Promise<BacklinkRecord> {
-	const db = await getDB()
-	const updated = { ...backlink, updatedAt: Date.now() }
-	await db.put('backlinks', updated)
-	return updated
-}
-
-export async function getBacklink(id: string): Promise<BacklinkRecord | undefined> {
-	const db = await getDB()
-	return db.get('backlinks', id)
-}
-
-export async function getBacklinkByUrl(sourceUrl: string): Promise<BacklinkRecord | undefined> {
-	const db = await getDB()
-	return db.getFromIndex('backlinks', 'by-url', sourceUrl)
-}
-
-export async function getSiteByDomain(domain: string): Promise<SiteRecord | undefined> {
-	const db = await getDB()
-	return db.getFromIndex('sites', 'by-domain', domain)
-}
-
-export async function getExistingDomains(): Promise<Set<string>> {
-	const db = await getDB()
-	const tx = db.transaction('sites', 'readonly')
-	const index = tx.store.index('by-domain')
-	const domains = new Set<string>()
-	let cursor = await index.openCursor()
-	while (cursor) {
-		domains.add(cursor.key as string)
-		cursor = await cursor.continue()
-	}
-	await tx.done
-	return domains
-}
-
-export async function listBacklinks(): Promise<BacklinkRecord[]> {
-	const db = await getDB()
-	const all = await db.getAllFromIndex('backlinks', 'by-updated')
-	return all.reverse()
-}
-
-export async function listBacklinksByStatus(status: BacklinkStatus): Promise<BacklinkRecord[]> {
-	const db = await getDB()
-	return db.getAllFromIndex('backlinks', 'by-status', status)
-}
-
-export async function deleteBacklink(id: string): Promise<void> {
-	const db = await getDB()
-	await db.delete('backlinks', id)
-}
-
-export async function clearBacklinks(): Promise<void> {
-	const db = await getDB()
-	await db.clear('backlinks')
-}
-
-export async function bulkPutBacklinks(records: BacklinkRecord[]): Promise<void> {
-	const db = await getDB()
-	const tx = db.transaction('backlinks', 'readwrite')
-	await tx.store.clear()
-	for (const record of records) {
-		await tx.store.put(record)
-	}
-	await tx.done
 }

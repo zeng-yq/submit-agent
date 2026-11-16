@@ -16,9 +16,6 @@ export default defineConfig({
 	},
 	vite: () => ({
 		plugins: [tailwindcss()],
-		define: {
-			__VERSION__: JSON.stringify('0.1.0'),
-		},
 		build: {
 			minify: false,
 			chunkSizeWarningLimit: 2000,
@@ -29,8 +26,8 @@ export default defineConfig({
 	},
 	manifest: {
 		name: 'Submit Agent',
-		description: 'AI-powered auto-submission for product directories and backlink sites',
-		permissions: ['tabs', 'tabGroups', 'sidePanel', 'storage', 'activeTab', 'identity'],
+		description: '目录站提交资料生成：产品资料库 + 英文文案生成 + 快捷复制',
+		permissions: ['sidePanel', 'storage'],
 		host_permissions: ['<all_urls>'],
 		icons: {
 			16: 'assets/icon-16.png',
