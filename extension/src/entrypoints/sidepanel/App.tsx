@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Settings, Trash2 } from 'lucide-react'
 import { SettingsDialog } from '@/components/SettingsDialog'
+import { ProductBasics } from '@/components/ProductBasics'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -97,6 +98,14 @@ export default function App() {
 						</Button>
 					</div>
 				</section>
+
+				{activeProduct ? (
+					<ProductBasics product={activeProduct} onChanged={loadProducts} />
+				) : (
+					<section className="border-t border-border pt-4">
+						<p className="text-xs text-muted-foreground">添加第一个产品后，这里会展示它的基本信息与复制按钮。</p>
+					</section>
+				)}
 
 				<section className="space-y-2 border-t border-border pt-4">
 					<Input

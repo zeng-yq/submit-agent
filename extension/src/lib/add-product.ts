@@ -3,6 +3,7 @@ import { parseHomepageBasics } from './homepage'
 import { buildProductAnalysisPrompt } from './prompts'
 import { getProductByDomain, saveProduct } from './db'
 import { toErrorMessage } from './to-error-message'
+import { readBlobAsDataUrl } from './data-url'
 import type { LLMSettings, Product } from './types'
 
 export interface AddProductDeps {
@@ -84,13 +85,7 @@ export async function fetchImageAsDataUrl(url: string): Promise<string | undefin
 	try {
 		const response = await fetch(url)
 		if (!response.ok) return undefined
-		const blob = await response.blob()
-		return await new Promise<string>((resolve, reject) => {
-			const reader = new FileReader()
-			reader.onload = () => resolve(reader.result as string)
-			reader.onerror = () => reject(reader.error ?? new Error(`读取图片失败: ${url}`))
-			reader.readAsDataURL(blob)
-		})
+		return await readBlobAsDataUrl(await response.blob())
 	} catch (err: unknown) {
 		// 按规格图片缺失留空不阻断添加，但记录原因便于排查
 		console.warn(`[Submit Agent] 抓取图片失败，留空: ${url}`, err)

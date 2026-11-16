@@ -58,6 +58,18 @@ export async function saveProduct(product: Product): Promise<void> {
 	await db.put('products', product)
 }
 
+/** 基于库中最新记录合并部分字段（避免闭包旧记录整体覆盖并发修改） */
+export async function updateProduct(id: string, patch: Partial<Product>): Promise<Product> {
+	const db = await getDB()
+	const latest = await db.get('products', id)
+	if (!latest) {
+		throw new Error(`产品不存在，无法更新: ${id}`)
+	}
+	const merged: Product = { ...latest, ...patch, updatedAt: Date.now() }
+	await db.put('products', merged)
+	return merged
+}
+
 export async function deleteProduct(id: string): Promise<void> {
 	const db = await getDB()
 	await db.delete('products', id)
