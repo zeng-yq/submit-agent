@@ -6,14 +6,15 @@ import { Input } from '@/components/ui/Input'
 import {
 	getActiveProvider,
 	getLLMApiKey,
+	getLLMModel,
 	setActiveProvider,
 	setLLMApiKey,
+	setLLMModel,
 	LLM_PROVIDERS,
 	type LLMProviderId,
 } from '@/lib/storage'
 import { testLLMConnection, type TestResult } from '@/lib/llm-test'
 import { toErrorMessage } from '@/lib/to-error-message'
-import { cn } from '@/lib/cn'
 
 const TEST_FAIL_MESSAGES: Record<Exclude<TestResult, { ok: true }>['code'], string> = {
 	unreachable: '无法连接端点，请检查网络',
@@ -35,6 +36,7 @@ const PROVIDER_IDS = Object.keys(LLM_PROVIDERS) as LLMProviderId[]
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
 	const [provider, setProvider] = useState<LLMProviderId>('deepseek')
+	const [model, setModel] = useState('')
 	const [apiKey, setApiKey] = useState('')
 	const [keyVisible, setKeyVisible] = useState(false)
 	const [loadError, setLoadError] = useState('')
@@ -52,6 +54,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 			.then(async (activeProvider) => {
 				setProvider(activeProvider)
 				setApiKey(await getLLMApiKey(activeProvider))
+				setModel(await getLLMModel(activeProvider))
 			})
 			.catch((err: unknown) => setLoadError(`读取已存配置失败: ${toErrorMessage(err)}`))
 	}, [open])
@@ -61,9 +64,11 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 		if (next === provider) return
 		try {
 			const nextKey = await getLLMApiKey(next)
+			const nextModel = await getLLMModel(next)
 			await setActiveProvider(next)
 			setProvider(next)
 			setApiKey(nextKey)
+			setModel(nextModel)
 			setSaveOutcome(null)
 			setTestOutcome(null)
 			setLoadError('')
@@ -74,10 +79,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 
 	async function handleSave() {
 		const trimmed = apiKey.trim()
+		const trimmedModel = model.trim()
 		setApiKey(trimmed)
+		setModel(trimmedModel)
 		try {
-			await setLLMApiKey(provider, trimmed)
-			setSaveOutcome({ ok: true, message: trimmed ? '已保存' : '已清空' })
+			await Promise.all([setLLMApiKey(provider, trimmed), setLLMModel(provider, trimmedModel)])
+			setSaveOutcome({ ok: true, message: trimmed ? '已保存' : '已保存（API Key 已清空）' })
 			setTestOutcome(null)
 		} catch (err: unknown) {
 			setSaveOutcome({ ok: false, message: `保存失败: ${toErrorMessage(err)}` })
@@ -94,11 +101,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 		setTesting(true)
 		setTestOutcome(null)
 		const providerConfig = LLM_PROVIDERS[provider]
+		const testModel = model.trim() || providerConfig.model
 		try {
 			const result = await testLLMConnection({
 				apiKey: trimmed,
 				baseUrl: providerConfig.baseUrl,
-				model: providerConfig.model,
+				model: testModel,
 			})
 			setTestOutcome(
 				result.ok
@@ -119,19 +127,15 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 				<DialogCloseButton onClose={onClose} />
 			</DialogHeader>
 			<DialogContent>
-				<div className="space-y-1">
-					<span className="text-sm font-medium text-foreground">供应商</span>
-					<div className="flex gap-1 rounded-lg border border-border bg-muted/50 p-1">
+				<div className="space-y-1.5">
+					<span className="text-xs font-medium text-foreground">供应商</span>
+					<div className="groove w-full" role="group" aria-label="供应商">
 						{PROVIDER_IDS.map((id) => (
 							<button
 								key={id}
 								type="button"
-								className={cn(
-									'flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-									provider === id
-										? 'bg-background text-foreground shadow-sm'
-										: 'text-muted-foreground hover:text-foreground',
-								)}
+								className="groove-choice flex-1 font-sans"
+								aria-pressed={provider === id}
 								onClick={() => void handleSelectProvider(id)}
 							>
 								{LLM_PROVIDERS[id].label}
@@ -139,9 +143,21 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 						))}
 					</div>
 					<p className="text-xs text-muted-foreground">
-						{LLM_PROVIDERS[provider].label} · {LLM_PROVIDERS[provider].model}（模型固定）
+						{LLM_PROVIDERS[provider].label} · 模型可修改，保存后生效
 					</p>
 				</div>
+
+				<Input
+					label="模型"
+					placeholder={LLM_PROVIDERS[provider].model}
+					value={model}
+					onChange={(e) => {
+						setModel(e.target.value)
+						setSaveOutcome(null)
+					}}
+					autoComplete="off"
+					spellCheck={false}
+				/>
 
 				<Input
 					label="API Key"
@@ -156,11 +172,11 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 					suffix={
 						<button
 							type="button"
-							className="p-1 rounded text-muted-foreground/60 hover:text-foreground"
+							className="relative rounded p-1.5 cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 motion-reduce:transition-none after:absolute after:-inset-1 after:content-['']"
 							onClick={() => setKeyVisible((v) => !v)}
 							aria-label={keyVisible ? '隐藏 Key' : '显示 Key'}
 						>
-							{keyVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+							{keyVisible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
 						</button>
 					}
 				/>

@@ -1,4 +1,4 @@
-/** LLM 配置。端点与模型固定为 DeepSeek 官方值，仅 API Key 由用户配置。 */
+/** LLM 配置。端点固定，模型按供应商存于 storage（空值回退内置默认），API Key 由用户配置。 */
 export interface LLMSettings {
 	apiKey: string
 	baseUrl: string

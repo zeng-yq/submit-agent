@@ -9,30 +9,33 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	size?: Size
 }
 
+/** letterpress 控件（Coral）：default 是 ink board 压印，outline 是棉纸卡 */
 const variantStyles: Record<Variant, string> = {
-	default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20',
-	outline: 'border border-border bg-transparent hover:bg-muted',
-	ghost: 'hover:bg-muted',
-	destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-	success: 'bg-success text-success-foreground hover:bg-success/90',
+	default:
+		'bg-primary text-primary-foreground shadow-deck [text-shadow:0_-0.5px_0_oklch(7%_0.01_40_/_0.55)] hover:bg-foreground active:translate-y-px',
+	outline: 'bg-card text-foreground shadow-stock hover:shadow-cast-lift active:translate-y-px',
+	ghost: 'text-muted-foreground hover:bg-muted hover:text-foreground',
+	destructive:
+		'bg-destructive text-destructive-foreground hover:brightness-110 active:translate-y-px',
+	success: 'bg-success text-success-foreground hover:brightness-110 active:translate-y-px',
 }
 
 const sizeStyles: Record<Size, string> = {
 	xs: 'h-7 px-2.5 text-xs',
 	sm: 'h-8 px-3 text-xs',
-	md: 'h-10 px-4 text-sm',
-	lg: 'h-12 px-6 text-base',
-	icon: 'h-9 w-9',
+	md: 'h-9 px-4 text-sm',
+	lg: 'h-10 px-5 text-base',
+	icon: 'h-8 w-8',
 }
 
 export function Button({ variant = 'default', size = 'md', className, ...props }: ButtonProps) {
 	return (
 		<button
 			className={cn(
-				'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium',
-				'transition-all duration-150 active:scale-[0.98]',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-				'disabled:pointer-events-none disabled:opacity-50',
+				'inline-flex items-center justify-center gap-1.5 rounded-md font-medium',
+				'transition-[background-color,color,transform,box-shadow,filter] duration-200',
+				'motion-reduce:transition-none',
+				'disabled:pointer-events-none disabled:opacity-55 disabled:cursor-not-allowed',
 				'cursor-pointer',
 				variantStyles[variant],
 				sizeStyles[size],

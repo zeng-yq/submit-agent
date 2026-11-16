@@ -10,3 +10,6 @@ node_modules
 .zcode/
 .scratch/
 package-lock.json
+
+# hallmark 工具产物（截图/记录）
+.hallmark/

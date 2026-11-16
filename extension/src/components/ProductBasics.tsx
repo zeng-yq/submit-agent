@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
-import { Check, ImagePlus, Pencil, X } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Check, Download, ImagePlus, Pencil, X } from 'lucide-react'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { updateProduct } from '@/lib/db'
 import { copyImageAsPng, copyText } from '@/lib/clipboard'
@@ -19,6 +18,29 @@ interface ProductBasicsProps {
 	product: Product
 	/** 保存后通知父级重载产品列表 */
 	onChanged: () => Promise<void>
+}
+
+/** 行内编辑小按钮：视觉 28px，伪元素扩到 44px 命中区 */
+const rowIconButtonClass =
+	'relative rounded p-1.5 cursor-pointer transition-colors duration-150 motion-reduce:transition-none after:absolute after:-inset-1.5 after:content-[""]'
+
+const IMAGE_EXTENSIONS: Record<string, string> = {
+	'image/png': 'png',
+	'image/jpeg': 'jpg',
+	'image/webp': 'webp',
+	'image/gif': 'gif',
+	'image/bmp': 'bmp',
+}
+
+/** 把已存的 dataURL 图片存为本地文件（有的目标站表单收不了粘贴图片，只收文件上传） */
+function downloadDataUrlImage(dataUrl: string, baseName: string): void {
+	const mime = /^data:(image\/[a-z+-]+)/.exec(dataUrl)?.[1] ?? 'image/png'
+	const link = document.createElement('a')
+	link.href = dataUrl
+	link.download = `${baseName}.${IMAGE_EXTENSIONS[mime] ?? 'png'}`
+	document.body.appendChild(link)
+	link.click()
+	link.remove()
 }
 
 export function ProductBasics({ product, onChanged }: ProductBasicsProps) {
@@ -87,99 +109,130 @@ export function ProductBasics({ product, onChanged }: ProductBasicsProps) {
 	}
 
 	return (
-		<section className="space-y-1 border-t border-border pt-4">
-			{(['name', 'url', 'email'] as const).map((field) => (
-				<div key={field} className="flex items-center gap-2 py-1">
-					<span className="w-14 shrink-0 text-xs text-muted-foreground">{FIELD_LABELS[field]}</span>
-					{editingField === field ? (
-						<>
-							<input
-								className="h-8 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-								value={draftValue}
-								autoFocus
-								onChange={(e) => setDraftValue(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === 'Enter') void saveEdit(field)
-									if (e.key === 'Escape') setEditingField(null)
-								}}
-							/>
-							<Button variant="ghost" size="icon" className="h-8 w-8" aria-label="保存" onClick={() => void saveEdit(field)}>
-								<Check className="h-3.5 w-3.5" />
-							</Button>
-							<Button variant="ghost" size="icon" className="h-8 w-8" aria-label="取消" onClick={() => setEditingField(null)}>
-								<X className="h-3.5 w-3.5" />
-							</Button>
-						</>
-					) : (
-						<>
-							<span className="min-w-0 flex-1 truncate text-xs" title={product[field]}>
-								{product[field]}
-							</span>
-							<CopyButton
-								copied={copiedLabel === field}
-								onCopy={() => void runCopyAction(field, () => copyText(product[field]))}
-								label={`复制${FIELD_LABELS[field]}`}
-							/>
-							<button
-								type="button"
-								className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
-								onClick={() => startEdit(field)}
-								aria-label={`编辑${FIELD_LABELS[field]}`}
-							>
-								<Pencil className="h-3.5 w-3.5" />
-							</button>
-						</>
-					)}
-				</div>
-			))}
-
-			{(
-				[
-					{ field: 'logoDataUrl', fileRef: logoFileRef },
-					{ field: 'ogDataUrl', fileRef: ogFileRef },
-				] as const
-			).map(({ field, fileRef }) => (
-				<div key={field} className="flex items-center gap-2 py-1">
-					<span className="w-14 shrink-0 text-xs text-muted-foreground">{IMAGE_FIELD_LABELS[field]}</span>
-					<div className="flex min-w-0 flex-1 items-center gap-2">
-						{product[field] ? (
-							<img
-								src={product[field]}
-								alt={IMAGE_FIELD_LABELS[field]}
-								className="h-10 w-16 rounded border border-border object-cover"
-							/>
+		<section className="space-y-1.5" aria-label="产品资料">
+			<h2 className="text-sm font-semibold text-foreground">产品资料</h2>
+			<div>
+				{(['name', 'url', 'email'] as const).map((field) => (
+					<div
+						key={field}
+						className="flex items-center gap-2 border-b border-border py-1.5 last:border-b-0"
+					>
+						<span className="w-16 shrink-0 text-xs text-muted-foreground">{FIELD_LABELS[field]}</span>
+						{editingField === field ? (
+							<>
+								<input
+									className="h-7 min-w-0 flex-1 rounded-md border border-field-edge bg-card px-2 text-sm focus-visible:outline-offset-0"
+									value={draftValue}
+									autoFocus
+									onChange={(e) => setDraftValue(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter') void saveEdit(field)
+										if (e.key === 'Escape') setEditingField(null)
+									}}
+								/>
+								<button
+									type="button"
+									className={`${rowIconButtonClass} text-muted-foreground hover:bg-muted hover:text-foreground`}
+									aria-label="保存"
+									onClick={() => void saveEdit(field)}
+								>
+									<Check className="h-4 w-4" aria-hidden="true" />
+								</button>
+								<button
+									type="button"
+									className={`${rowIconButtonClass} text-muted-foreground hover:bg-muted hover:text-foreground`}
+									aria-label="取消"
+									onClick={() => setEditingField(null)}
+								>
+									<X className="h-4 w-4" aria-hidden="true" />
+								</button>
+							</>
 						) : (
-							<span className="text-xs text-muted-foreground/60">未设置</span>
+							<>
+								<span className="min-w-0 flex-1 truncate text-sm" title={product[field]}>
+									{product[field]}
+								</span>
+								<CopyButton
+									copied={copiedLabel === field}
+									onCopy={() => void runCopyAction(field, () => copyText(product[field]))}
+									label={`复制${FIELD_LABELS[field]}`}
+								/>
+								<button
+									type="button"
+									className={`${rowIconButtonClass} text-muted-foreground hover:bg-muted hover:text-foreground`}
+									onClick={() => startEdit(field)}
+									aria-label={`编辑${FIELD_LABELS[field]}`}
+								>
+									<Pencil className="h-4 w-4" aria-hidden="true" />
+								</button>
+							</>
 						)}
 					</div>
-					<CopyButton
-						copied={copiedLabel === field}
-						disabled={!product[field]}
-						onCopy={() =>
-							product[field] && void runCopyAction(field, () => copyImageAsPng(product[field] as string))
-						}
-						label={`复制${IMAGE_FIELD_LABELS[field]}图片`}
-					/>
-					<input
-						ref={fileRef}
-						type="file"
-						accept={UPLOAD_IMAGE_TYPES.join(',')}
-						className="hidden"
-						onChange={(e) => {
-							void uploadImage(field, e.target.files?.[0])
-							e.target.value = ''
-						}}
-					/>
-					<button
-						type="button"
-						className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
-						onClick={() => fileRef.current?.click()}
-						aria-label={`${product[field] ? '更换' : '上传'}${IMAGE_FIELD_LABELS[field]}`}
-					>
-						<ImagePlus className="h-3.5 w-3.5" />
-					</button>
-				</div>
-			))}
+				))}
+
+				{(
+					[
+						{ field: 'logoDataUrl', fileRef: logoFileRef },
+						{ field: 'ogDataUrl', fileRef: ogFileRef },
+					] as const
+				).map(({ field, fileRef }) => (
+					<div key={field} className="flex items-center gap-2 border-b border-border py-1.5">
+						<span className="w-16 shrink-0 text-xs text-muted-foreground">{IMAGE_FIELD_LABELS[field]}</span>
+						<div className="flex min-w-0 flex-1 items-center gap-2">
+							{product[field] ? (
+								<img
+									src={product[field]}
+									alt={IMAGE_FIELD_LABELS[field]}
+									className="h-10 w-16 rounded-md border border-border object-cover"
+								/>
+							) : (
+								<span className="text-sm text-muted-foreground">未设置</span>
+							)}
+						</div>
+						<CopyButton
+							copied={copiedLabel === field}
+							disabled={!product[field]}
+							onCopy={() =>
+								product[field] && void runCopyAction(field, () => copyImageAsPng(product[field] as string))
+							}
+							label={`复制${IMAGE_FIELD_LABELS[field]}图片`}
+						/>
+						<input
+							ref={fileRef}
+							type="file"
+							accept={UPLOAD_IMAGE_TYPES.join(',')}
+							className="hidden"
+							onChange={(e) => {
+								void uploadImage(field, e.target.files?.[0])
+								e.target.value = ''
+							}}
+						/>
+						<button
+							type="button"
+							className={`${rowIconButtonClass} text-muted-foreground hover:bg-muted hover:text-foreground`}
+							onClick={() => fileRef.current?.click()}
+							aria-label={`${product[field] ? '更换' : '上传'}${IMAGE_FIELD_LABELS[field]}`}
+						>
+							<ImagePlus className="h-4 w-4" aria-hidden="true" />
+						</button>
+						<button
+							type="button"
+							className={`${rowIconButtonClass} text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40`}
+							onClick={() =>
+								product[field] &&
+								downloadDataUrlImage(
+									product[field] as string,
+									`${field === 'logoDataUrl' ? 'logo' : 'og'}-${product.domain}`,
+								)
+							}
+							disabled={!product[field]}
+							aria-label={`下载${IMAGE_FIELD_LABELS[field]}`}
+						>
+							<Download className="h-4 w-4" aria-hidden="true" />
+						</button>
+					</div>
+				))}
+			</div>
 
 			{actionError && <p className="pt-1 text-xs text-destructive">{actionError}</p>}
 		</section>

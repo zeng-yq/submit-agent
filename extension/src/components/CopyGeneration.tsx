@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { generateCopy, createCopyLLMCaller } from '@/lib/generate-copy'
@@ -79,24 +78,23 @@ export function CopyGeneration({ product, onChanged }: CopyGenerationProps) {
 	}
 
 	return (
-		<section className="space-y-3 border-t border-border pt-4">
-			<div className="flex items-center justify-between">
-				<h2 className="text-xs font-semibold text-foreground">提交文案</h2>
+		<section className="space-y-3" aria-label="提交文案">
+			<div className="flex items-center justify-between gap-2">
+				<h2 className="text-sm font-semibold text-foreground">提交文案</h2>
 				<Button size="sm" onClick={() => void handleGenerate()} disabled={generating || !limits}>
-					<Sparkles className="h-3.5 w-3.5" />
 					{generating ? '生成中…' : '生成'}
 				</Button>
 			</div>
 
 			{limits && (
-				<div className="space-y-1.5">
-					<LimitChipRow
+				<div className="space-y-2">
+					<LimitGrooveRow
 						label="简介字数"
 						options={INTRO_CHAR_LIMIT_OPTIONS}
 						selected={limits.maxIntroChars}
 						onSelect={(value) => void handleSelectLimit({ maxIntroChars: value })}
 					/>
-					<LimitChipRow
+					<LimitGrooveRow
 						label="详述字数"
 						options={DESCRIPTION_CHAR_LIMIT_OPTIONS}
 						selected={limits.maxDescriptionChars}
@@ -125,14 +123,14 @@ export function CopyGeneration({ product, onChanged }: CopyGenerationProps) {
 				onCopy={() => void handleCopy('description')}
 				mono
 			/>
-			<p className="text-[11px] text-muted-foreground/70">
+			<p className="text-xs text-muted-foreground">
 				字数为软约束，仅用于引导 LLM；详述含 1~3 个产品链接（硬校验，违规自动重试一次）。
 			</p>
 		</section>
 	)
 }
 
-function LimitChipRow({
+function LimitGrooveRow({
 	label,
 	options,
 	selected,
@@ -145,20 +143,15 @@ function LimitChipRow({
 }) {
 	return (
 		<div className="flex items-center gap-2">
-			<span className="w-14 shrink-0 text-xs text-muted-foreground">{label}</span>
-			<div className="flex gap-1">
+			<span className="w-16 shrink-0 text-xs text-muted-foreground">{label}</span>
+			<div className="groove" role="group" aria-label={label}>
 				{options.map((option) => (
 					<button
 						key={option}
 						type="button"
-						className={cn(
-							'rounded-full border px-2.5 py-0.5 text-[11px] transition-colors',
-							selected === option
-								? 'border-primary bg-accent font-medium text-foreground'
-								: 'border-border text-muted-foreground hover:text-foreground',
-						)}
-						onClick={() => onSelect(option)}
+						className="groove-choice"
 						aria-pressed={selected === option}
+						onClick={() => onSelect(option)}
 					>
 						{option}
 					</button>
@@ -181,21 +174,23 @@ function CopyBlock({
 	targetChars: number | undefined
 	copied: boolean
 	onCopy: () => void
+	/** 详述是 markdown 源码，等宽体明示「复制的就是这份源码」 */
 	mono?: boolean
 }) {
 	return (
-		<div className="space-y-1">
-			<div className="flex items-center justify-between">
-				<span className="text-xs font-medium text-foreground">
+		<div className="space-y-1.5">
+			<div className="flex items-center justify-between gap-2">
+				<span className="flex min-w-0 items-baseline gap-2 text-xs font-medium text-foreground">
 					{label}
 					{value && (
 						<span
 							className={cn(
-								'ml-1.5 font-normal',
-								targetChars && value.length > targetChars ? 'text-warning' : 'text-muted-foreground',
+								'font-mono text-xs font-normal tabular-nums',
+								targetChars && value.length > targetChars ? 'text-warning' : 'text-foreground/75',
 							)}
 						>
-							{value.length} 字符{targetChars ? ` / 目标 ≤${targetChars}` : ''}
+							{value.length}
+							{targetChars ? ` / ≤${targetChars}` : ''} 字
 						</span>
 					)}
 				</span>
@@ -203,14 +198,15 @@ function CopyBlock({
 			</div>
 			{value ? (
 				<p
-					className={`max-h-56 overflow-y-auto rounded-md border border-border bg-muted/50 p-2 text-xs leading-relaxed ${
-						mono ? 'whitespace-pre-wrap break-words font-mono' : ''
-					}`}
+					className={cn(
+						'max-h-56 overflow-y-auto rounded-lg bg-card p-3 leading-relaxed shadow-stock whitespace-pre-wrap break-words',
+						mono ? 'font-mono text-xs' : 'text-sm',
+					)}
 				>
 					{value}
 				</p>
 			) : (
-				<p className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground/60">
+				<p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
 					尚未生成，点击「生成」获得新文案
 				</p>
 			)}

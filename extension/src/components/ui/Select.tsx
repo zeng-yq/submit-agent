@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn'
 import type { SelectHTMLAttributes } from 'react'
 import { forwardRef } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 	label?: string
@@ -18,23 +19,30 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 						{label}
 					</label>
 				)}
-				<select
-					ref={ref}
-					id={selectId}
-					className={cn(
-						'h-9 w-full rounded-md border border-border bg-background px-3 text-sm',
-						'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
-						'disabled:opacity-50',
-						className
-					)}
-					{...props}
-				>
-					{options.map((opt) => (
-						<option key={opt.value} value={opt.value}>
-							{opt.label}
-						</option>
-					))}
-				</select>
+				<div className="relative">
+					<select
+						ref={ref}
+						id={selectId}
+						className={cn(
+							'h-9 w-full appearance-none rounded-md border border-field-edge bg-card pl-3 pr-8 text-sm text-foreground',
+							'transition-colors duration-200 motion-reduce:transition-none',
+							'hover:bg-muted',
+							'disabled:opacity-55 disabled:cursor-not-allowed',
+							className
+						)}
+						{...props}
+					>
+						{options.map((opt) => (
+							<option key={opt.value} value={opt.value}>
+								{opt.label}
+							</option>
+						))}
+					</select>
+					<ChevronDown
+						className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+						aria-hidden="true"
+					/>
+				</div>
 			</div>
 		)
 	}

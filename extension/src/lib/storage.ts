@@ -6,9 +6,9 @@ import {
 	type CopyCharLimits,
 } from './copy-limits'
 
-/** 内置 LLM 供应商：端点与模型固定，仅 API Key 可配置（见 GLOSSARY.md「LLM 供应商」） */
+/** 内置 LLM 供应商：端点固定，模型有内置默认值、可在设置中按供应商修改（见 GLOSSARY.md「LLM 供应商」） */
 export const LLM_PROVIDERS = {
-	deepseek: { label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
+	deepseek: { label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-flash' },
 	hy: { label: 'HY', baseUrl: 'https://tokenhub.tencentmaas.com/v1', model: 'hy4-flash' },
 } as const
 
@@ -24,6 +24,10 @@ const STORAGE_KEYS = {
 	apiKeyByProvider: {
 		deepseek: 'submitAgent_deepseekApiKey',
 		hy: 'submitAgent_hyApiKey',
+	} as Record<LLMProviderId, string>,
+	modelByProvider: {
+		deepseek: 'submitAgent_deepseekModel',
+		hy: 'submitAgent_hyModel',
 	} as Record<LLMProviderId, string>,
 } as const
 
@@ -54,11 +58,24 @@ export async function setLLMApiKey(provider: LLMProviderId, apiKey: string): Pro
 	await chrome.storage.local.set({ [key]: apiKey })
 }
 
+/** 模型名：存储值为空或被外部改坏时回退内置默认 */
+export async function getLLMModel(provider: LLMProviderId): Promise<string> {
+	const key = STORAGE_KEYS.modelByProvider[provider]
+	const result = await chrome.storage.local.get(key)
+	const stored = typeof result[key] === 'string' ? (result[key] as string).trim() : ''
+	return stored || LLM_PROVIDERS[provider].model
+}
+
+export async function setLLMModel(provider: LLMProviderId, model: string): Promise<void> {
+	const key = STORAGE_KEYS.modelByProvider[provider]
+	await chrome.storage.local.set({ [key]: model.trim() })
+}
+
 /** 组装当前启用供应商的完整调用配置 */
 export async function getActiveLLMConfig(): Promise<LLMSettings> {
 	const provider = await getActiveProvider()
-	const apiKey = await getLLMApiKey(provider)
-	return { apiKey, baseUrl: LLM_PROVIDERS[provider].baseUrl, model: LLM_PROVIDERS[provider].model }
+	const [apiKey, model] = await Promise.all([getLLMApiKey(provider), getLLMModel(provider)])
+	return { apiKey, baseUrl: LLM_PROVIDERS[provider].baseUrl, model }
 }
 
 export async function getActiveProductId(): Promise<string | null> {

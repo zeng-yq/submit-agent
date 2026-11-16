@@ -33,10 +33,10 @@ export function Dialog({ open, onClose, children }: DialogProps) {
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-foreground/45 p-4">
       <div
         ref={dialogRef}
-        className="w-full max-w-md bg-popover border border-border rounded-lg shadow-xl mx-4"
+        className="w-full max-w-md rounded-xl bg-card text-card-foreground shadow-cast-lift"
       >
         {children}
       </div>
@@ -54,7 +54,7 @@ export function DialogHeader({ className, children }: { className?: string; chil
 }
 
 export function DialogTitle({ className, children }: { className?: string; children: ReactNode }) {
-  return <h3 className={cn('text-sm font-semibold text-foreground', className)}>{children}</h3>
+  return <h3 className={cn('text-base font-semibold text-foreground', className)}>{children}</h3>
 }
 
 export function DialogDescription({ className, children }: { className?: string; children: ReactNode }) {
@@ -69,10 +69,10 @@ export function DialogCloseButton({ onClose }: DialogCloseButtonProps) {
   return (
     <button
       type="button"
-      className="p-1 rounded text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+      className="relative rounded-md p-1.5 cursor-pointer text-muted-foreground hover:bg-accent hover:text-foreground transition-colors duration-150 motion-reduce:transition-none after:absolute after:-inset-1 after:content-['']"
       onClick={onClose}
     >
-      <X className="w-4 h-4" />
+      <X className="h-4 w-4" aria-hidden="true" />
     </button>
   )
 }

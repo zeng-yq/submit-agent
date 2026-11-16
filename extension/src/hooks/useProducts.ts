@@ -3,9 +3,9 @@ import { deleteProduct, listProducts } from '@/lib/db'
 import { getActiveProductId, setActiveProductId } from '@/lib/storage'
 import type { Product } from '@/lib/types'
 
-/** 产品列表与当前选中产品的加载、切换、删除（当前产品选择持久化，重开面板保持）。 */
+/** 产品列表与当前选中产品的加载、切换、删除（当前产品选择持久化，重开面板保持）。null 表示尚未加载完成。 */
 export function useProducts() {
-	const [products, setProducts] = useState<Product[]>([])
+	const [products, setProducts] = useState<Product[] | null>(null)
 	const [activeProductId, setCurrentId] = useState<string | null>(null)
 	const loadProducts = useCallback(async () => {
 		const [all, storedActiveId] = await Promise.all([listProducts(), getActiveProductId()])
@@ -24,7 +24,7 @@ export function useProducts() {
 		void loadProducts()
 	}, [loadProducts])
 
-	const activeProduct = products.find((product) => product.id === activeProductId) ?? null
+	const activeProduct = products?.find((product) => product.id === activeProductId) ?? null
 
 	const selectProduct = useCallback(async (id: string) => {
 		await setActiveProductId(id)
