@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { getDeepSeekConfig, setDeepSeekApiKey, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL } from '@/lib/storage'
 import { testLLMConnection, type TestResult } from '@/lib/llm-test'
+import { toErrorMessage } from '@/lib/to-error-message'
 
 const TEST_FAIL_MESSAGES: Record<Exclude<TestResult, { ok: true }>['code'], string> = {
 	unreachable: '无法连接 DeepSeek 端点，请检查网络',
@@ -20,11 +21,6 @@ function describeFail(result: Exclude<TestResult, { ok: true }>): string {
 	const base = TEST_FAIL_MESSAGES[result.code]
 	const detail = (result.detail ?? '').trim().slice(0, 200)
 	return detail ? `${base}（${detail}）` : base
-}
-
-function toErrorMessage(err: unknown, prefix: string): string {
-	const detail = err instanceof Error ? err.message : String(err)
-	return `${prefix}: ${detail}`
 }
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -44,7 +40,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 		setTestOutcome(null)
 		getDeepSeekConfig()
 			.then((config) => setApiKey(config.apiKey))
-			.catch((err: unknown) => setLoadError(toErrorMessage(err, '读取已存 Key 失败')))
+			.catch((err: unknown) => setLoadError(`读取已存 Key 失败: ${toErrorMessage(err)}`))
 	}, [open])
 
 	async function handleSave() {
@@ -55,7 +51,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 			setSaveOutcome({ ok: true, message: trimmed ? '已保存' : '已清空' })
 			setTestOutcome(null)
 		} catch (err: unknown) {
-			setSaveOutcome({ ok: false, message: toErrorMessage(err, '保存失败') })
+			setSaveOutcome({ ok: false, message: `保存失败: ${toErrorMessage(err)}` })
 		}
 	}
 
@@ -78,7 +74,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 				result.ok ? { ok: true, message: '连接成功，Key 可用' } : { ok: false, message: describeFail(result) },
 			)
 		} catch (err: unknown) {
-			setTestOutcome({ ok: false, message: toErrorMessage(err, '测试请求异常') })
+			setTestOutcome({ ok: false, message: `测试请求异常: ${toErrorMessage(err)}` })
 		} finally {
 			setTesting(false)
 		}
