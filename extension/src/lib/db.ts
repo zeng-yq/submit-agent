@@ -42,11 +42,6 @@ export async function listProducts(): Promise<Product[]> {
 	return all.reverse()
 }
 
-export async function getProduct(id: string): Promise<Product | undefined> {
-	const db = await getDB()
-	return db.get('products', id)
-}
-
 export async function getProductByDomain(domain: string): Promise<Product | undefined> {
 	const db = await getDB()
 	return db.getFromIndex('products', 'by-domain', domain)
