@@ -22,10 +22,10 @@ export default defineConfig({
 		},
 	}),
 	zip: {
-		artifactTemplate: 'submit-agent-{{version}}-{{browser}}.zip',
+		artifactTemplate: 'backlinkkit-{{version}}-{{browser}}.zip',
 	},
 	manifest: {
-		name: 'Submit Agent',
+		name: 'BacklinkKit',
 		description: '目录站提交资料生成：产品资料库 + 英文文案生成 + 快捷复制',
 		permissions: ['sidePanel', 'storage'],
 		host_permissions: ['<all_urls>'],
@@ -35,7 +35,7 @@ export default defineConfig({
 			128: 'assets/icon-128.png',
 		},
 		action: {
-			default_title: 'Submit Agent',
+			default_title: 'BacklinkKit',
 		},
 		side_panel: {
 			default_path: 'sidepanel/index.html',

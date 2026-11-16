@@ -116,7 +116,7 @@ export async function fetchImageAsDataUrl(url: string): Promise<string | undefin
 		return await readBlobAsDataUrl(await response.blob())
 	} catch (err: unknown) {
 		// 按规格图片缺失留空不阻断添加，但记录原因便于排查
-		console.warn(`[Submit Agent] 抓取图片失败，留空: ${url}`, err)
+		console.warn(`[BacklinkKit] 抓取图片失败，留空: ${url}`, err)
 		return undefined
 	}
 }

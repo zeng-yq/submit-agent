@@ -25,7 +25,7 @@ export default function App() {
 		<div className="flex h-dvh flex-col">
 			<header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
 				<div className="min-w-0">
-					<h1 className="truncate text-lg font-semibold tracking-tight text-foreground">Submit Agent</h1>
+					<h1 className="truncate text-lg font-semibold tracking-tight text-foreground">BacklinkKit</h1>
 					<p className="mt-0.5 text-xs text-muted-foreground">目录站提交资料生成助手</p>
 				</div>
 				<button

@@ -13,11 +13,11 @@ const LEGACY_STORAGE_KEYS = [
 export default defineBackground(() => {
 	chrome.sidePanel
 		.setPanelBehavior({ openPanelOnActionClick: true })
-		.catch((err: unknown) => console.error('[Submit Agent] 设置侧栏点击行为失败:', err))
+		.catch((err: unknown) => console.error('[BacklinkKit] 设置侧栏点击行为失败:', err))
 
 	chrome.runtime.onInstalled.addListener(() => {
 		chrome.storage.local
 			.remove(LEGACY_STORAGE_KEYS)
-			.catch((err: unknown) => console.error('[Submit Agent] 清理旧存储键失败:', err))
+			.catch((err: unknown) => console.error('[BacklinkKit] 清理旧存储键失败:', err))
 	})
 })

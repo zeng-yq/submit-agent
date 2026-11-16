@@ -17,17 +17,17 @@ export type LLMProviderId = keyof typeof LLM_PROVIDERS
 export const DEFAULT_LLM_PROVIDER: LLMProviderId = 'deepseek'
 
 const STORAGE_KEYS = {
-	llmProvider: 'submitAgent_llmProvider',
-	activeProductId: 'submitAgent_activeProductId',
-	introCharLimit: 'submitAgent_introCharLimit',
-	descriptionCharLimit: 'submitAgent_descriptionCharLimit',
+	llmProvider: 'backlinkkit_llmProvider',
+	activeProductId: 'backlinkkit_activeProductId',
+	introCharLimit: 'backlinkkit_introCharLimit',
+	descriptionCharLimit: 'backlinkkit_descriptionCharLimit',
 	apiKeyByProvider: {
-		deepseek: 'submitAgent_deepseekApiKey',
-		hy: 'submitAgent_hyApiKey',
+		deepseek: 'backlinkkit_deepseekApiKey',
+		hy: 'backlinkkit_hyApiKey',
 	} as Record<LLMProviderId, string>,
 	modelByProvider: {
-		deepseek: 'submitAgent_deepseekModel',
-		hy: 'submitAgent_hyModel',
+		deepseek: 'backlinkkit_deepseekModel',
+		hy: 'backlinkkit_hyModel',
 	} as Record<LLMProviderId, string>,
 } as const
 

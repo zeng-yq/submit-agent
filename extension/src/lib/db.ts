@@ -1,7 +1,7 @@
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
 import type { Product } from './types'
 
-const DB_NAME = 'submit-agent'
+const DB_NAME = 'backlinkkit'
 const DB_VERSION = 8
 
 /** v7 及以前的 store。旧功能已整体移除，升级时全部清空，不做数据迁移。 */
