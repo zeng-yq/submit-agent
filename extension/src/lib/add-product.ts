@@ -6,11 +6,23 @@ import { toErrorMessage } from './to-error-message'
 import { readBlobAsDataUrl } from './data-url'
 import type { LLMSettings, Product } from './types'
 
+/** 添加产品的管线阶段事件，UI 据此渲染实时进度日志 */
+export type AddProductStage =
+	| { type: 'domain-normalized'; domain: string }
+	| { type: 'homepage-fetching'; url: string }
+	| { type: 'homepage-fetched'; htmlLength: number }
+	| { type: 'basics-parsed'; siteName?: string; logoFound: boolean; ogFound: boolean }
+	| { type: 'images-fetched'; logoSaved: boolean; ogSaved: boolean }
+	| { type: 'analysis-starting' }
+	| { type: 'analysis-done'; analysisLength: number }
+	| { type: 'saved'; productId: string }
+
 export interface AddProductDeps {
 	llmConfig: LLMSettings
 	fetchHomepageHtml: (url: string) => Promise<string>
 	fetchImageAsDataUrl: (url: string) => Promise<string | undefined>
 	callLLM: (options: { systemPrompt: string; userPrompt: string }) => Promise<string>
+	onProgress?: (stage: AddProductStage) => void
 	generateId?: () => string
 	now?: () => number
 }
@@ -23,28 +35,41 @@ export async function addProduct(domainInput: string, deps: AddProductDeps): Pro
 	if (!deps.llmConfig.apiKey) {
 		throw new Error(`未配置 LLM API Key（${deps.llmConfig.baseUrl}），请先在设置中配置后再添加产品`)
 	}
+	const report = deps.onProgress ?? (() => {})
 
 	const domain = normalizeDomain(domainInput)
 	const url = `https://${domain}`
+	report({ type: 'domain-normalized', domain })
 
 	const existing = await getProductByDomain(domain)
 	if (existing) {
 		throw new Error(`该域名已存在产品记录: ${domain}`)
 	}
 
+	report({ type: 'homepage-fetching', url })
 	let html: string
 	try {
 		html = await deps.fetchHomepageHtml(url)
 	} catch (err) {
 		throw new Error(`抓取首页失败 (域名 ${domain}): ${toErrorMessage(err)}`)
 	}
+	report({ type: 'homepage-fetched', htmlLength: html.length })
+
 	const basics = parseHomepageBasics(html, url)
+	report({
+		type: 'basics-parsed',
+		siteName: basics.siteName,
+		logoFound: Boolean(basics.logoUrl),
+		ogFound: Boolean(basics.ogImageUrl),
+	})
 
 	const [logoDataUrl, ogDataUrl] = await Promise.all([
 		basics.logoUrl ? deps.fetchImageAsDataUrl(basics.logoUrl) : undefined,
 		basics.ogImageUrl ? deps.fetchImageAsDataUrl(basics.ogImageUrl) : undefined,
 	])
+	report({ type: 'images-fetched', logoSaved: Boolean(logoDataUrl), ogSaved: Boolean(ogDataUrl) })
 
+	report({ type: 'analysis-starting' })
 	const analysis = await deps
 		.callLLM(
 			buildProductAnalysisPrompt({ domain, siteName: basics.siteName, homepageText: basics.textContent }),
@@ -52,10 +77,12 @@ export async function addProduct(domainInput: string, deps: AddProductDeps): Pro
 		.catch((err: unknown) => {
 			throw new Error(`生成产品分析失败 (域名 ${domain}): ${toErrorMessage(err)}`)
 		})
+	report({ type: 'analysis-done', analysisLength: analysis.length })
 
 	const timestamp = (deps.now ?? Date.now)()
 	const product: Product = {
-		id: (deps.generateId ?? crypto.randomUUID)(),
+		// 必须以方法形式调用 crypto.randomUUID：取出引用裸调会抛 Illegal invocation
+		id: deps.generateId?.() ?? crypto.randomUUID(),
 		domain,
 		name: basics.siteName ?? domain,
 		url,
@@ -68,6 +95,7 @@ export async function addProduct(domainInput: string, deps: AddProductDeps): Pro
 	}
 
 	await saveProduct(product)
+	report({ type: 'saved', productId: product.id })
 	return product
 }
 

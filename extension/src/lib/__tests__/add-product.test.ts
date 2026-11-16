@@ -163,3 +163,33 @@ describe('addProduct · 缺失回退', () => {
 		expect(await getProductByDomain('analyse-fail.com')).toBeUndefined()
 	})
 })
+
+describe('addProduct · 进度事件与默认 id 生成', () => {
+	it('按管线阶段依次上报进度事件', async () => {
+		const html = makeHomepageHtml({ siteName: 'ProgFlow', ogImage: 'https://progress-test.com/og.png' })
+		const events: string[] = []
+		const deps = makeDeps(html, {
+			onProgress: (stage) => events.push(stage.type),
+			generateId: () => 'product-progress-1',
+		})
+
+		await addProduct('progress-test.com', deps)
+
+		expect(events).toEqual([
+			'domain-normalized',
+			'homepage-fetching',
+			'homepage-fetched',
+			'basics-parsed',
+			'images-fetched',
+			'analysis-starting',
+			'analysis-done',
+			'saved',
+		])
+	})
+
+	it('不注入 generateId 时默认走 crypto.randomUUID（以方法形式调用），生成 UUID 形状的 id', async () => {
+		const deps = makeDeps(makeHomepageHtml({}), { generateId: undefined })
+		const product = await addProduct('default-id-check.com', deps)
+		expect(product.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+	})
+})
