@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
-import { Check, Copy, ImagePlus, Pencil, X } from 'lucide-react'
+import { Check, ImagePlus, Pencil, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { CopyButton } from '@/components/ui/CopyButton'
 import { updateProduct } from '@/lib/db'
 import { copyImageAsPng, copyText } from '@/lib/clipboard'
 import { readBlobAsDataUrl } from '@/lib/data-url'
@@ -114,7 +115,7 @@ export function ProductBasics({ product, onChanged }: ProductBasicsProps) {
 							<span className="min-w-0 flex-1 truncate text-xs" title={product[field]}>
 								{product[field]}
 							</span>
-							<CopyIconButton
+							<CopyButton
 								copied={copiedLabel === field}
 								onCopy={() => void runCopyAction(field, () => copyText(product[field]))}
 								label={`复制${FIELD_LABELS[field]}`}
@@ -151,7 +152,7 @@ export function ProductBasics({ product, onChanged }: ProductBasicsProps) {
 							<span className="text-xs text-muted-foreground/60">未设置</span>
 						)}
 					</div>
-					<CopyIconButton
+					<CopyButton
 						copied={copiedLabel === field}
 						disabled={!product[field]}
 						onCopy={() =>
@@ -194,30 +195,4 @@ const FIELD_LABELS: Record<TextFieldName, string> = {
 const IMAGE_FIELD_LABELS: Record<ImageFieldName, string> = {
 	logoDataUrl: 'Logo',
 	ogDataUrl: 'OG 封面图',
-}
-
-function CopyIconButton({
-	copied,
-	onCopy,
-	label,
-	disabled,
-}: {
-	copied: boolean
-	onCopy: () => void
-	label: string
-	disabled?: boolean
-}) {
-	return (
-		<button
-			type="button"
-			className={`rounded p-1 transition-colors ${
-				copied ? 'text-success' : 'text-muted-foreground/60 hover:bg-muted hover:text-foreground'
-			} disabled:pointer-events-none disabled:opacity-40`}
-			onClick={onCopy}
-			aria-label={label}
-			disabled={disabled}
-		>
-			{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-		</button>
-	)
 }
