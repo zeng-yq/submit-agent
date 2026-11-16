@@ -85,7 +85,7 @@ describe('addProduct · Fail Fast 守卫', () => {
 			llmConfig: { ...validConfig, apiKey: '' },
 		})
 
-		await expect(addProduct('example.com', deps)).rejects.toThrow('未配置 DeepSeek API Key')
+		await expect(addProduct('example.com', deps)).rejects.toThrow('未配置 LLM API Key（https://api.deepseek.com/v1）')
 		expect(deps.fetchHomepageHtml).not.toHaveBeenCalled()
 		expect(deps.callLLM).not.toHaveBeenCalled()
 	})

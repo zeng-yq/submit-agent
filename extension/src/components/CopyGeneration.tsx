@@ -5,7 +5,7 @@ import { CopyButton } from '@/components/ui/CopyButton'
 import { createCopyLLMCaller, generateCopy } from '@/lib/generate-copy'
 import { updateProduct } from '@/lib/db'
 import { copyText } from '@/lib/clipboard'
-import { getDeepSeekConfig } from '@/lib/storage'
+import { getActiveLLMConfig } from '@/lib/storage'
 import { toErrorMessage } from '@/lib/to-error-message'
 import type { Product } from '@/lib/types'
 
@@ -25,9 +25,9 @@ export function CopyGeneration({ product, onChanged }: CopyGenerationProps) {
 		setGenerating(true)
 		setError(null)
 		try {
-			const config = await getDeepSeekConfig()
+			const config = await getActiveLLMConfig()
 			if (!config.apiKey) {
-				setError('请先在设置中配置 DeepSeek API Key（右上角齿轮）')
+				setError('请先在设置中配置当前供应商的 API Key（右上角齿轮）')
 				return
 			}
 			const copy = await generateCopy(product, { callLLM: createCopyLLMCaller(config) })

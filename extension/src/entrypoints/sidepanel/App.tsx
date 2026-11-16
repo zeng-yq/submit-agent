@@ -13,7 +13,7 @@ import {
 	fetchImageAsDataUrl,
 } from '@/lib/add-product'
 import { callLLM } from '@/lib/llm-utils'
-import { getDeepSeekConfig } from '@/lib/storage'
+import { getActiveLLMConfig } from '@/lib/storage'
 import { toErrorMessage } from '@/lib/to-error-message'
 
 export default function App() {
@@ -28,7 +28,7 @@ export default function App() {
 		setAdding(true)
 		setAddError(null)
 		try {
-			const config = await getDeepSeekConfig()
+			const config = await getActiveLLMConfig()
 			const product = await addProduct(domainInput, {
 				llmConfig: config,
 				fetchHomepageHtml,

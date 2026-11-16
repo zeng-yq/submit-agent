@@ -21,7 +21,7 @@ export interface AddProductDeps {
  */
 export async function addProduct(domainInput: string, deps: AddProductDeps): Promise<Product> {
 	if (!deps.llmConfig.apiKey) {
-		throw new Error('未配置 DeepSeek API Key，请先在设置中配置后再添加产品')
+		throw new Error(`未配置 LLM API Key（${deps.llmConfig.baseUrl}），请先在设置中配置后再添加产品`)
 	}
 
 	const domain = normalizeDomain(domainInput)

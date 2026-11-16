@@ -1,22 +1,56 @@
 import type { LLMSettings } from './types'
 
-export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1'
-export const DEEPSEEK_MODEL = 'deepseek-v4-flash'
-
-const STORAGE_KEYS = {
-	deepseekApiKey: 'submitAgent_deepseekApiKey',
-	activeProductId: 'submitAgent_activeProductId',
+/** 内置 LLM 供应商：端点与模型固定，仅 API Key 可配置（见 GLOSSARY.md「LLM 供应商」） */
+export const LLM_PROVIDERS = {
+	deepseek: { label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash' },
+	hy: { label: 'HY', baseUrl: 'https://tokenhub.tencentmaas.com/v1', model: 'hy4-flash' },
 } as const
 
-/** 端点与模型固定，仅 API Key 可配置（DeepSeek 专属，见 GLOSSARY.md） */
-export async function getDeepSeekConfig(): Promise<LLMSettings> {
-	const result = await chrome.storage.local.get(STORAGE_KEYS.deepseekApiKey)
-	const apiKey = (result[STORAGE_KEYS.deepseekApiKey] as string) ?? ''
-	return { apiKey, baseUrl: DEEPSEEK_BASE_URL, model: DEEPSEEK_MODEL }
+export type LLMProviderId = keyof typeof LLM_PROVIDERS
+
+export const DEFAULT_LLM_PROVIDER: LLMProviderId = 'deepseek'
+
+const STORAGE_KEYS = {
+	llmProvider: 'submitAgent_llmProvider',
+	activeProductId: 'submitAgent_activeProductId',
+	apiKeyByProvider: {
+		deepseek: 'submitAgent_deepseekApiKey',
+		hy: 'submitAgent_hyApiKey',
+	} as Record<LLMProviderId, string>,
+} as const
+
+function isProviderId(value: unknown): value is LLMProviderId {
+	return typeof value === 'string' && value in LLM_PROVIDERS
 }
 
-export async function setDeepSeekApiKey(apiKey: string): Promise<void> {
-	await chrome.storage.local.set({ [STORAGE_KEYS.deepseekApiKey]: apiKey })
+export async function getActiveProvider(): Promise<LLMProviderId> {
+	const result = await chrome.storage.local.get(STORAGE_KEYS.llmProvider)
+	const stored = result[STORAGE_KEYS.llmProvider]
+	// 正常写入必经 isProviderId 校验；回退仅兜底外部手工改坏存储的场景
+	return isProviderId(stored) ? stored : DEFAULT_LLM_PROVIDER
+}
+
+/** 切换即启用：产品分析与文案生成走当前供应商 */
+export async function setActiveProvider(provider: LLMProviderId): Promise<void> {
+	await chrome.storage.local.set({ [STORAGE_KEYS.llmProvider]: provider })
+}
+
+export async function getLLMApiKey(provider: LLMProviderId): Promise<string> {
+	const key = STORAGE_KEYS.apiKeyByProvider[provider]
+	const result = await chrome.storage.local.get(key)
+	return (result[key] as string) ?? ''
+}
+
+export async function setLLMApiKey(provider: LLMProviderId, apiKey: string): Promise<void> {
+	const key = STORAGE_KEYS.apiKeyByProvider[provider]
+	await chrome.storage.local.set({ [key]: apiKey })
+}
+
+/** 组装当前启用供应商的完整调用配置 */
+export async function getActiveLLMConfig(): Promise<LLMSettings> {
+	const provider = await getActiveProvider()
+	const apiKey = await getLLMApiKey(provider)
+	return { apiKey, baseUrl: LLM_PROVIDERS[provider].baseUrl, model: LLM_PROVIDERS[provider].model }
 }
 
 export async function getActiveProductId(): Promise<string | null> {

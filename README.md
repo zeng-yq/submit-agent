@@ -3,7 +3,7 @@
 浏览器侧栏插件：管理多个产品的资料，为目录站外链提交按需生成英文简介与详述，逐项快捷复制后手动粘贴到目标目录站。
 
 - 产品资料（网站名、域名、logo、og 封面图、邮箱）输入域名一键抓取，可随时人工修改
-- 每次点「生成」都调用 DeepSeek 产出全新的简介（≤300 字符）与详述（markdown，≤1000 字符，内含 1~3 个指向产品域名的链接），各目录站文案不重复
+- 每次点「生成」都调用当前 LLM 供应商产出全新的简介（≤300 字符）与详述（markdown，≤1000 字符，内含 1~3 个指向产品域名的链接），各目录站文案不重复
 - 全部数据只存浏览器本地（IndexedDB / chrome.storage.local）
 
 领域词汇见 [GLOSSARY.md](./GLOSSARY.md)。
@@ -18,18 +18,19 @@ pnpm build          # 产物在 extension/dist/chrome-mv3
 
 Chrome 打开 `chrome://extensions` → 开启「开发者模式」→「加载已解压的扩展程序」→ 选择 `extension/dist/chrome-mv3`。点击工具栏图标打开侧栏面板。
 
-## 配置 DeepSeek API Key
+## 配置 LLM API Key
 
 1. 点侧栏右上角齿轮打开设置
-2. 粘贴 [DeepSeek API Key](https://platform.deepseek.com/)（`sk-` 开头）
-3. 点「测试连接」确认可用，再点「保存」
+2. 选择供应商：DeepSeek（`deepseek-v4-flash`）或 HY（`hy4-flash`），切换即启用
+3. 粘贴所选供应商的 API Key（DeepSeek 的以 `sk-` 开头，[在此获取](https://platform.deepseek.com/)）
+4. 点「测试连接」确认可用，再点「保存」
 
-Key 明文保存在浏览器本地，仅本机可读。
+两家供应商的 Key 各自独立保存，随时切换；产品分析与文案生成走当前启用的供应商。Key 明文保存在浏览器本地，仅本机可读。
 
 ## 添加产品
 
 1. 在「添加产品」输入框粘贴产品域名（带不带协议、路径、`www` 都可以，会自动规范化）
-2. 点「开始添加」：插件抓取首页解析网站名 / logo / og 封面图，邮箱默认 `support@裸域名`，并调用 DeepSeek 分析首页内容生成「产品分析」存档
+2. 点「开始添加」：插件抓取首页解析网站名 / logo / og 封面图，邮箱默认 `support@裸域名`，并调用当前 LLM 供应商分析首页内容生成「产品分析」存档
 3. 抓不到的图片留空，可后续手动上传替换；同一域名不能重复添加
 
 ## 管理产品
