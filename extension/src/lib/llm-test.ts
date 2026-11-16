@@ -1,4 +1,5 @@
 import type { LLMSettings } from './types'
+import { disableDeepSeekThinking } from './deepseek'
 
 export type TestResult =
 	| { ok: true }
@@ -23,6 +24,8 @@ export async function testLLMConnection(config: LLMSettings): Promise<TestResult
 				model: config.model,
 				messages: [{ role: 'user', content: 'Hi' }],
 				max_tokens: 1,
+				// 思考链计入 output tokens，max_tokens=1 时会挤占正文导致空响应/400
+				...disableDeepSeekThinking(config),
 			}),
 			signal: controller.signal,
 		})
@@ -38,10 +41,7 @@ export async function testLLMConnection(config: LLMSettings): Promise<TestResult
 
 	if (response.ok) {
 		try {
-			const data = await response.json()
-			if (data.choices?.length > 0) {
-				return { ok: true }
-			}
+			await response.json()
 			return { ok: true }
 		} catch {
 			return { ok: false, code: 'unknown', detail: 'Response was not valid JSON' }
